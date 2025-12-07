@@ -2,6 +2,43 @@
 
 This project is a fork of stashapp/stash. All fork-specific code must follow the extension strategy to minimize merge conflicts with upstream.
 
+## Git Workflow
+
+### Remotes
+
+| Remote | Repository | Purpose |
+|--------|------------|---------|
+| `origin` | `cj12312021/stash` | Your fork - push here |
+| `upstream` | `stashapp/stash` | Upstream - pull updates only |
+
+**NEVER push directly to `upstream`.** Always push to `origin` (your fork).
+
+### Branches
+
+- **`develop`** - Main working branch. All PRs should target this branch.
+- **Feature branches** - Create from `develop`, merge back via PR.
+
+```bash
+# Create a new feature branch
+git checkout develop
+git pull origin develop
+git checkout -b feature/my-new-feature
+
+# When done, push and create PR against develop
+git push origin feature/my-new-feature
+# PR: https://github.com/cj12312021/stash/compare/develop...feature/my-new-feature
+```
+
+### Syncing with Upstream
+
+```bash
+git fetch upstream
+git checkout develop
+git merge upstream/develop
+# Resolve conflicts using /patches/ documentation
+git push origin develop
+```
+
 ## Production Database Available
 
 **A copy of the production database is available at `test-data/stash-go.sqlite`** for performance testing and validation.
