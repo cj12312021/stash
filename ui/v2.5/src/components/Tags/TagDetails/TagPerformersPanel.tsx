@@ -1,17 +1,26 @@
 import React from "react";
 import * as GQL from "src/core/generated-graphql";
 import { useTagFilterHook } from "src/core/tags";
-import { PerformerList } from "src/components/Performers/PerformerList";
+import { EnhancedPerformerList as PerformerList } from "src/extensions/facets/enhanced";
+import { View } from "src/components/List/views";
 
 interface ITagPerformersPanel {
   active: boolean;
   tag: GQL.TagDataFragment;
+  showSubTagContent?: boolean;
 }
 
 export const TagPerformersPanel: React.FC<ITagPerformersPanel> = ({
   active,
   tag,
+  showSubTagContent,
 }) => {
-  const filterHook = useTagFilterHook(tag);
-  return <PerformerList filterHook={filterHook} alterQuery={active} />;
+  const filterHook = useTagFilterHook(tag, showSubTagContent);
+  return (
+    <PerformerList
+      filterHook={filterHook}
+      alterQuery={active}
+      view={View.TagPerformers}
+    />
+  );
 };

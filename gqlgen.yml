@@ -7,9 +7,6 @@ exec:
   filename: internal/api/generated_exec.go
 model:
   filename: internal/api/generated_models.go
-resolver:
-  filename: internal/api/resolver.go
-  type: Resolver
 
 struct_tag: gqlgen
 
@@ -20,7 +17,7 @@ autobind:
   - github.com/stashapp/stash/pkg/scraper
   - github.com/stashapp/stash/internal/identify
   - github.com/stashapp/stash/internal/dlna
-  - github.com/stashapp/stash/pkg/scraper/stashbox
+  - github.com/stashapp/stash/pkg/stashbox
 
 models:
   # Scalars
@@ -36,12 +33,10 @@ models:
     model: github.com/stashapp/stash/internal/api.Timestamp
   BoolMap:
     model: github.com/stashapp/stash/internal/api.BoolMap
-  # define to force resolvers
-  Image:
-    model: github.com/stashapp/stash/pkg/models.Image
-    fields:
-      title:
-        resolver: true
+  PluginConfigMap:
+    model: github.com/stashapp/stash/internal/api.PluginConfigMap
+  File:
+    model: github.com/stashapp/stash/internal/api.File
   VideoFile:
     fields:
       # override float fields - #1572
@@ -49,6 +44,11 @@ models:
         fieldName: DurationFinite
       frame_rate:
         fieldName: FrameRateFinite
+  # movie is group under the hood
+  Movie:
+    model: github.com/stashapp/stash/pkg/models.Group
+  MovieFilterType:
+    model: github.com/stashapp/stash/pkg/models.GroupFilterType
   # autobind on config causes generation issues
   BlobsStorageType:
     model: github.com/stashapp/stash/internal/manager/config.BlobsStorageType
@@ -68,6 +68,8 @@ models:
     model: github.com/stashapp/stash/internal/manager/config.ConfigDisableDropdownCreate
   ScanMetadataOptions:
     model:  github.com/stashapp/stash/internal/manager/config.ScanMetadataOptions
+  CleanGeneratedInput:
+    model: github.com/stashapp/stash/internal/manager/task.CleanGeneratedOptions
   AutoTagMetadataOptions:
     model: github.com/stashapp/stash/internal/manager/config.AutoTagMetadataOptions
   SystemStatus:
@@ -123,9 +125,6 @@ models:
     model: github.com/stashapp/stash/internal/identify.FieldStrategy
   ScraperSource:
     model: github.com/stashapp/stash/pkg/scraper.Source
-  # rebind inputs to types
-  StashIDInput:
-    model: github.com/stashapp/stash/pkg/models.StashID
   IdentifySourceInput:
     model: github.com/stashapp/stash/internal/identify.Source
   IdentifyFieldOptionsInput:

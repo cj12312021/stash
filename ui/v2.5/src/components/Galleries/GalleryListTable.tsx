@@ -43,14 +43,12 @@ export const GalleryListTable: React.FC<IGalleryListTableProps> = (
 
     return (
       <Link to={`/galleries/${gallery.id}`}>
-        {gallery.cover ? (
-          <img
-            loading="lazy"
-            alt={title}
-            className="image-thumbnail"
-            src={`${gallery.cover.paths.thumbnail}`}
-          />
-        ) : undefined}
+        <img
+          loading="lazy"
+          alt={title}
+          className="image-thumbnail"
+          src={gallery.paths.cover}
+        />
       </Link>
     );
   };
@@ -73,6 +71,7 @@ export const GalleryListTable: React.FC<IGalleryListTableProps> = (
     <RatingSystem
       value={gallery.rating100}
       onSetRating={(value) => setRating(value, gallery.id)}
+      clickToRate
     />
   );
 
@@ -85,7 +84,7 @@ export const GalleryListTable: React.FC<IGalleryListTableProps> = (
   };
 
   const TagCell = (gallery: GQL.SlimGalleryDataFragment) => (
-    <ul className="comma-list">
+    <ul className="comma-list overflowable">
       {gallery.tags.map((tag) => (
         <li key={tag.id}>
           <Link to={NavUtils.makeTagGalleriesUrl(tag)}>
@@ -97,7 +96,7 @@ export const GalleryListTable: React.FC<IGalleryListTableProps> = (
   );
 
   const PerformersCell = (gallery: GQL.SlimGalleryDataFragment) => (
-    <ul className="comma-list">
+    <ul className="comma-list overflowable">
       {gallery.performers.map((performer) => (
         <li key={performer.id}>
           <Link to={NavUtils.makePerformerGalleriesUrl(performer)}>
@@ -128,6 +127,16 @@ export const GalleryListTable: React.FC<IGalleryListTableProps> = (
           <Link to={`/scenes/${galleryScene.id}`}>
             <span className="ellips-data">{objectTitle(galleryScene)}</span>
           </Link>
+        </li>
+      ))}
+    </ul>
+  );
+
+  const PathCell = (scene: GQL.SlimGalleryDataFragment) => (
+    <ul className="newline-list overflowable TruncatedText">
+      {scene.files.map((file) => (
+        <li key={file.id}>
+          <span>{file.path}</span>
         </li>
       ))}
     </ul>
@@ -209,6 +218,11 @@ export const GalleryListTable: React.FC<IGalleryListTableProps> = (
       value: "photographer",
       label: intl.formatMessage({ id: "photographer" }),
       render: (s) => <>{s.photographer}</>,
+    },
+    {
+      value: "path",
+      label: intl.formatMessage({ id: "path" }),
+      render: PathCell,
     },
   ];
 

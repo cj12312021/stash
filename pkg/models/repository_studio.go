@@ -22,6 +22,12 @@ type StudioFinder interface {
 // StudioQueryer provides methods to query studios.
 type StudioQueryer interface {
 	Query(ctx context.Context, studioFilter *StudioFilterType, findFilter *FindFilterType) ([]*Studio, int, error)
+	QueryCount(ctx context.Context, studioFilter *StudioFilterType, findFilter *FindFilterType) (int, error)
+}
+
+// StudioFaceter provides methods to get facet counts for studios.
+type StudioFaceter interface {
+	GetFacets(ctx context.Context, studioFilter *StudioFilterType, limit int) (*StudioFacets, error)
 }
 
 type StudioAutoTagQueryer interface {
@@ -36,6 +42,7 @@ type StudioAutoTagQueryer interface {
 // StudioCounter provides methods to count studios.
 type StudioCounter interface {
 	Count(ctx context.Context) (int, error)
+	CountByTagID(ctx context.Context, tagID int) (int, error)
 }
 
 // StudioCreator provides methods to create studios.
@@ -71,9 +78,11 @@ type StudioReader interface {
 	StudioQueryer
 	StudioAutoTagQueryer
 	StudioCounter
+	StudioFaceter
 
 	AliasLoader
 	StashIDLoader
+	TagIDLoader
 
 	All(ctx context.Context) ([]*Studio, error)
 	GetImage(ctx context.Context, studioID int) ([]byte, error)

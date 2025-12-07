@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useHistory } from "react-router-dom";
 import * as GQL from "src/core/generated-graphql";
 import NavUtils from "src/utils/navigation";
 import TextUtils from "src/utils/text";
@@ -11,6 +11,7 @@ import { RatingSystem } from "../Shared/Rating/RatingSystem";
 import { useSceneUpdate } from "src/core/StashService";
 import { IColumn, ListTable } from "../List/ListTable";
 import { useTableColumns } from "src/hooks/useTableColumns";
+import { FileSize } from "../Shared/FileSize";
 
 interface ISceneListTableProps {
   scenes: GQL.SlimSceneDataFragment[];
@@ -25,8 +26,25 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
   props: ISceneListTableProps
 ) => {
   const intl = useIntl();
+  const history = useHistory();
 
   const [updateScene] = useSceneUpdate();
+
+  function onPlayClick(
+    scene: GQL.SlimSceneDataFragment,
+    timestamp: number,
+    index: number
+  ) {
+    const link = props.queue
+      ? props.queue.makeLink(scene.id, {
+          sceneIndex: index,
+          continue: false,
+          start: 1.911,
+        })
+      : `/scenes/${scene.id}?t=${timestamp}`;
+
+    history.push(link);
+  }
 
   function setRating(v: number | null, sceneId: string) {
     if (sceneId) {
@@ -66,9 +84,20 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
       : `/scenes/${scene.id}`;
 
     return (
-      <Link to={sceneLink} title={title}>
-        <span className="ellips-data">{title}</span>
-      </Link>
+      <>
+        <button onClick={() => onPlayClick(scene, 0, index)}>
+          <svg
+            className="circular-playbutton"
+            viewBox="0 0 560 560"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M216 170l190.5 110L216 390z"></path>
+          </svg>
+        </button>
+        <Link to={sceneLink} title={title}>
+          <span className="ellips-data">{title}</span>
+        </Link>
+      </>
     );
   };
 
@@ -78,6 +107,7 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
     <RatingSystem
       value={scene.rating100}
       onSetRating={(value) => setRating(value, scene.id)}
+      clickToRate
     />
   );
 
@@ -87,7 +117,7 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
   };
 
   const TagCell = (scene: GQL.SlimSceneDataFragment) => (
-    <ul className="comma-list">
+    <ul className="comma-list overflowable">
       {scene.tags.map((tag) => (
         <li key={tag.id}>
           <Link to={NavUtils.makeTagScenesUrl(tag)}>
@@ -99,7 +129,7 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
   );
 
   const PerformersCell = (scene: GQL.SlimSceneDataFragment) => (
-    <ul className="comma-list">
+    <ul className="comma-list overflowable">
       {scene.performers.map((performer) => (
         <li key={performer.id}>
           <Link to={NavUtils.makePerformerScenesUrl(performer)}>
@@ -123,12 +153,12 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
     }
   };
 
-  const MovieCell = (scene: GQL.SlimSceneDataFragment) => (
-    <ul className="comma-list">
-      {scene.movies.map((sceneMovie) => (
-        <li key={sceneMovie.movie.id}>
-          <Link to={NavUtils.makeMovieScenesUrl(sceneMovie.movie)}>
-            <span className="ellips-data">{sceneMovie.movie.name}</span>
+  const GroupCell = (scene: GQL.SlimSceneDataFragment) => (
+    <ul className="comma-list overflowable">
+      {scene.groups.map((sceneGroup) => (
+        <li key={sceneGroup.group.id}>
+          <Link to={NavUtils.makeGroupScenesUrl(sceneGroup.group)}>
+            <span className="ellips-data">{sceneGroup.group.name}</span>
           </Link>
         </li>
       ))}
@@ -136,7 +166,7 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
   );
 
   const GalleriesCell = (scene: GQL.SlimSceneDataFragment) => (
-    <ul className="comma-list">
+    <ul className="comma-list overflowable">
       {scene.galleries.map((gallery) => (
         <li key={gallery.id}>
           <Link to={`/galleries/${gallery.id}`}>
@@ -163,6 +193,16 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
       {scene.files.map((file) => (
         <li key={file.id}>
           <span> {TextUtils.resolution(file?.width, file?.height)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+
+  const FileSizeCell = (scene: GQL.SlimSceneDataFragment) => (
+    <ul className="comma-list">
+      {scene.files.map((file) => (
+        <li key={file.id}>
+          <FileSize size={file.size} />
         </li>
       ))}
     </ul>
@@ -203,7 +243,7 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
   );
 
   const AudioCodecCell = (scene: GQL.SlimSceneDataFragment) => (
-    <ul className="comma-list">
+    <ul className="comma-list over">
       {scene.files.map((file) => (
         <li key={file.id}>
           <span>{file.audio_codec}</span>
@@ -217,6 +257,16 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
       {scene.files.map((file) => (
         <li key={file.id}>
           <span>{file.video_codec}</span>
+        </li>
+      ))}
+    </ul>
+  );
+
+  const PathCell = (scene: GQL.SlimSceneDataFragment) => (
+    <ul className="newline-list overflowable TruncatedText">
+      {scene.files.map((file) => (
+        <li key={file.id}>
+          <span>{file.path}</span>
         </li>
       ))}
     </ul>
@@ -271,10 +321,10 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
       render: DurationCell,
     },
     {
-      value: "tags",
-      label: intl.formatMessage({ id: "tags" }),
+      value: "studio",
+      label: intl.formatMessage({ id: "studio" }),
       defaultShow: true,
-      render: TagCell,
+      render: StudioCell,
     },
     {
       value: "performers",
@@ -283,16 +333,16 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
       render: PerformersCell,
     },
     {
-      value: "studio",
-      label: intl.formatMessage({ id: "studio" }),
+      value: "tags",
+      label: intl.formatMessage({ id: "tags" }),
       defaultShow: true,
-      render: StudioCell,
+      render: TagCell,
     },
     {
-      value: "movies",
-      label: intl.formatMessage({ id: "movies" }),
+      value: "groups",
+      label: intl.formatMessage({ id: "groups" }),
       defaultShow: true,
-      render: MovieCell,
+      render: GroupCell,
     },
     {
       value: "galleries",
@@ -312,13 +362,23 @@ export const SceneListTable: React.FC<ISceneListTableProps> = (
     },
     {
       value: "o_counter",
-      label: intl.formatMessage({ id: "o_counter" }),
+      label: intl.formatMessage({ id: "o_count" }),
       render: (s) => <>{s.o_counter}</>,
     },
     {
       value: "resolution",
       label: intl.formatMessage({ id: "resolution" }),
       render: ResolutionCell,
+    },
+    {
+      value: "path",
+      label: intl.formatMessage({ id: "path" }),
+      render: PathCell,
+    },
+    {
+      value: "filesize",
+      label: intl.formatMessage({ id: "filesize" }),
+      render: FileSizeCell,
     },
     {
       value: "framerate",

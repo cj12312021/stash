@@ -1,9 +1,9 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import * as ReactRouterDOM from "react-router-dom";
+import Mousetrap from "mousetrap";
+import MousetrapPause from "mousetrap-pause";
 import NavUtils from "./utils/navigation";
-import { HoverPopover } from "./components/Shared/HoverPopover";
-import { TagLink } from "./components/Shared/TagLink";
-import { LoadingIndicator } from "./components/Shared/LoadingIndicator";
 import * as GQL from "src/core/generated-graphql";
 import * as StashService from "src/core/StashService";
 import * as Apollo from "@apollo/client";
@@ -11,7 +11,16 @@ import * as Bootstrap from "react-bootstrap";
 import * as Intl from "react-intl";
 import * as FontAwesomeSolid from "@fortawesome/free-solid-svg-icons";
 import * as FontAwesomeRegular from "@fortawesome/free-regular-svg-icons";
+import * as FontAwesomeBrands from "@fortawesome/free-brands-svg-icons";
+import * as ReactSelect from "react-select";
 import { useSpriteInfo } from "./hooks/sprite";
+import { useToast } from "./hooks/Toast";
+import Event from "./hooks/event";
+import { after, before, components, instead, RegisterComponent } from "./patch";
+import { useSettings } from "./components/Settings/context";
+import { useInteractive } from "./hooks/Interactive/context";
+import InteractiveUtils from "./hooks/Interactive/utils";
+import { useLightbox, useGalleryLightbox } from "./hooks/Lightbox/hooks";
 
 // due to code splitting, some components may not have been loaded when a plugin
 // page is loaded. This function will load all components passed to it.
@@ -23,9 +32,9 @@ async function loadComponents(c: (() => Promise<unknown>)[]) {
 
 // useLoadComponents is a hook that loads all components passed to it.
 // It returns a boolean indicating whether the components are still loading.
-function useLoadComponents(components: (() => Promise<unknown>)[]) {
+function useLoadComponents(toLoad: (() => Promise<unknown>)[]) {
   const [loading, setLoading] = React.useState(true);
-  const [componentList] = React.useState(components);
+  const [componentList] = React.useState(toLoad);
 
   async function load(c: (() => Promise<unknown>)[]) {
     await loadComponents(c);
@@ -38,40 +47,6 @@ function useLoadComponents(components: (() => Promise<unknown>)[]) {
   }, [componentList]);
 
   return loading;
-}
-
-const components: Record<string, Function> = {
-  HoverPopover,
-  TagLink,
-  LoadingIndicator,
-};
-
-const beforeFns: Record<string, Function[]> = {};
-const insteadFns: Record<string, Function> = {};
-const afterFns: Record<string, Function[]> = {};
-
-// patch functions
-// registers a patch to a function. Before functions are expected to return the
-// new arguments to be passed to the function.
-function before(component: string, fn: Function) {
-  if (!beforeFns[component]) {
-    beforeFns[component] = [];
-  }
-  beforeFns[component].push(fn);
-}
-
-function instead(component: string, fn: Function) {
-  if (insteadFns[component]) {
-    throw new Error("instead has already been called for " + component);
-  }
-  insteadFns[component] = fn;
-}
-
-function after(component: string, fn: Function) {
-  if (!afterFns[component]) {
-    afterFns[component] = [];
-  }
-  afterFns[component].push(fn);
 }
 
 function registerRoute(path: string, component: React.FC) {
@@ -89,14 +64,9 @@ function registerRoute(path: string, component: React.FC) {
   });
 }
 
-export function RegisterComponent(component: string, fn: Function) {
-  // register with the plugin api
-  components[component] = fn;
-
-  return fn;
-}
 export const PluginApi = {
   React,
+  ReactDOM,
   GQL,
   libraries: {
     ReactRouterDOM,
@@ -105,6 +75,10 @@ export const PluginApi = {
     Intl,
     FontAwesomeRegular,
     FontAwesomeSolid,
+    FontAwesomeBrands,
+    Mousetrap,
+    MousetrapPause,
+    ReactSelect,
   },
   register: {
     // register a route to be added to the main router
@@ -113,11 +87,73 @@ export const PluginApi = {
     component: RegisterComponent,
   },
   loadableComponents: {
+    // add any lazy loaded imports here - this is coarse-grained and will load all components
+    // in the import
+    Performers: () => import("./components/Performers/Performers"),
+    FrontPage: () => import("./components/FrontPage/FrontPage"),
+    Scenes: () => import("./components/Scenes/Scenes"),
+    Settings: () => import("./components/Settings/Settings"),
+    Stats: () => import("./components/Stats"),
+    Studios: () => import("./components/Studios/Studios"),
+    Galleries: () => import("./components/Galleries/Galleries"),
+    Groups: () => import("./components/Groups/Groups"),
+    Tags: () => import("./components/Tags/Tags"),
+    Images: () => import("./components/Images/Images"),
+
+    SubmitStashBoxDraft: () => import("src/components/Dialogs/SubmitDraft"),
+    GenerateDialog: () => import("./components/Dialogs/GenerateDialog"),
+
+    ScenePlayer: () => import("src/components/ScenePlayer/ScenePlayer"),
+
+    GalleryViewer: () => import("src/components/Galleries/GalleryViewer"),
+
+    DeleteScenesDialog: () => import("./components/Scenes/DeleteScenesDialog"),
+    SceneList: () => import("./components/Scenes/SceneList"),
+    SceneMarkerList: () => import("./components/Scenes/SceneMarkerList"),
+    Scene: () => import("./components/Scenes/SceneDetails/Scene"),
+    SceneCreate: () => import("./components/Scenes/SceneDetails/SceneCreate"),
+
+    ExternalPlayerButton: () =>
+      import("./components/Scenes/SceneDetails/ExternalPlayerButton"),
+    QueueViewer: () => import("src/extensions/components/QueueViewer"),
+    SceneMarkersPanel: () =>
+      import("./components/Scenes/SceneDetails/SceneMarkersPanel"),
+    SceneFileInfoPanel: () =>
+      import("./components/Scenes/SceneDetails/SceneFileInfoPanel"),
+    SceneDetailPanel: () =>
+      import("src/extensions/components/SceneDetailPanel"),
+    SceneHistoryPanel: () =>
+      import("./components/Scenes/SceneDetails/SceneHistoryPanel"),
+    SceneGroupPanel: () =>
+      import("./components/Scenes/SceneDetails/SceneGroupPanel"),
+    SceneGalleriesPanel: () =>
+      import("./components/Scenes/SceneDetails/SceneGalleriesPanel"),
+    SceneVideoFilterPanel: () =>
+      import("./components/Scenes/SceneDetails/SceneVideoFilterPanel"),
+    SceneScrapeDialog: () =>
+      import("./components/Scenes/SceneDetails/SceneScrapeDialog"),
+    SceneQueryModal: () =>
+      import("./components/Scenes/SceneDetails/SceneQueryModal"),
+
+    LightboxComponent: () => import("src/hooks/Lightbox/Lightbox"),
+
+    // intentionally omitting these for now
+    // Setup: () => import("./components/Setup/Setup"),
+    // Migrate: () => import("./components/Setup/Migrate"),
+    // SceneFilenameParser: () => import("./components/SceneFilenameParser/SceneFilenameParser"),
+    // SceneDuplicateChecker: () => import("./components/SceneDuplicateChecker/SceneDuplicateChecker"),
+    // Manual: () => import("./Manual"),
+
+    // individual components here
     // add components as needed for plugins that provide pages
     SceneCard: () => import("./components/Scenes/SceneCard"),
+    PerformerSelect: () => import("./components/Performers/PerformerSelect"),
+    TagLink: () => import("./components/Shared/TagLink"),
+    PerformerCard: () => import("./components/Performers/PerformerCard"),
   },
   components,
   utils: {
+    InteractiveUtils,
     NavUtils,
     StashService,
     loadComponents,
@@ -125,6 +161,11 @@ export const PluginApi = {
   hooks: {
     useLoadComponents,
     useSpriteInfo,
+    useToast,
+    useSettings,
+    useInteractive,
+    useLightbox,
+    useGalleryLightbox,
   },
   patch: {
     // intercept the arguments of supported functions
@@ -140,52 +181,8 @@ export const PluginApi = {
     // and the result of the original function
     after,
   },
+  Event: Event,
 };
-
-// patches a function to implement the before/instead/after functionality
-export function PatchFunction(name: string, fn: Function) {
-  return new Proxy(fn, {
-    apply(target, ctx, args) {
-      let result;
-
-      for (const beforeFn of beforeFns[name] || []) {
-        args = beforeFn.apply(ctx, args);
-      }
-      if (insteadFns[name]) {
-        result = insteadFns[name].apply(ctx, args.concat(target));
-      } else {
-        result = target.apply(ctx, args);
-      }
-      for (const afterFn of afterFns[name] || []) {
-        result = afterFn.apply(ctx, args.concat(result));
-      }
-      return result;
-    },
-  });
-}
-
-// patches a component and registers it in the pluginapi components object
-export function PatchComponent<T>(
-  component: string,
-  fn: React.FC<T>
-): React.FC<T> {
-  const ret = PatchFunction(component, fn);
-
-  // register with the plugin api
-  RegisterComponent(component, ret);
-  return ret as React.FC<T>;
-}
-
-// patches a component and registers it in the pluginapi components object
-export function PatchContainerComponent(
-  component: string
-): React.FC<React.PropsWithChildren<{}>> {
-  const fn = (props: React.PropsWithChildren<{}>) => {
-    return <>{props.children}</>;
-  };
-
-  return PatchComponent(component, fn);
-}
 
 export default PluginApi;
 

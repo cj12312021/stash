@@ -1,13 +1,13 @@
 import { orientationStrings, stringToOrientation } from "src/utils/orientation";
 import { CriterionType } from "../types";
-import { CriterionOption, MultiStringCriterion } from "./criterion";
+import { ModifierCriterionOption, MultiStringCriterion } from "./criterion";
 import {
   OrientationCriterionInput,
   OrientationEnum,
 } from "src/core/generated-graphql";
 
 export class OrientationCriterion extends MultiStringCriterion {
-  protected toCriterionInput(): OrientationCriterionInput {
+  public toCriterionInput(): OrientationCriterionInput {
     return {
       value: this.value
         .map((v) => stringToOrientation(v))
@@ -16,7 +16,7 @@ export class OrientationCriterion extends MultiStringCriterion {
   }
 }
 
-class BaseOrientationCriterionOption extends CriterionOption {
+class BaseOrientationCriterionOption extends ModifierCriterionOption {
   constructor(value: CriterionType) {
     super({
       messageID: value,

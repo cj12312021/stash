@@ -1,14 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Prompt } from "react-router-dom";
-import {
-  Button,
-  Dropdown,
-  DropdownButton,
-  Form,
-  Col,
-  Row,
-} from "react-bootstrap";
+import { Button, Form, Col, Row } from "react-bootstrap";
 import Mousetrap from "mousetrap";
 import * as GQL from "src/core/generated-graphql";
 import * as yup from "yup";
@@ -18,20 +11,10 @@ import {
   useListGalleryScrapers,
   mutateReloadScrapers,
 } from "src/core/StashService";
-import {
-  TagSelect,
-  SceneSelect,
-  StudioSelect,
-} from "src/components/Shared/Select";
-import { Icon } from "src/components/Shared/Icon";
 import { LoadingIndicator } from "src/components/Shared/LoadingIndicator";
 import { useToast } from "src/hooks/Toast";
 import { useFormik } from "formik";
 import { GalleryScrapeDialog } from "./GalleryScrapeDialog";
-import { faSyncAlt } from "@fortawesome/free-solid-svg-icons";
-import { galleryTitle } from "src/core/galleries";
-import { useRatingKeybinds } from "src/hooks/keybinds";
-import { ConfigurationContext } from "src/hooks/Config";
 import isEqual from "lodash-es/isEqual";
 import { handleUnsavedChanges } from "src/utils/navigation";
 import {
@@ -44,6 +27,10 @@ import {
   yupUniqueStringList,
 } from "src/utils/yup";
 import { formikUtils } from "src/utils/form";
+import { Studio, StudioSelect } from "src/components/Studios/StudioSelect";
+import { Scene, SceneSelect } from "src/components/Scenes/SceneSelect";
+import { useTagsEdit } from "src/hooks/tagsEdit";
+import { ScraperMenu } from "src/components/Shared/ScraperMenu";
 
 interface IProps {
   gallery: Partial<GQL.GalleryDataFragment>;
@@ -60,20 +47,14 @@ export const GalleryEditPanel: React.FC<IProps> = ({
 }) => {
   const intl = useIntl();
   const Toast = useToast();
-  const [scenes, setScenes] = useState<{ id: string; title: string }[]>(
-    (gallery?.scenes ?? []).map((s) => ({
-      id: s.id,
-      title: galleryTitle(s),
-    }))
-  );
+  const [scenes, setScenes] = useState<Scene[]>([]);
 
   const [performers, setPerformers] = useState<Performer[]>([]);
+  const [studio, setStudio] = useState<Studio | null>(null);
 
   const isNew = gallery.id === undefined;
-  const { configuration: stashConfig } = React.useContext(ConfigurationContext);
 
-  const Scrapers = useListGalleryScrapers();
-  const [queryableScrapers, setQueryableScrapers] = useState<GQL.Scraper[]>([]);
+  const scrapers = useListGalleryScrapers();
 
   const [scrapedGallery, setScrapedGallery] =
     useState<GQL.ScrapedGallery | null>();
@@ -90,7 +71,6 @@ export const GalleryEditPanel: React.FC<IProps> = ({
     urls: yupUniqueStringList(intl),
     date: yupDateString(intl),
     photographer: yup.string().ensure(),
-    rating100: yup.number().integer().nullable().defined(),
     studio_id: yup.string().required().nullable(),
     performer_ids: yup.array(yup.string().required()).defined(),
     tag_ids: yup.array(yup.string().required()).defined(),
@@ -104,7 +84,6 @@ export const GalleryEditPanel: React.FC<IProps> = ({
     urls: gallery?.urls ?? [],
     date: gallery?.date ?? "",
     photographer: gallery?.photographer ?? "",
-    rating100: gallery?.rating100 ?? null,
     studio_id: gallery?.studio?.id ?? null,
     performer_ids: (gallery?.performers ?? []).map((p) => p.id),
     tag_ids: (gallery?.tags ?? []).map((t) => t.id),
@@ -121,16 +100,12 @@ export const GalleryEditPanel: React.FC<IProps> = ({
     onSubmit: (values) => onSave(schema.cast(values)),
   });
 
-  function setRating(v: number) {
-    formik.setFieldValue("rating100", v);
-  }
+  const { tags, updateTagsStateFromScraper, tagsControl } = useTagsEdit(
+    gallery.tags,
+    (ids) => formik.setFieldValue("tag_ids", ids)
+  );
 
-  interface ISceneSelectValue {
-    id: string;
-    title: string;
-  }
-
-  function onSetScenes(items: ISceneSelectValue[]) {
+  function onSetScenes(items: Scene[]) {
     setScenes(items);
     formik.setFieldValue(
       "scene_ids",
@@ -146,15 +121,22 @@ export const GalleryEditPanel: React.FC<IProps> = ({
     );
   }
 
-  useRatingKeybinds(
-    isVisible,
-    stashConfig?.ui?.ratingSystemOptions?.type,
-    setRating
-  );
+  function onSetStudio(item: Studio | null) {
+    setStudio(item);
+    formik.setFieldValue("studio_id", item ? item.id : null);
+  }
 
   useEffect(() => {
     setPerformers(gallery.performers ?? []);
   }, [gallery.performers]);
+
+  useEffect(() => {
+    setStudio(gallery.studio ?? null);
+  }, [gallery.studio]);
+
+  useEffect(() => {
+    setScenes(gallery.scenes ?? []);
+  }, [gallery.scenes]);
 
   useEffect(() => {
     if (isVisible) {
@@ -174,13 +156,26 @@ export const GalleryEditPanel: React.FC<IProps> = ({
     }
   });
 
-  useEffect(() => {
-    const newQueryableScrapers = (Scrapers?.data?.listScrapers ?? []).filter(
-      (s) => s.gallery?.supported_scrapes.includes(GQL.ScrapeType.Fragment)
+  const fragmentScrapers = useMemo(() => {
+    return (scrapers?.data?.listScrapers ?? []).filter((s) =>
+      s.gallery?.supported_scrapes.includes(GQL.ScrapeType.Fragment)
     );
+  }, [scrapers]);
 
-    setQueryableScrapers(newQueryableScrapers);
-  }, [Scrapers]);
+  const cover = useMemo(() => {
+    if (gallery?.paths?.cover) {
+      return (
+        <div className="gallery-cover">
+          <img
+            src={gallery.paths.cover}
+            alt={intl.formatMessage({ id: "cover_image" })}
+          />
+        </div>
+      );
+    }
+
+    return <div></div>;
+  }, [gallery?.paths?.cover, intl]);
 
   async function onSave(input: InputValues) {
     setIsLoading(true);
@@ -193,12 +188,12 @@ export const GalleryEditPanel: React.FC<IProps> = ({
     setIsLoading(false);
   }
 
-  async function onScrapeClicked(scraper: GQL.Scraper) {
+  async function onScrapeClicked(s: GQL.ScraperSourceInput) {
     if (!gallery || !gallery.id) return;
 
     setIsLoading(true);
     try {
-      const result = await queryScrapeGallery(scraper.id, gallery.id);
+      const result = await queryScrapeGallery(s.scraper_id!, gallery.id);
       if (!result.data || !result.data.scrapeSingleGallery?.length) {
         Toast.success("No galleries found");
         return;
@@ -242,6 +237,8 @@ export const GalleryEditPanel: React.FC<IProps> = ({
     return (
       <GalleryScrapeDialog
         gallery={currentGallery}
+        galleryStudio={studio}
+        galleryTags={tags}
         galleryPerformers={performers}
         scraped={scrapedGallery}
         onClose={(data) => {
@@ -251,36 +248,8 @@ export const GalleryEditPanel: React.FC<IProps> = ({
     );
   }
 
-  function renderScraperMenu() {
-    if (isNew) {
-      return;
-    }
-
-    return (
-      <DropdownButton
-        className="d-inline-block"
-        id="gallery-scrape"
-        title={intl.formatMessage({ id: "actions.scrape_with" })}
-      >
-        {queryableScrapers.map((s) => (
-          <Dropdown.Item key={s.name} onClick={() => onScrapeClicked(s)}>
-            {s.name}
-          </Dropdown.Item>
-        ))}
-        <Dropdown.Item onClick={() => onReloadScrapers()}>
-          <span className="fa-icon">
-            <Icon icon={faSyncAlt} />
-          </span>
-          <span>
-            <FormattedMessage id="actions.reload_scrapers" />
-          </span>
-        </Dropdown.Item>
-      </DropdownButton>
-    );
-  }
-
   function urlScrapable(scrapedUrl: string): boolean {
-    return (Scrapers?.data?.listScrapers ?? []).some((s) =>
+    return (scrapers?.data?.listScrapers ?? []).some((s) =>
       (s?.gallery?.urls ?? []).some((u) => scrapedUrl.includes(u))
     );
   }
@@ -313,7 +282,11 @@ export const GalleryEditPanel: React.FC<IProps> = ({
     }
 
     if (galleryData.studio?.stored_id) {
-      formik.setFieldValue("studio_id", galleryData.studio.stored_id);
+      onSetStudio({
+        id: galleryData.studio.stored_id,
+        name: galleryData.studio.name ?? "",
+        aliases: [],
+      });
     }
 
     if (galleryData.performers?.length) {
@@ -334,16 +307,7 @@ export const GalleryEditPanel: React.FC<IProps> = ({
       }
     }
 
-    if (galleryData?.tags?.length) {
-      const idTags = galleryData.tags.filter((t) => {
-        return t.stored_id !== undefined && t.stored_id !== null;
-      });
-
-      if (idTags.length > 0) {
-        const newIds = idTags.map((t) => t.stored_id);
-        formik.setFieldValue("tag_ids", newIds as string[]);
-      }
-    }
+    updateTagsStateFromScraper(galleryData.tags ?? undefined);
   }
 
   async function onScrapeGalleryURL(url: string) {
@@ -386,19 +350,14 @@ export const GalleryEditPanel: React.FC<IProps> = ({
       xl: 12,
     },
   };
-  const {
-    renderField,
-    renderInputField,
-    renderDateField,
-    renderRatingField,
-    renderURLListField,
-  } = formikUtils(intl, formik, splitProps);
+  const { renderField, renderInputField, renderDateField, renderURLListField } =
+    formikUtils(intl, formik, splitProps);
 
   function renderScenesField() {
     const title = intl.formatMessage({ id: "scenes" });
     const control = (
       <SceneSelect
-        selected={scenes}
+        values={scenes}
         onSelect={(items) => onSetScenes(items)}
         isMulti
       />
@@ -411,13 +370,8 @@ export const GalleryEditPanel: React.FC<IProps> = ({
     const title = intl.formatMessage({ id: "studio" });
     const control = (
       <StudioSelect
-        onSelect={(items) =>
-          formik.setFieldValue(
-            "studio_id",
-            items.length > 0 ? items[0]?.id : null
-          )
-        }
-        ids={formik.values.studio_id ? [formik.values.studio_id] : []}
+        onSelect={(items) => onSetStudio(items.length > 0 ? items[0] : null)}
+        values={studio ? [studio] : []}
       />
     );
 
@@ -425,9 +379,22 @@ export const GalleryEditPanel: React.FC<IProps> = ({
   }
 
   function renderPerformersField() {
+    const date = (() => {
+      try {
+        return schema.validateSyncAt("date", formik.values);
+      } catch (e) {
+        return undefined;
+      }
+    })();
+
     const title = intl.formatMessage({ id: "performers" });
     const control = (
-      <PerformerSelect isMulti onSelect={onSetPerformers} values={performers} />
+      <PerformerSelect
+        isMulti
+        onSelect={onSetPerformers}
+        values={performers}
+        ageFromDate={date}
+      />
     );
 
     return renderField("performer_ids", title, control, fullWidthProps);
@@ -435,21 +402,7 @@ export const GalleryEditPanel: React.FC<IProps> = ({
 
   function renderTagsField() {
     const title = intl.formatMessage({ id: "tags" });
-    const control = (
-      <TagSelect
-        isMulti
-        onSelect={(items) =>
-          formik.setFieldValue(
-            "tag_ids",
-            items.map((item) => item.id)
-          )
-        }
-        ids={formik.values.tag_ids}
-        hoverPlacement="right"
-      />
-    );
-
-    return renderField("tag_ids", title, control, fullWidthProps);
+    return renderField("tag_ids", title, tagsControl(), fullWidthProps);
   }
 
   function renderDetailsField() {
@@ -497,7 +450,16 @@ export const GalleryEditPanel: React.FC<IProps> = ({
               <FormattedMessage id="actions.delete" />
             </Button>
           </div>
-          <div className="ml-auto text-right d-flex">{renderScraperMenu()}</div>
+          <div className="ml-auto text-right d-flex">
+            {!isNew && (
+              <ScraperMenu
+                toggle={intl.formatMessage({ id: "actions.scrape_with" })}
+                scrapers={fragmentScrapers}
+                onScraperClicked={onScrapeClicked}
+                onReloadScrapers={onReloadScrapers}
+              />
+            )}
+          </div>
         </Row>
         <Row className="form-container px-3">
           <Col lg={7} xl={12}>
@@ -508,7 +470,6 @@ export const GalleryEditPanel: React.FC<IProps> = ({
 
             {renderDateField("date")}
             {renderInputField("photographer")}
-            {renderRatingField("rating100", "rating")}
 
             {renderScenesField()}
             {renderStudioField()}
@@ -517,6 +478,12 @@ export const GalleryEditPanel: React.FC<IProps> = ({
           </Col>
           <Col lg={5} xl={12}>
             {renderDetailsField()}
+            <Form.Group controlId="cover_image">
+              <Form.Label>
+                <FormattedMessage id="cover_image" />
+              </Form.Label>
+              {cover}
+            </Form.Group>
           </Col>
         </Row>
       </Form>

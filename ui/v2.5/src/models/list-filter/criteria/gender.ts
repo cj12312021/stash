@@ -5,12 +5,12 @@ import {
 } from "src/core/generated-graphql";
 import { genderStrings, stringToGender } from "src/utils/gender";
 import {
-  CriterionOption,
-  IEncodedCriterion,
+  ModifierCriterionOption,
+  ISavedCriterion,
   MultiStringCriterion,
 } from "./criterion";
 
-export const GenderCriterionOption = new CriterionOption({
+export const GenderCriterionOption = new ModifierCriterionOption({
   messageID: "gender",
   type: "gender",
   options: genderStrings,
@@ -25,11 +25,11 @@ export const GenderCriterionOption = new CriterionOption({
 });
 
 export class GenderCriterion extends MultiStringCriterion {
-  constructor() {
-    super(GenderCriterionOption);
+  constructor(value: string[] = []) {
+    super(GenderCriterionOption, value);
   }
 
-  protected toCriterionInput(): GenderCriterionInput {
+  public toCriterionInput(): GenderCriterionInput {
     const value = this.value.map((v) => stringToGender(v)) as GenderEnum[];
 
     return {
@@ -38,17 +38,15 @@ export class GenderCriterion extends MultiStringCriterion {
     };
   }
 
-  public setFromEncodedCriterion(
-    encodedCriterion: IEncodedCriterion<string[]>
-  ) {
+  public setFromSavedCriterion(criterion: ISavedCriterion<string[]>) {
     // backwards compatibility - if the value is a string, convert it to an array
-    if (typeof encodedCriterion.value === "string") {
-      encodedCriterion = {
-        ...encodedCriterion,
-        value: [encodedCriterion.value],
+    if (typeof criterion.value === "string") {
+      criterion = {
+        ...criterion,
+        value: [criterion.value],
       };
     }
 
-    super.setFromEncodedCriterion(encodedCriterion);
+    super.setFromSavedCriterion(criterion);
   }
 }

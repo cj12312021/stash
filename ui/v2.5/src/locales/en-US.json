@@ -1,11 +1,10 @@
 {
     "actions": {
-        "customise": "Customize"
+        "anonymise": "Anonymize",
+        "download_anonymised": "Download anonymized",
+        "customise": "Customize",
+        "optimise_database": "Optimize Database"
     },
-    "eye_color": "Eye Color",
-    "favourite": "Favorite",
-    "hair_color": "Hair Color",
-    "organized": "Organized",
     "config": {
         "tools": {
             "scene_filename_parser": {
@@ -19,5 +18,14 @@
             }
         }
     },
-    "performer_favorite": "Performer Favorited"
+    "eye_color": "Eye Color",
+    "favourite": "Favorite",
+    "hair_color": "Hair Color",
+    "organized": "Organized",
+    "performer_favorite": "Performer Favorited",
+    "component_tagger": {
+        "config": {
+            "mark_organized_label": "Mark as Organized on save"
+        }
+    }
 }

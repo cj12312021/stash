@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/robertkrimen/otto"
 	"gopkg.in/yaml.v2"
 
+	"github.com/stashapp/stash/pkg/javascript"
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
 	"github.com/stashapp/stash/pkg/sliceutil"
@@ -43,7 +43,9 @@ func (s mappedConfig) applyCommon(c commonMappedConfig, src string) string {
 	return ret
 }
 
-func (s mappedConfig) process(ctx context.Context, q mappedQuery, common commonMappedConfig) mappedResults {
+type isMultiFunc func(key string) bool
+
+func (s mappedConfig) process(ctx context.Context, q mappedQuery, common commonMappedConfig, isMulti isMultiFunc) mappedResults {
 	var ret mappedResults
 
 	for k, attrConfig := range s {
@@ -51,7 +53,7 @@ func (s mappedConfig) process(ctx context.Context, q mappedQuery, common commonM
 		if attrConfig.Fixed != "" {
 			// TODO - not sure if this needs to set _all_ indexes for the key
 			const i = 0
-			ret = ret.setKey(i, k, attrConfig.Fixed)
+			ret = ret.setSingleValue(i, k, attrConfig.Fixed)
 		} else {
 			selector := attrConfig.Selector
 			selector = s.applyCommon(common, selector)
@@ -63,8 +65,15 @@ func (s mappedConfig) process(ctx context.Context, q mappedQuery, common commonM
 
 			if len(found) > 0 {
 				result := s.postProcess(ctx, q, attrConfig, found)
-				for i, text := range result {
-					ret = ret.setKey(i, k, text)
+
+				// HACK - if the key is URLs, then we need to set the value as a multi-value
+				isMulti := isMulti != nil && isMulti(k)
+				if isMulti {
+					ret = ret.setMultiValue(0, k, result)
+				} else {
+					for i, text := range result {
+						ret = ret.setSingleValue(i, k, text)
+					}
 				}
 			}
 		}
@@ -117,6 +126,7 @@ type mappedSceneScraperConfig struct {
 	Performers mappedPerformerScraperConfig `yaml:"Performers"`
 	Studio     mappedConfig                 `yaml:"Studio"`
 	Movies     mappedConfig                 `yaml:"Movies"`
+	Groups     mappedConfig                 `yaml:"Groups"`
 }
 type _mappedSceneScraperConfig mappedSceneScraperConfig
 
@@ -125,6 +135,7 @@ const (
 	mappedScraperConfigScenePerformers = "Performers"
 	mappedScraperConfigSceneStudio     = "Studio"
 	mappedScraperConfigSceneMovies     = "Movies"
+	mappedScraperConfigSceneGroups     = "Groups"
 )
 
 func (s *mappedSceneScraperConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -142,11 +153,13 @@ func (s *mappedSceneScraperConfig) UnmarshalYAML(unmarshal func(interface{}) err
 	thisMap[mappedScraperConfigScenePerformers] = parentMap[mappedScraperConfigScenePerformers]
 	thisMap[mappedScraperConfigSceneStudio] = parentMap[mappedScraperConfigSceneStudio]
 	thisMap[mappedScraperConfigSceneMovies] = parentMap[mappedScraperConfigSceneMovies]
+	thisMap[mappedScraperConfigSceneGroups] = parentMap[mappedScraperConfigSceneGroups]
 
 	delete(parentMap, mappedScraperConfigSceneTags)
 	delete(parentMap, mappedScraperConfigScenePerformers)
 	delete(parentMap, mappedScraperConfigSceneStudio)
 	delete(parentMap, mappedScraperConfigSceneMovies)
+	delete(parentMap, mappedScraperConfigSceneGroups)
 
 	// re-unmarshal the sub-fields
 	yml, err := yaml.Marshal(thisMap)
@@ -181,6 +194,7 @@ type mappedGalleryScraperConfig struct {
 	Performers mappedConfig `yaml:"Performers"`
 	Studio     mappedConfig `yaml:"Studio"`
 }
+
 type _mappedGalleryScraperConfig mappedGalleryScraperConfig
 
 func (s *mappedGalleryScraperConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -215,6 +229,60 @@ func (s *mappedGalleryScraperConfig) UnmarshalYAML(unmarshal func(interface{}) e
 	}
 
 	*s = mappedGalleryScraperConfig(c)
+
+	yml, err = yaml.Marshal(parentMap)
+	if err != nil {
+		return err
+	}
+
+	if err := yaml.Unmarshal(yml, &s.mappedConfig); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type mappedImageScraperConfig struct {
+	mappedConfig
+
+	Tags       mappedConfig `yaml:"Tags"`
+	Performers mappedConfig `yaml:"Performers"`
+	Studio     mappedConfig `yaml:"Studio"`
+}
+type _mappedImageScraperConfig mappedImageScraperConfig
+
+func (s *mappedImageScraperConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	// HACK - unmarshal to map first, then remove known scene sub-fields, then
+	// remarshal to yaml and pass that down to the base map
+	parentMap := make(map[string]interface{})
+	if err := unmarshal(parentMap); err != nil {
+		return err
+	}
+
+	// move the known sub-fields to a separate map
+	thisMap := make(map[string]interface{})
+
+	thisMap[mappedScraperConfigSceneTags] = parentMap[mappedScraperConfigSceneTags]
+	thisMap[mappedScraperConfigScenePerformers] = parentMap[mappedScraperConfigScenePerformers]
+	thisMap[mappedScraperConfigSceneStudio] = parentMap[mappedScraperConfigSceneStudio]
+
+	delete(parentMap, mappedScraperConfigSceneTags)
+	delete(parentMap, mappedScraperConfigScenePerformers)
+	delete(parentMap, mappedScraperConfigSceneStudio)
+
+	// re-unmarshal the sub-fields
+	yml, err := yaml.Marshal(thisMap)
+	if err != nil {
+		return err
+	}
+
+	// needs to be a different type to prevent infinite recursion
+	c := _mappedImageScraperConfig{}
+	if err := yaml.Unmarshal(yml, &c); err != nil {
+		return err
+	}
+
+	*s = mappedImageScraperConfig(c)
 
 	yml, err = yaml.Marshal(parentMap)
 	if err != nil {
@@ -284,11 +352,13 @@ type mappedMovieScraperConfig struct {
 	mappedConfig
 
 	Studio mappedConfig `yaml:"Studio"`
+	Tags   mappedConfig `yaml:"Tags"`
 }
 type _mappedMovieScraperConfig mappedMovieScraperConfig
 
 const (
 	mappedScraperConfigMovieStudio = "Studio"
+	mappedScraperConfigMovieTags   = "Tags"
 )
 
 func (s *mappedMovieScraperConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -303,8 +373,10 @@ func (s *mappedMovieScraperConfig) UnmarshalYAML(unmarshal func(interface{}) err
 	thisMap := make(map[string]interface{})
 
 	thisMap[mappedScraperConfigMovieStudio] = parentMap[mappedScraperConfigMovieStudio]
-
 	delete(parentMap, mappedScraperConfigMovieStudio)
+
+	thisMap[mappedScraperConfigMovieTags] = parentMap[mappedScraperConfigMovieTags]
+	delete(parentMap, mappedScraperConfigMovieTags)
 
 	// re-unmarshal the sub-fields
 	yml, err := yaml.Marshal(thisMap)
@@ -528,19 +600,34 @@ func (p *postProcessLbToKg) Apply(ctx context.Context, value string, q mappedQue
 type postProcessJavascript string
 
 func (p *postProcessJavascript) Apply(ctx context.Context, value string, q mappedQuery) string {
-	vm := otto.New()
+	vm := javascript.NewVM()
 	if err := vm.Set("value", value); err != nil {
 		logger.Warnf("javascript failed to set value: %v", err)
 		return value
 	}
 
-	script, err := vm.Compile("", "(function() { "+string(*p)+"})()")
+	log := &javascript.Log{
+		Logger:       logger.Logger,
+		Prefix:       "",
+		ProgressChan: make(chan float64),
+	}
+
+	if err := log.AddToVM("log", vm); err != nil {
+		logger.Logger.Errorf("error adding log API: %w", err)
+	}
+
+	util := &javascript.Util{}
+	if err := util.AddToVM("util", vm); err != nil {
+		logger.Logger.Errorf("error adding util API: %w", err)
+	}
+
+	script, err := javascript.CompileScript("", "(function() { "+string(*p)+"})()")
 	if err != nil {
 		logger.Warnf("javascript failed to compile: %v", err)
 		return value
 	}
 
-	output, err := vm.Run(script)
+	output, err := vm.RunProgram(script)
 	if err != nil {
 		logger.Warnf("javascript failed to run: %v", err)
 		return value
@@ -766,41 +853,85 @@ type mappedScraper struct {
 	Common    commonMappedConfig            `yaml:"common"`
 	Scene     *mappedSceneScraperConfig     `yaml:"scene"`
 	Gallery   *mappedGalleryScraperConfig   `yaml:"gallery"`
+	Image     *mappedImageScraperConfig     `yaml:"image"`
 	Performer *mappedPerformerScraperConfig `yaml:"performer"`
-	Movie     *mappedMovieScraperConfig     `yaml:"movie"`
+	Group     *mappedMovieScraperConfig     `yaml:"group"`
+
+	// deprecated
+	Movie *mappedMovieScraperConfig `yaml:"movie"`
 }
 
-type mappedResult map[string]string
+type mappedResult map[string]interface{}
 type mappedResults []mappedResult
 
 func (r mappedResult) apply(dest interface{}) {
-	destVal := reflect.ValueOf(dest)
+	destVal := reflect.ValueOf(dest).Elem()
 
-	// dest should be a pointer
-	destVal = destVal.Elem()
-
+	// all fields are either string pointers or string slices
 	for key, value := range r {
-		field := destVal.FieldByName(key)
-
-		if field.IsValid() {
-			var reflectValue reflect.Value
-			if field.Kind() == reflect.Ptr {
-				// need to copy the value, otherwise everything is set to the
-				// same pointer
-				localValue := value
-				reflectValue = reflect.ValueOf(&localValue)
-			} else {
-				reflectValue = reflect.ValueOf(value)
-			}
-
-			field.Set(reflectValue)
-		} else {
-			logger.Errorf("Field %s does not exist in %T", key, dest)
+		if err := mapFieldValue(destVal, key, value); err != nil {
+			logger.Errorf("Error mapping field %s in %T: %v", key, dest, err)
 		}
 	}
 }
 
-func (r mappedResults) setKey(index int, key string, value string) mappedResults {
+func mapFieldValue(destVal reflect.Value, key string, value interface{}) error {
+	field := destVal.FieldByName(key)
+
+	if !field.IsValid() {
+		return fmt.Errorf("field %s does not exist on %s", key, destVal.Type().Name())
+	}
+
+	if !field.CanSet() {
+		return fmt.Errorf("field %s cannot be set on %s", key, destVal.Type().Name())
+	}
+
+	fieldType := field.Type()
+
+	switch v := value.(type) {
+	case string:
+		// if the field is a pointer to a string, then we need to convert the string to a pointer
+		// if the field is a string slice, then we need to convert the string to a slice
+		switch {
+		case fieldType.Kind() == reflect.String:
+			field.SetString(v)
+		case fieldType.Kind() == reflect.Ptr && fieldType.Elem().Kind() == reflect.String:
+			ptr := reflect.New(fieldType.Elem())
+			ptr.Elem().SetString(v)
+			field.Set(ptr)
+		case fieldType.Kind() == reflect.Slice && fieldType.Elem().Kind() == reflect.String:
+			field.Set(reflect.ValueOf([]string{v}))
+		default:
+			return fmt.Errorf("cannot convert %T to %s", value, fieldType)
+		}
+	case []string:
+		// expect the field to be a string slice
+		if fieldType.Kind() == reflect.Slice && fieldType.Elem().Kind() == reflect.String {
+			field.Set(reflect.ValueOf(v))
+		} else {
+			return fmt.Errorf("cannot convert %T to %s", value, fieldType)
+		}
+	default:
+		// fallback to reflection
+		reflectValue := reflect.ValueOf(value)
+		reflectValueType := reflectValue.Type()
+
+		switch {
+		case reflectValueType.ConvertibleTo(fieldType):
+			field.Set(reflectValue.Convert(fieldType))
+		case fieldType.Kind() == reflect.Pointer && reflectValueType.ConvertibleTo(fieldType.Elem()):
+			ptr := reflect.New(fieldType.Elem())
+			ptr.Elem().Set(reflectValue.Convert(fieldType.Elem()))
+			field.Set(ptr)
+		default:
+			return fmt.Errorf("cannot convert %T to %s", value, fieldType)
+		}
+	}
+
+	return nil
+}
+
+func (r mappedResults) setSingleValue(index int, key string, value string) mappedResults {
 	if index >= len(r) {
 		r = append(r, make(mappedResult))
 	}
@@ -808,6 +939,20 @@ func (r mappedResults) setKey(index int, key string, value string) mappedResults
 	logger.Debugf(`[%d][%s] = %s`, index, key, value)
 	r[index][key] = value
 	return r
+}
+
+func (r mappedResults) setMultiValue(index int, key string, value []string) mappedResults {
+	if index >= len(r) {
+		r = append(r, make(mappedResult))
+	}
+
+	logger.Debugf(`[%d][%s] = %s`, index, key, value)
+	r[index][key] = value
+	return r
+}
+
+func urlsIsMulti(key string) bool {
+	return key == "URLs"
 }
 
 func (s mappedScraper) scrapePerformer(ctx context.Context, q mappedQuery) (*models.ScrapedPerformer, error) {
@@ -820,12 +965,12 @@ func (s mappedScraper) scrapePerformer(ctx context.Context, q mappedQuery) (*mod
 
 	performerTagsMap := performerMap.Tags
 
-	results := performerMap.process(ctx, q, s.Common)
+	results := performerMap.process(ctx, q, s.Common, urlsIsMulti)
 
 	// now apply the tags
 	if performerTagsMap != nil {
 		logger.Debug(`Processing performer tags:`)
-		tagResults := performerTagsMap.process(ctx, q, s.Common)
+		tagResults := performerTagsMap.process(ctx, q, s.Common, nil)
 
 		for _, p := range tagResults {
 			tag := &models.ScrapedTag{}
@@ -853,7 +998,8 @@ func (s mappedScraper) scrapePerformers(ctx context.Context, q mappedQuery) ([]*
 		return nil, nil
 	}
 
-	results := performerMap.process(ctx, q, s.Common)
+	// isMulti is nil because it will behave incorrect when scraping multiple performers
+	results := performerMap.process(ctx, q, s.Common, nil)
 	for _, r := range results {
 		var p models.ScrapedPerformer
 		r.apply(&p)
@@ -863,14 +1009,15 @@ func (s mappedScraper) scrapePerformers(ctx context.Context, q mappedQuery) ([]*
 	return ret, nil
 }
 
-// processSceneRelationships sets the relationships on the ScrapedScene. It returns true if any relationships were set.
-func (s mappedScraper) processSceneRelationships(ctx context.Context, q mappedQuery, resultIndex int, ret *ScrapedScene) bool {
+// processSceneRelationships sets the relationships on the models.ScrapedScene. It returns true if any relationships were set.
+func (s mappedScraper) processSceneRelationships(ctx context.Context, q mappedQuery, resultIndex int, ret *models.ScrapedScene) bool {
 	sceneScraperConfig := s.Scene
 
 	scenePerformersMap := sceneScraperConfig.Performers
 	sceneTagsMap := sceneScraperConfig.Tags
 	sceneStudioMap := sceneScraperConfig.Studio
 	sceneMoviesMap := sceneScraperConfig.Movies
+	sceneGroupsMap := sceneScraperConfig.Groups
 
 	ret.Performers = s.processPerformers(ctx, scenePerformersMap, q)
 
@@ -882,7 +1029,7 @@ func (s mappedScraper) processSceneRelationships(ctx context.Context, q mappedQu
 
 	if sceneStudioMap != nil {
 		logger.Debug(`Processing scene studio:`)
-		studioResults := sceneStudioMap.process(ctx, q, s.Common)
+		studioResults := sceneStudioMap.process(ctx, q, s.Common, nil)
 
 		if len(studioResults) > 0 && resultIndex < len(studioResults) {
 			studio := &models.ScrapedStudio{}
@@ -897,7 +1044,12 @@ func (s mappedScraper) processSceneRelationships(ctx context.Context, q mappedQu
 		ret.Movies = processRelationships[models.ScrapedMovie](ctx, s, sceneMoviesMap, q)
 	}
 
-	return len(ret.Performers) > 0 || len(ret.Tags) > 0 || ret.Studio != nil || len(ret.Movies) > 0
+	if sceneGroupsMap != nil {
+		logger.Debug(`Processing scene groups:`)
+		ret.Groups = processRelationships[models.ScrapedGroup](ctx, s, sceneGroupsMap, q)
+	}
+
+	return len(ret.Performers) > 0 || len(ret.Tags) > 0 || ret.Studio != nil || len(ret.Movies) > 0 || len(ret.Groups) > 0
 }
 
 func (s mappedScraper) processPerformers(ctx context.Context, performersMap mappedPerformerScraperConfig, q mappedQuery) []*models.ScrapedPerformer {
@@ -906,14 +1058,15 @@ func (s mappedScraper) processPerformers(ctx context.Context, performersMap mapp
 	// now apply the performers and tags
 	if performersMap.mappedConfig != nil {
 		logger.Debug(`Processing performers:`)
-		performerResults := performersMap.process(ctx, q, s.Common)
+		// isMulti is nil because it will behave incorrect when scraping multiple performers
+		performerResults := performersMap.process(ctx, q, s.Common, nil)
 
 		scenePerformerTagsMap := performersMap.Tags
 
 		// process performer tags once
 		var performerTagResults mappedResults
 		if scenePerformerTagsMap != nil {
-			performerTagResults = scenePerformerTagsMap.process(ctx, q, s.Common)
+			performerTagResults = scenePerformerTagsMap.process(ctx, q, s.Common, nil)
 		}
 
 		for _, p := range performerResults {
@@ -936,7 +1089,7 @@ func (s mappedScraper) processPerformers(ctx context.Context, performersMap mapp
 func processRelationships[T any](ctx context.Context, s mappedScraper, relationshipMap mappedConfig, q mappedQuery) []*T {
 	var ret []*T
 
-	results := relationshipMap.process(ctx, q, s.Common)
+	results := relationshipMap.process(ctx, q, s.Common, nil)
 
 	for _, p := range results {
 		var value T
@@ -947,8 +1100,8 @@ func processRelationships[T any](ctx context.Context, s mappedScraper, relations
 	return ret
 }
 
-func (s mappedScraper) scrapeScenes(ctx context.Context, q mappedQuery) ([]*ScrapedScene, error) {
-	var ret []*ScrapedScene
+func (s mappedScraper) scrapeScenes(ctx context.Context, q mappedQuery) ([]*models.ScrapedScene, error) {
+	var ret []*models.ScrapedScene
 
 	sceneScraperConfig := s.Scene
 	sceneMap := sceneScraperConfig.mappedConfig
@@ -957,11 +1110,12 @@ func (s mappedScraper) scrapeScenes(ctx context.Context, q mappedQuery) ([]*Scra
 	}
 
 	logger.Debug(`Processing scenes:`)
-	results := sceneMap.process(ctx, q, s.Common)
+	// urlsIsMulti is nil because it will behave incorrect when scraping multiple scenes
+	results := sceneMap.process(ctx, q, s.Common, nil)
 	for i, r := range results {
 		logger.Debug(`Processing scene:`)
 
-		var thisScene ScrapedScene
+		var thisScene models.ScrapedScene
 		r.apply(&thisScene)
 		s.processSceneRelationships(ctx, q, i, &thisScene)
 		ret = append(ret, &thisScene)
@@ -970,7 +1124,7 @@ func (s mappedScraper) scrapeScenes(ctx context.Context, q mappedQuery) ([]*Scra
 	return ret, nil
 }
 
-func (s mappedScraper) scrapeScene(ctx context.Context, q mappedQuery) (*ScrapedScene, error) {
+func (s mappedScraper) scrapeScene(ctx context.Context, q mappedQuery) (*models.ScrapedScene, error) {
 	sceneScraperConfig := s.Scene
 	if sceneScraperConfig == nil {
 		return nil, nil
@@ -979,9 +1133,9 @@ func (s mappedScraper) scrapeScene(ctx context.Context, q mappedQuery) (*Scraped
 	sceneMap := sceneScraperConfig.mappedConfig
 
 	logger.Debug(`Processing scene:`)
-	results := sceneMap.process(ctx, q, s.Common)
+	results := sceneMap.process(ctx, q, s.Common, urlsIsMulti)
 
-	var ret ScrapedScene
+	var ret models.ScrapedScene
 	if len(results) > 0 {
 		results[0].apply(&ret)
 	}
@@ -997,49 +1151,37 @@ func (s mappedScraper) scrapeScene(ctx context.Context, q mappedQuery) (*Scraped
 	return nil, nil
 }
 
-func (s mappedScraper) scrapeGallery(ctx context.Context, q mappedQuery) (*ScrapedGallery, error) {
-	var ret ScrapedGallery
+func (s mappedScraper) scrapeImage(ctx context.Context, q mappedQuery) (*models.ScrapedImage, error) {
+	var ret models.ScrapedImage
 
-	galleryScraperConfig := s.Gallery
-	if galleryScraperConfig == nil {
+	imageScraperConfig := s.Image
+	if imageScraperConfig == nil {
 		return nil, nil
 	}
 
-	galleryMap := galleryScraperConfig.mappedConfig
+	imageMap := imageScraperConfig.mappedConfig
 
-	galleryPerformersMap := galleryScraperConfig.Performers
-	galleryTagsMap := galleryScraperConfig.Tags
-	galleryStudioMap := galleryScraperConfig.Studio
+	imagePerformersMap := imageScraperConfig.Performers
+	imageTagsMap := imageScraperConfig.Tags
+	imageStudioMap := imageScraperConfig.Studio
 
-	logger.Debug(`Processing gallery:`)
-	results := galleryMap.process(ctx, q, s.Common)
+	logger.Debug(`Processing image:`)
+	results := imageMap.process(ctx, q, s.Common, urlsIsMulti)
 
 	// now apply the performers and tags
-	if galleryPerformersMap != nil {
-		logger.Debug(`Processing gallery performers:`)
-		performerResults := galleryPerformersMap.process(ctx, q, s.Common)
-
-		for _, p := range performerResults {
-			performer := &models.ScrapedPerformer{}
-			p.apply(performer)
-			ret.Performers = append(ret.Performers, performer)
-		}
+	if imagePerformersMap != nil {
+		logger.Debug(`Processing image performers:`)
+		ret.Performers = processRelationships[models.ScrapedPerformer](ctx, s, imagePerformersMap, q)
 	}
 
-	if galleryTagsMap != nil {
-		logger.Debug(`Processing gallery tags:`)
-		tagResults := galleryTagsMap.process(ctx, q, s.Common)
-
-		for _, p := range tagResults {
-			tag := &models.ScrapedTag{}
-			p.apply(tag)
-			ret.Tags = append(ret.Tags, tag)
-		}
+	if imageTagsMap != nil {
+		logger.Debug(`Processing image tags:`)
+		ret.Tags = processRelationships[models.ScrapedTag](ctx, s, imageTagsMap, q)
 	}
 
-	if galleryStudioMap != nil {
-		logger.Debug(`Processing gallery studio:`)
-		studioResults := galleryStudioMap.process(ctx, q, s.Common)
+	if imageStudioMap != nil {
+		logger.Debug(`Processing image studio:`)
+		studioResults := imageStudioMap.process(ctx, q, s.Common, nil)
 
 		if len(studioResults) > 0 {
 			studio := &models.ScrapedStudio{}
@@ -1060,23 +1202,49 @@ func (s mappedScraper) scrapeGallery(ctx context.Context, q mappedQuery) (*Scrap
 	return &ret, nil
 }
 
-func (s mappedScraper) scrapeMovie(ctx context.Context, q mappedQuery) (*models.ScrapedMovie, error) {
-	var ret models.ScrapedMovie
+func (s mappedScraper) scrapeGallery(ctx context.Context, q mappedQuery) (*models.ScrapedGallery, error) {
+	var ret models.ScrapedGallery
 
-	movieScraperConfig := s.Movie
-	if movieScraperConfig == nil {
+	galleryScraperConfig := s.Gallery
+	if galleryScraperConfig == nil {
 		return nil, nil
 	}
 
-	movieMap := movieScraperConfig.mappedConfig
+	galleryMap := galleryScraperConfig.mappedConfig
 
-	movieStudioMap := movieScraperConfig.Studio
+	galleryPerformersMap := galleryScraperConfig.Performers
+	galleryTagsMap := galleryScraperConfig.Tags
+	galleryStudioMap := galleryScraperConfig.Studio
 
-	results := movieMap.process(ctx, q, s.Common)
+	logger.Debug(`Processing gallery:`)
+	results := galleryMap.process(ctx, q, s.Common, urlsIsMulti)
 
-	if movieStudioMap != nil {
-		logger.Debug(`Processing movie studio:`)
-		studioResults := movieStudioMap.process(ctx, q, s.Common)
+	// now apply the performers and tags
+	if galleryPerformersMap != nil {
+		logger.Debug(`Processing gallery performers:`)
+		performerResults := galleryPerformersMap.process(ctx, q, s.Common, urlsIsMulti)
+
+		for _, p := range performerResults {
+			performer := &models.ScrapedPerformer{}
+			p.apply(performer)
+			ret.Performers = append(ret.Performers, performer)
+		}
+	}
+
+	if galleryTagsMap != nil {
+		logger.Debug(`Processing gallery tags:`)
+		tagResults := galleryTagsMap.process(ctx, q, s.Common, nil)
+
+		for _, p := range tagResults {
+			tag := &models.ScrapedTag{}
+			p.apply(tag)
+			ret.Tags = append(ret.Tags, tag)
+		}
+	}
+
+	if galleryStudioMap != nil {
+		logger.Debug(`Processing gallery studio:`)
+		studioResults := galleryStudioMap.process(ctx, q, s.Common, nil)
 
 		if len(studioResults) > 0 {
 			studio := &models.ScrapedStudio{}
@@ -1085,7 +1253,62 @@ func (s mappedScraper) scrapeMovie(ctx context.Context, q mappedQuery) (*models.
 		}
 	}
 
-	if len(results) == 0 && ret.Studio == nil {
+	// if no basic fields are populated, and no relationships, then return nil
+	if len(results) == 0 && len(ret.Performers) == 0 && len(ret.Tags) == 0 && ret.Studio == nil {
+		return nil, nil
+	}
+
+	if len(results) > 0 {
+		results[0].apply(&ret)
+	}
+
+	return &ret, nil
+}
+
+func (s mappedScraper) scrapeGroup(ctx context.Context, q mappedQuery) (*models.ScrapedGroup, error) {
+	var ret models.ScrapedGroup
+
+	// try group scraper first, falling back to movie
+	groupScraperConfig := s.Group
+
+	if groupScraperConfig == nil {
+		groupScraperConfig = s.Movie
+	}
+	if groupScraperConfig == nil {
+		return nil, nil
+	}
+
+	groupMap := groupScraperConfig.mappedConfig
+
+	groupStudioMap := groupScraperConfig.Studio
+	groupTagsMap := groupScraperConfig.Tags
+
+	results := groupMap.process(ctx, q, s.Common, urlsIsMulti)
+
+	if groupStudioMap != nil {
+		logger.Debug(`Processing group studio:`)
+		studioResults := groupStudioMap.process(ctx, q, s.Common, nil)
+
+		if len(studioResults) > 0 {
+			studio := &models.ScrapedStudio{}
+			studioResults[0].apply(studio)
+			ret.Studio = studio
+		}
+	}
+
+	// now apply the tags
+	if groupTagsMap != nil {
+		logger.Debug(`Processing group tags:`)
+		tagResults := groupTagsMap.process(ctx, q, s.Common, nil)
+
+		for _, p := range tagResults {
+			tag := &models.ScrapedTag{}
+			p.apply(tag)
+			ret.Tags = append(ret.Tags, tag)
+		}
+	}
+
+	if len(results) == 0 && ret.Studio == nil && len(ret.Tags) == 0 {
 		return nil, nil
 	}
 

@@ -29,6 +29,11 @@ type GalleryQueryer interface {
 	QueryCount(ctx context.Context, galleryFilter *GalleryFilterType, findFilter *FindFilterType) (int, error)
 }
 
+// GalleryFaceter provides methods to get facet counts for galleries.
+type GalleryFaceter interface {
+	GetFacets(ctx context.Context, galleryFilter *GalleryFilterType, limit int) (*GalleryFacets, error)
+}
+
 // GalleryCounter provides methods to count galleries.
 type GalleryCounter interface {
 	Count(ctx context.Context) (int, error)
@@ -62,6 +67,7 @@ type GalleryReader interface {
 	GalleryFinder
 	GalleryQueryer
 	GalleryCounter
+	GalleryFaceter
 
 	URLLoader
 	FileIDLoader
@@ -83,6 +89,8 @@ type GalleryWriter interface {
 	AddFileID(ctx context.Context, id int, fileID FileID) error
 	AddImages(ctx context.Context, galleryID int, imageIDs ...int) error
 	RemoveImages(ctx context.Context, galleryID int, imageIDs ...int) error
+	SetCover(ctx context.Context, galleryID int, coverImageID int) error
+	ResetCover(ctx context.Context, galleryID int) error
 }
 
 // GalleryReaderWriter provides all gallery methods.

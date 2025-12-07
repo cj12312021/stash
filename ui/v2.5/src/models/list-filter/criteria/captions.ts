@@ -1,10 +1,10 @@
 import { CriterionModifier } from "src/core/generated-graphql";
 import { languageMap, valueToCode } from "src/utils/caption";
-import { CriterionOption, StringCriterion } from "./criterion";
+import { ModifierCriterionOption, StringCriterion } from "./criterion";
 
 const languageStrings = Array.from(languageMap.values());
 
-export const CaptionsCriterionOption = new CriterionOption({
+export const CaptionsCriterionOption = new ModifierCriterionOption({
   messageID: "captions",
   type: "captions",
   modifierOptions: [
@@ -23,7 +23,7 @@ export class CaptionCriterion extends StringCriterion {
     super(CaptionsCriterionOption);
   }
 
-  protected toCriterionInput() {
+  public toCriterionInput() {
     const value = valueToCode(this.value) ?? "";
 
     return {

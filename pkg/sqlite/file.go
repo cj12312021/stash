@@ -178,6 +178,7 @@ type fileQueryRow struct {
 
 	ZipBasename   null.String `db:"zip_basename"`
 	ZipFolderPath null.String `db:"zip_folder_path"`
+	ZipSize       null.Int    `db:"zip_size"`
 
 	FolderPath null.String `db:"parent_folder_path"`
 	fingerprintQueryRow
@@ -205,6 +206,7 @@ func (r *fileQueryRow) resolve() models.File {
 			ID:       *basic.ZipFileID,
 			Path:     filepath.Join(r.ZipFolderPath.String, r.ZipBasename.String),
 			Basename: r.ZipBasename.String,
+			Size:     r.ZipSize.Int64,
 		}
 	}
 
@@ -273,6 +275,43 @@ func (r fileQueryRows) resolve() []models.File {
 	return ret
 }
 
+type fileRepositoryType struct {
+	repository
+	scenes    joinRepository
+	images    joinRepository
+	galleries joinRepository
+}
+
+var (
+	fileRepository = fileRepositoryType{
+		repository: repository{
+			tableName: sceneTable,
+			idColumn:  idColumn,
+		},
+		scenes: joinRepository{
+			repository: repository{
+				tableName: scenesFilesTable,
+				idColumn:  fileIDColumn,
+			},
+			fkColumn: sceneIDColumn,
+		},
+		images: joinRepository{
+			repository: repository{
+				tableName: imagesFilesTable,
+				idColumn:  fileIDColumn,
+			},
+			fkColumn: imageIDColumn,
+		},
+		galleries: joinRepository{
+			repository: repository{
+				tableName: galleriesFilesTable,
+				idColumn:  fileIDColumn,
+			},
+			fkColumn: galleryIDColumn,
+		},
+	}
+)
+
 type FileStore struct {
 	repository
 
@@ -282,7 +321,7 @@ type FileStore struct {
 func NewFileStore() *FileStore {
 	return &FileStore{
 		repository: repository{
-			tableName: sceneTable,
+			tableName: fileTable,
 			idColumn:  idColumn,
 		},
 
@@ -461,6 +500,8 @@ func (qb *FileStore) selectDataset() *goqu.SelectDataset {
 		fingerprintTable.Col("fingerprint"),
 		zipFileTable.Col("basename").As("zip_basename"),
 		zipFolderTable.Col("path").As("zip_folder_path"),
+		// size is needed to open containing zip files
+		zipFileTable.Col("size").As("zip_size"),
 	}
 
 	cols = append(cols, videoFileQueryColumns()...)
@@ -826,9 +867,11 @@ func (qb *FileStore) makeFilter(ctx context.Context, fileFilter *models.FileFilt
 		query.not(qb.makeFilter(ctx, fileFilter.Not))
 	}
 
-	query.handleCriterion(ctx, pathCriterionHandler(fileFilter.Path, "folders.path", "files.basename", nil))
+	filter := filterBuilderFromHandler(ctx, &fileFilterHandler{
+		fileFilter: fileFilter,
+	})
 
-	return query
+	return filter
 }
 
 func (qb *FileStore) Query(ctx context.Context, options models.FileQueryOptions) (*models.FileQueryResult, error) {
@@ -862,7 +905,9 @@ func (qb *FileStore) Query(ctx context.Context, options models.FileQueryOptions)
 		return nil, err
 	}
 
-	qb.setQuerySort(&query, findFilter)
+	if err := qb.setQuerySort(&query, findFilter); err != nil {
+		return nil, err
+	}
 	query.sortAndPagination += getPagination(findFilter)
 
 	result, err := qb.queryGroupedFields(ctx, options, query)
@@ -884,7 +929,7 @@ func (qb *FileStore) Query(ctx context.Context, options models.FileQueryOptions)
 }
 
 func (qb *FileStore) queryGroupedFields(ctx context.Context, options models.FileQueryOptions, query queryBuilder) (*models.FileQueryResult, error) {
-	if !options.Count {
+	if !options.Count && !options.TotalDuration && !options.Megapixels && !options.TotalSize {
 		// nothing to do - return empty result
 		return models.NewFileQueryResult(qb), nil
 	}
@@ -892,14 +937,43 @@ func (qb *FileStore) queryGroupedFields(ctx context.Context, options models.File
 	aggregateQuery := qb.newQuery()
 
 	if options.Count {
-		aggregateQuery.addColumn("COUNT(temp.id) as total")
+		aggregateQuery.addColumn("COUNT(DISTINCT temp.id) as total")
+	}
+
+	if options.TotalDuration {
+		query.addJoins(
+			join{
+				table:    videoFileTable,
+				onClause: "files.id = video_files.file_id",
+			},
+		)
+		query.addColumn("COALESCE(video_files.duration, 0) as duration")
+		aggregateQuery.addColumn("COALESCE(SUM(temp.duration), 0) as duration")
+	}
+	if options.Megapixels {
+		query.addJoins(
+			join{
+				table:    imageFileTable,
+				onClause: "files.id = image_files.file_id",
+			},
+		)
+		query.addColumn("COALESCE(image_files.width, 0) * COALESCE(image_files.height, 0) as megapixels")
+		aggregateQuery.addColumn("COALESCE(SUM(temp.megapixels), 0) / 1000000 as megapixels")
+	}
+
+	if options.TotalSize {
+		query.addColumn("COALESCE(files.size, 0) as size")
+		aggregateQuery.addColumn("COALESCE(SUM(temp.size), 0) as size")
 	}
 
 	const includeSortPagination = false
 	aggregateQuery.from = fmt.Sprintf("(%s) as temp", query.toSQL(includeSortPagination))
 
 	out := struct {
-		Total int
+		Total      int
+		Duration   float64
+		Megapixels float64
+		Size       int64
 	}{}
 	if err := qb.repository.queryStruct(ctx, aggregateQuery.toSQL(includeSortPagination), query.args, &out); err != nil {
 		return nil, err
@@ -907,15 +981,31 @@ func (qb *FileStore) queryGroupedFields(ctx context.Context, options models.File
 
 	ret := models.NewFileQueryResult(qb)
 	ret.Count = out.Total
+	ret.Megapixels = out.Megapixels
+	ret.TotalDuration = out.Duration
+	ret.TotalSize = out.Size
 
 	return ret, nil
 }
 
-func (qb *FileStore) setQuerySort(query *queryBuilder, findFilter *models.FindFilterType) {
+var fileSortOptions = sortOptions{
+	"created_at",
+	"id",
+	"path",
+	"random",
+	"updated_at",
+}
+
+func (qb *FileStore) setQuerySort(query *queryBuilder, findFilter *models.FindFilterType) error {
 	if findFilter == nil || findFilter.Sort == nil || *findFilter.Sort == "" {
-		return
+		return nil
 	}
 	sort := findFilter.GetSort("path")
+
+	// CVE-2024-32231 - ensure sort is in the list of allowed sorts
+	if err := fileSortOptions.validateSort(sort); err != nil {
+		return err
+	}
 
 	direction := findFilter.GetDirection()
 	switch sort {
@@ -925,12 +1015,13 @@ func (qb *FileStore) setQuerySort(query *queryBuilder, findFilter *models.FindFi
 	default:
 		query.sortAndPagination += getSort(sort, direction, "files")
 	}
+
+	return nil
 }
 
 func (qb *FileStore) captionRepository() *captionRepository {
 	return &captionRepository{
 		repository: repository{
-			tx:        qb.tx,
 			tableName: videoCaptionsTable,
 			idColumn:  fileIDColumn,
 		},

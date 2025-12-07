@@ -3,9 +3,7 @@ package models
 import "context"
 
 type ImageFilterType struct {
-	And          *ImageFilterType      `json:"AND"`
-	Or           *ImageFilterType      `json:"OR"`
-	Not          *ImageFilterType      `json:"NOT"`
+	OperatorFilter[ImageFilterType]
 	ID           *IntCriterionInput    `json:"id"`
 	Title        *StringCriterionInput `json:"title"`
 	Code         *StringCriterionInput `json:"code"`
@@ -47,12 +45,44 @@ type ImageFilterType struct {
 	PerformerCount *IntCriterionInput `json:"performer_count"`
 	// Filter images that have performers that have been favorited
 	PerformerFavorite *bool `json:"performer_favorite"`
+	// Filter images by performer age at time of image
+	PerformerAge *IntCriterionInput `json:"performer_age"`
 	// Filter to only include images with these galleries
 	Galleries *MultiCriterionInput `json:"galleries"`
+	// Filter by related galleries that meet this criteria
+	GalleriesFilter *GalleryFilterType `json:"galleries_filter"`
+	// Filter by related performers that meet this criteria
+	PerformersFilter *PerformerFilterType `json:"performers_filter"`
+	// Filter by related studios that meet this criteria
+	StudiosFilter *StudioFilterType `json:"studios_filter"`
+	// Filter by related tags that meet this criteria
+	TagsFilter *TagFilterType `json:"tags_filter"`
 	// Filter by created at
 	CreatedAt *TimestampCriterionInput `json:"created_at"`
 	// Filter by updated at
 	UpdatedAt *TimestampCriterionInput `json:"updated_at"`
+}
+
+type ImageUpdateInput struct {
+	ClientMutationID *string  `json:"clientMutationId"`
+	ID               string   `json:"id"`
+	Title            *string  `json:"title"`
+	Code             *string  `json:"code"`
+	Urls             []string `json:"urls"`
+	Date             *string  `json:"date"`
+	Details          *string  `json:"details"`
+	Photographer     *string  `json:"photographer"`
+	Rating100        *int     `json:"rating100"`
+	Organized        *bool    `json:"organized"`
+	SceneIds         []string `json:"scene_ids"`
+	StudioID         *string  `json:"studio_id"`
+	TagIds           []string `json:"tag_ids"`
+	PerformerIds     []string `json:"performer_ids"`
+	GalleryIds       []string `json:"gallery_ids"`
+	PrimaryFileID    *string  `json:"primary_file_id"`
+
+	// deprecated
+	URL *string `json:"url"`
 }
 
 type ImageDestroyInput struct {
@@ -76,7 +106,7 @@ type ImageQueryOptions struct {
 }
 
 type ImageQueryResult struct {
-	QueryResult
+	QueryResult[int]
 	Megapixels float64
 	TotalSize  float64
 

@@ -79,6 +79,14 @@ func (i FileID) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(i.String()))
 }
 
+func FileIDsFromInts(ids []int) []FileID {
+	ret := make([]FileID, len(ids))
+	for i, id := range ids {
+		ret[i] = FileID(id)
+	}
+	return ret
+}
+
 // DirEntry represents a file or directory in the file system.
 type DirEntry struct {
 	ZipFileID *FileID `json:"zip_file_id"`
@@ -93,7 +101,7 @@ type DirEntry struct {
 func (e *DirEntry) info(fs FS, path string) (fs.FileInfo, error) {
 	if e.ZipFile != nil {
 		zipPath := e.ZipFile.Base().Path
-		zfs, err := fs.OpenZip(zipPath)
+		zfs, err := fs.OpenZip(zipPath, e.ZipFile.Base().Size)
 		if err != nil {
 			return nil, err
 		}
@@ -111,6 +119,7 @@ type File interface {
 	Base() *BaseFile
 	SetFingerprints(fp Fingerprints)
 	Open(fs FS) (io.ReadCloser, error)
+	Clone() File
 }
 
 // BaseFile represents a file in the file system.
@@ -162,7 +171,7 @@ func (f *BaseFile) Base() *BaseFile {
 func (f *BaseFile) Open(fs FS) (io.ReadCloser, error) {
 	if f.ZipFile != nil {
 		zipPath := f.ZipFile.Base().Path
-		zfs, err := fs.OpenZip(zipPath)
+		zfs, err := fs.OpenZip(zipPath, f.ZipFile.Base().Size)
 		if err != nil {
 			return nil, err
 		}
@@ -171,6 +180,12 @@ func (f *BaseFile) Open(fs FS) (io.ReadCloser, error) {
 	}
 
 	return fs.Open(f.Path)
+}
+
+func (f *BaseFile) Clone() (ret File) {
+	clone := *f
+	ret = &clone
+	return
 }
 
 func (f *BaseFile) Info(fs FS) (fs.FileInfo, error) {
@@ -199,6 +214,12 @@ func (f *BaseFile) Serve(fs FS, w http.ResponseWriter, r *http.Request) error {
 	} else {
 		w.Header().Set("Cache-Control", "no-cache")
 	}
+
+	// Set filename if not previously set
+	if w.Header().Get("Content-Disposition") == "" {
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`filename="%s"`, f.Basename))
+	}
+
 	http.ServeContent(w, r, f.Basename, f.ModTime, content)
 
 	return nil
@@ -239,8 +260,19 @@ func (f ImageFile) GetHeight() int {
 	return f.Height
 }
 
+func (f ImageFile) Megapixels() float64 {
+	return float64(f.Width*f.Height) / 1e6
+}
+
 func (f ImageFile) GetFormat() string {
 	return f.Format
+}
+
+func (f ImageFile) Clone() (ret File) {
+	clone := f
+	clone.BaseFile = f.BaseFile.Clone().(*BaseFile)
+	ret = &clone
+	return
 }
 
 // VideoFile is an extension of BaseFile to represent video files.
@@ -269,6 +301,13 @@ func (f VideoFile) GetHeight() int {
 
 func (f VideoFile) GetFormat() string {
 	return f.Format
+}
+
+func (f VideoFile) Clone() (ret File) {
+	clone := f
+	clone.BaseFile = f.BaseFile.Clone().(*BaseFile)
+	ret = &clone
+	return
 }
 
 // #1572 - Inf and NaN values cause the JSON marshaller to fail

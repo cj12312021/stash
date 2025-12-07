@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { PropsWithChildren, useEffect } from "react";
 import {
   Button,
   ButtonGroup,
@@ -15,8 +15,49 @@ import {
   faPencilAlt,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
+import cx from "classnames";
+import { createPortal } from "react-dom";
 
-interface IListFilterOperation {
+export const OperationDropdown: React.FC<
+  PropsWithChildren<{
+    className?: string;
+    menuPortalTarget?: HTMLElement;
+  }>
+> = ({ className, menuPortalTarget, children }) => {
+  if (!children) return null;
+
+  const menu = (
+    <Dropdown.Menu className="bg-secondary text-white">
+      {children}
+    </Dropdown.Menu>
+  );
+
+  return (
+    <Dropdown className={className} as={ButtonGroup}>
+      <Dropdown.Toggle variant="secondary" id="more-menu">
+        <Icon icon={faEllipsisH} />
+      </Dropdown.Toggle>
+      {menuPortalTarget ? createPortal(menu, menuPortalTarget) : menu}
+    </Dropdown>
+  );
+};
+
+export const OperationDropdownItem: React.FC<{
+  text: string;
+  onClick: () => void;
+  className?: string;
+}> = ({ text, onClick, className }) => {
+  return (
+    <Dropdown.Item
+      className={cx("bg-secondary text-white", className)}
+      onClick={onClick}
+    >
+      {text}
+    </Dropdown.Item>
+  );
+};
+
+export interface IListFilterOperation {
   text: string;
   onClick: () => void;
   isDisplayed?: () => boolean;
@@ -99,7 +140,7 @@ export const ListOperationButtons: React.FC<IListOperationButtonsProps> = ({
 
     if (buttons.length > 0) {
       return (
-        <ButtonGroup className="ml-2 mb-2">
+        <ButtonGroup className="ml-2">
           {buttons.map((button) => {
             return (
               <OverlayTrigger
@@ -154,6 +195,11 @@ export const ListOperationButtons: React.FC<IListOperationButtonsProps> = ({
     if (otherOperations) {
       otherOperations
         .filter((o) => {
+          // buttons with icons are rendered in the button group
+          if (o.icon) {
+            return false;
+          }
+
           if (!o.isDisplayed) {
             return true;
           }
@@ -173,25 +219,18 @@ export const ListOperationButtons: React.FC<IListOperationButtonsProps> = ({
         });
     }
 
-    if (options.length > 0) {
-      return (
-        <Dropdown>
-          <Dropdown.Toggle variant="secondary" id="more-menu">
-            <Icon icon={faEllipsisH} />
-          </Dropdown.Toggle>
-          <Dropdown.Menu className="bg-secondary text-white">
-            {options}
-          </Dropdown.Menu>
-        </Dropdown>
-      );
-    }
+    return (
+      <OperationDropdown>
+        {options.length > 0 ? options : undefined}
+      </OperationDropdown>
+    );
   }
 
   return (
     <>
       {maybeRenderButtons()}
 
-      <div className="mx-2 mb-2">{renderMore()}</div>
+      <ButtonGroup className="ml-2">{renderMore()}</ButtonGroup>
     </>
   );
 };

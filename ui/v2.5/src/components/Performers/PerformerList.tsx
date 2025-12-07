@@ -9,32 +9,27 @@ import {
   useFindPerformers,
   usePerformersDestroy,
 } from "src/core/StashService";
-import {
-  makeItemList,
-  PersistanceLevel,
-  showWhenSelected,
-} from "../List/ItemList";
+import { ItemList, ItemListContext, showWhenSelected } from "../List/ItemList";
 import { ListFilterModel } from "src/models/list-filter/filter";
 import { DisplayMode } from "src/models/list-filter/types";
 import { PerformerTagger } from "../Tagger/performers/PerformerTagger";
 import { ExportDialog } from "../Shared/ExportDialog";
 import { DeleteEntityDialog } from "../Shared/DeleteEntityDialog";
-import { IPerformerCardExtraCriteria, PerformerCard } from "./PerformerCard";
+import { IPerformerCardExtraCriteria } from "./PerformerCard";
 import { PerformerListTable } from "./PerformerListTable";
 import { EditPerformersDialog } from "./EditPerformersDialog";
 import { cmToImperial, cmToInches, kgToLbs } from "src/utils/units";
 import TextUtils from "src/utils/text";
+import { PerformerCardGrid } from "./PerformerCardGrid";
+import { View } from "../List/views";
 
-const PerformerItemList = makeItemList({
-  filterMode: GQL.FilterMode.Performers,
-  useResult: useFindPerformers,
-  getItems(result: GQL.FindPerformersQueryResult) {
-    return result?.data?.findPerformers?.performers ?? [];
-  },
-  getCount(result: GQL.FindPerformersQueryResult) {
-    return result?.data?.findPerformers?.count ?? 0;
-  },
-});
+function getItems(result: GQL.FindPerformersQueryResult) {
+  return result?.data?.findPerformers?.performers ?? [];
+}
+
+function getCount(result: GQL.FindPerformersQueryResult) {
+  return result?.data?.findPerformers?.count ?? 0;
+}
 
 export const FormatHeight = (height?: number | null) => {
   const intl = useIntl();
@@ -161,14 +156,14 @@ export const FormatPenisLength = (penis_length?: number | null) => {
 
 interface IPerformerList {
   filterHook?: (filter: ListFilterModel) => ListFilterModel;
-  persistState?: PersistanceLevel;
+  view?: View;
   alterQuery?: boolean;
   extraCriteria?: IPerformerCardExtraCriteria;
 }
 
 export const PerformerList: React.FC<IPerformerList> = ({
   filterHook,
-  persistState,
+  view,
   alterQuery,
   extraCriteria,
 }) => {
@@ -176,6 +171,8 @@ export const PerformerList: React.FC<IPerformerList> = ({
   const history = useHistory();
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isExportAll, setIsExportAll] = useState(false);
+
+  const filterMode = GQL.FilterMode.Performers;
 
   const otherOperations = [
     {
@@ -263,20 +260,13 @@ export const PerformerList: React.FC<IPerformerList> = ({
 
       if (filter.displayMode === DisplayMode.Grid) {
         return (
-          <div className="row justify-content-center">
-            {result.data.findPerformers.performers.map((p) => (
-              <PerformerCard
-                key={p.id}
-                performer={p}
-                selecting={selectedIds.size > 0}
-                selected={selectedIds.has(p.id)}
-                onSelectedChanged={(selected: boolean, shiftKey: boolean) =>
-                  onSelectChange(p.id, selected, shiftKey)
-                }
-                extraCriteria={extraCriteria}
-              />
-            ))}
-          </div>
+          <PerformerCardGrid
+            performers={result.data.findPerformers.performers}
+            zoomIndex={filter.zoomIndex}
+            selectedIds={selectedIds}
+            onSelectChange={onSelectChange}
+            extraCriteria={extraCriteria}
+          />
         );
       }
       if (filter.displayMode === DisplayMode.List) {
@@ -328,16 +318,25 @@ export const PerformerList: React.FC<IPerformerList> = ({
   }
 
   return (
-    <PerformerItemList
-      selectable
-      filterHook={filterHook}
-      persistState={persistState}
+    <ItemListContext
+      filterMode={filterMode}
+      useResult={useFindPerformers}
+      getItems={getItems}
+      getCount={getCount}
       alterQuery={alterQuery}
-      otherOperations={otherOperations}
-      addKeybinds={addKeybinds}
-      renderContent={renderContent}
-      renderEditDialog={renderEditDialog}
-      renderDeleteDialog={renderDeleteDialog}
-    />
+      filterHook={filterHook}
+      view={view}
+      selectable
+    >
+      <ItemList
+        zoomable
+        view={view}
+        otherOperations={otherOperations}
+        addKeybinds={addKeybinds}
+        renderContent={renderContent}
+        renderEditDialog={renderEditDialog}
+        renderDeleteDialog={renderDeleteDialog}
+      />
+    </ItemListContext>
   );
 };

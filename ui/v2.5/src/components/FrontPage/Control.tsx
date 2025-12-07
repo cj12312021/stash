@@ -1,15 +1,16 @@
 import React, { useContext, useMemo } from "react";
 import { useIntl } from "react-intl";
-import { FrontPageContent, ICustomFilter } from "src/core/config";
+import { FrontPageContent, ICustomFilter, IAIRecommendationFilter } from "src/core/config";
 import * as GQL from "src/core/generated-graphql";
 import { useFindSavedFilter } from "src/core/StashService";
 import { ConfigurationContext } from "src/hooks/Config";
 import { ListFilterModel } from "src/models/list-filter/filter";
 import { GalleryRecommendationRow } from "../Galleries/GalleryRecommendationRow";
 import { ImageRecommendationRow } from "../Images/ImageRecommendationRow";
-import { MovieRecommendationRow } from "../Movies/MovieRecommendationRow";
+import { GroupRecommendationRow } from "../Groups/GroupRecommendationRow";
 import { PerformerRecommendationRow } from "../Performers/PerformerRecommendationRow";
 import { SceneRecommendationRow } from "../Scenes/SceneRecommendationRow";
+import { AISceneRecommendationRow } from "src/extensions/components";
 import { StudioRecommendationRow } from "../Studios/StudioRecommendationRow";
 import { TagRecommendationRow } from "../Tags/TagRecommendationRow";
 
@@ -44,8 +45,9 @@ const RecommendationRow: React.FC<IFilter> = ({ mode, filter, header }) => {
         />
       );
     case GQL.FilterMode.Movies:
+    case GQL.FilterMode.Groups:
       return (
-        <MovieRecommendationRow
+        <GroupRecommendationRow
           isTouch={isTouch}
           filter={filter}
           header={header}
@@ -156,6 +158,42 @@ const CustomFilterResults: React.FC<ICustomFilterProps> = ({
   );
 };
 
+interface IAIRecommendationProps {
+  aiFilter: IAIRecommendationFilter;
+}
+
+const AIRecommendationResults: React.FC<IAIRecommendationProps> = ({
+  aiFilter,
+}) => {
+  const intl = useIntl();
+
+  function isTouchEnabled() {
+    return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  }
+
+  const isTouch = isTouchEnabled();
+
+  const header = aiFilter.message
+    ? intl.formatMessage(
+        { id: aiFilter.message.id },
+        aiFilter.message.values
+      )
+    : aiFilter.title ?? "";
+
+  // Currently only supports scenes
+  if (aiFilter.mode === GQL.FilterMode.Scenes) {
+    return (
+      <AISceneRecommendationRow
+        isTouch={isTouch}
+        limit={aiFilter.limit}
+        header={header}
+      />
+    );
+  }
+
+  return null;
+};
+
 interface IProps {
   content: FrontPageContent;
 }
@@ -172,6 +210,8 @@ export const Control: React.FC<IProps> = ({ content }) => {
       );
     case "CustomFilter":
       return <CustomFilterResults customFilter={content} />;
+    case "AIRecommendation":
+      return <AIRecommendationResults aiFilter={content as IAIRecommendationFilter} />;
     default:
       return <></>;
   }

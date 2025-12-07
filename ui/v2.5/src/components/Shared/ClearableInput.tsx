@@ -1,11 +1,13 @@
 import React from "react";
 import { Button, FormControl } from "react-bootstrap";
-import { faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faMagnifyingGlass, faTimes } from "@fortawesome/free-solid-svg-icons";
 import { useIntl } from "react-intl";
 import { Icon } from "./Icon";
 import useFocus from "src/utils/focus";
+import cx from "classnames";
 
 interface IClearableInput {
+  className?: string;
   value: string;
   setValue: (value: string) => void;
   focus?: ReturnType<typeof useFocus>;
@@ -13,6 +15,7 @@ interface IClearableInput {
 }
 
 export const ClearableInput: React.FC<IClearableInput> = ({
+  className,
   value,
   setValue,
   focus,
@@ -36,13 +39,20 @@ export const ClearableInput: React.FC<IClearableInput> = ({
     setQueryFocus();
   }
 
+  function onInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Escape") {
+      queryRef.current?.blur();
+    }
+  }
+
   return (
-    <div className="clearable-input-group">
+    <div className={cx("clearable-input-group", className)}>
       <FormControl
         ref={queryRef}
         placeholder={placeholder}
         value={value}
         onInput={onChangeQuery}
+        onKeyDown={onInputKeyDown}
         className="clearable-text-field"
       />
       {queryClearShowing && (
@@ -53,6 +63,15 @@ export const ClearableInput: React.FC<IClearableInput> = ({
           className="clearable-text-field-clear"
         >
           <Icon icon={faTimes} />
+        </Button>
+      )}
+      {!queryClearShowing && (
+        <Button
+          variant="secondary"
+          title={intl.formatMessage({ id: "actions.clear" })}
+          className="clearable-text-field-search"
+        >
+          <Icon icon={faMagnifyingGlass} />
         </Button>
       )}
     </div>

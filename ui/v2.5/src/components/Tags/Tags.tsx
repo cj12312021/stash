@@ -4,13 +4,11 @@ import { Helmet } from "react-helmet";
 import { useTitleProps } from "src/hooks/title";
 import Tag from "./TagDetails/Tag";
 import TagCreate from "./TagDetails/TagCreate";
-import { TagList } from "./TagList";
-import { useScrollToTopOnMount } from "src/hooks/scrollToTop";
+import { EnhancedTagList as TagList } from "src/extensions/facets/enhanced";
+import { View } from "../List/views";
 
 const Tags: React.FC = () => {
-  useScrollToTopOnMount();
-
-  return <TagList />;
+  return <TagList view={View.Tags} />;
 };
 
 const TagRoutes: React.FC = () => {

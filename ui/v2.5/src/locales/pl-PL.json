@@ -8,7 +8,7 @@
         "allow_temporarily": "Zezwól tymczasowo",
         "anonymise": "Zanonimizuj",
         "apply": "Zastosuj",
-        "auto_tag": "Automatyczne oznaczanie",
+        "auto_tag": "Automatyczne tagowanie",
         "backup": "Kopia zapasowa",
         "browse_for_image": "Przeglądaj w poszukiwaniu obrazu…",
         "cancel": "Anuluj",
@@ -29,9 +29,8 @@
         "delete": "Usuń",
         "delete_entity": "Usuń {entityType}",
         "delete_file": "Usuń plik",
-        "delete_file_and_funscript": "Usuń plik (i skrypt funkcyjny)",
+        "delete_file_and_funscript": "Usuń plik (i skrypt funscript)",
         "delete_generated_supporting_files": "Usuń wygenerowane pliki pomocnicze",
-        "delete_stashid": "Usuń StashID",
         "disallow": "Nie zezwalaj",
         "download": "Pobierz",
         "download_anonymised": "Pobierz zanonimizowane",
@@ -74,13 +73,13 @@
         "previous_action": "Wstecz",
         "reassign": "Przypisz ponownie",
         "refresh": "Odśwież",
-        "reload_plugins": "Załaduj wtyczki ponownie",
-        "reload_scrapers": "Załaduj zbieracze ponownie",
+        "reload_plugins": "Przeładuj wtyczki",
+        "reload_scrapers": "Przeładuj zbieracze",
         "remove": "Usuń",
         "remove_from_gallery": "Usuń z galerii",
         "rename_gen_files": "Zmień nazwy wygenerowanych plików",
         "rescan": "Skanuj ponownie",
-        "reshuffle": "Wylosuj porządek",
+        "reshuffle": "Przetasuj",
         "running": "uruchomiony",
         "save": "Zapisz",
         "save_delete_settings": "Użyj tych opcji jako domyślnych podczas usuwania",
@@ -112,7 +111,7 @@
         "submit_update": "Prześlij aktualizację",
         "swap": "Zamień",
         "tasks": {
-            "clean_confirm_message": "Czy na pewno chcesz przeprowadzić oczyszczanie? Spowoduje to usunięcie informacji o bazie danych i wygenerowanej zawartości dla wszystkich scen i galerii, które nie znajdują się już w systemie plików.",
+            "clean_confirm_message": "Czy na pewno chcesz przeprowadzić oczyszczanie? Spowoduje to usunięcie informacji z bazy danych i wygenerowanej zawartości dla wszystkich scen i galerii, które nie znajdują się już w systemie plików.",
             "dry_mode_selected": "Wybrano tryb próby na sucho. Nie nastąpi faktyczne usunięcie, a jedynie zapisanie w dzienniku.",
             "import_warning": "Czy na pewno chcesz zaimportować? Spowoduje to usunięcie bazy danych i ponowne zaimportowanie wyeksportowanych metadanych."
         },
@@ -120,7 +119,31 @@
         "temp_enable": "Włącz tymczasowo…",
         "unset": "Nieustawiony",
         "use_default": "Użyj domyślnych",
-        "view_random": "Pokaż losowe"
+        "view_random": "Pokaż losowe",
+        "optimise_database": "Optymalizuj bazę danych",
+        "copy_to_clipboard": "Kopiuj do schowka",
+        "disable": "Wyłącz",
+        "encoding_image": "Kodowanie obrazu…",
+        "reload": "Przeładuj",
+        "enable": "Włącz",
+        "add_o": "Dodaj O",
+        "add_manual_date": "Dodaj datę ręcznie",
+        "add_play": "Dodaj odtworzenie",
+        "assign_stashid_to_parent_studio": "Przypisz Stash ID do istniejącego studia nadrzędnego i zaktualizuj metadane",
+        "choose_date": "Wybierz datę",
+        "clean_generated": "Wyczyść wygenerowane pliki",
+        "clear_date_data": "Wyczyść dane daty",
+        "create_parent_studio": "Utwórz studio nadrzędne",
+        "remove_date": "Usuń datę",
+        "reset_play_duration": "Resetuj czas odtwarzania",
+        "reset_resume_time": "Resetuj czas wznowienia",
+        "set_cover": "Ustaw jako okładkę",
+        "remove_from_containing_group": "Usuń z grupy",
+        "reset_cover": "Przywróć domyślną okładkę",
+        "add_sub_groups": "Dodaj podgrupy",
+        "view_history": "Zobacz historię",
+        "play": "Odtwarzaj",
+        "show_results": "Pokaż wyniki"
     },
     "actions_name": "Działania",
     "age": "Wiek",
@@ -168,13 +191,15 @@
             "set_tag_label": "Ustaw tagi",
             "show_male_desc": "Włączenie opcji tagowania wykonawców płci męskiej.",
             "show_male_label": "Pokaż męskich aktorów",
-            "source": "Źródło"
+            "source": "Źródło",
+            "mark_organized_desc": "Po kliknięciu przycisku Zapisz scena zostaje natychmiast oznaczona jako zorganizowana.",
+            "mark_organized_label": "Oznacz jako zorganizowane przy zapisywaniu"
         },
         "noun_query": "Zapytanie",
         "results": {
             "duration_off": "Czas trwania przesunięty o co najmniej {number}s",
             "duration_unknown": "Czas trwania nieznany",
-            "fp_found": "{fpCount, plural, =0 {Nie znaleziono nowych dopasowań odcisków palców} other {# znaleziono nowe dopasowania odcisków palców}}",
+            "fp_found": "{fpCount, plural, =0 {Nie znaleziono nowych dopasowań odcisków palców} one {Znaleziono # nowe dopasowanie odcisków palców} few {Znaleziono # nowe dopasowania odcisków palców} other {Znaleziono # nowych dopasowań odcisków palców}}",
             "fp_matches": "Czas trwania jest zgodny",
             "fp_matches_multi": "Pasujące czasy trwania dla odcisków palców {matchCount}/{durationsLength}",
             "hash_matches": "{hash_type} jest zgodny",
@@ -187,7 +212,7 @@
         "verb_match_fp": "Dopasuj odciski palców",
         "verb_matched": "Dopasowane",
         "verb_scrape_all": "Zbierz wszystko",
-        "verb_submit_fp": "Wyślij {fpCount, plural, one{# odcisk palca} other{# odciski palców}}",
+        "verb_submit_fp": "Wyślij {fpCount, plural, one{# odcisk palca} few{# odciski palców} other{# odcisków palców}}",
         "verb_toggle_config": "{toggle} {configuration}",
         "verb_toggle_unmatched": "{toggle} niedopasowane sceny"
     },
@@ -241,7 +266,9 @@
             "successfully_cancelled_temporary_behaviour": "Pomyślnie anulowano zachowanie tymczasowe",
             "until_restart": "do ponownego uruchomienia",
             "video_sort_order": "Domyślna kolejność sortowania wideo",
-            "video_sort_order_desc": "Ustaw domyślną kolejność sortowania filmów."
+            "video_sort_order_desc": "Ustaw domyślną kolejność sortowania filmów.",
+            "server_port": "Port serwera",
+            "server_port_desc": "Port, na którym uruchomiony będzie serwer DLNA.\nWymaga restartu DLNA w przypadku zmiany."
         },
         "general": {
             "auth": {
@@ -321,6 +348,9 @@
                         "desc": "Zaawansowane: Dodatkowe argumenty do przekazania do FFmpeg przed polem wyjściowym podczas generowania wideo.",
                         "heading": "Argumenty wyjścia dla transkodowania z użyciem FFmpeg"
                     }
+                },
+                "download_ffmpeg": {
+                    "heading": "Pobierz FFmpeg"
                 }
             },
             "funscript_heatmap_draw_range": "Bierz pod uwagę zakres dla wygenerowanych heatmap",
@@ -703,7 +733,8 @@
                 }
             },
             "title": "Interfejs użytkownika"
-        }
+        },
+        "advanced_mode": "Tryb zaawansowany"
     },
     "configuration": "Konfiguracja",
     "countables": {
@@ -711,7 +742,6 @@
         "galleries": "{count, plural, one {Galeria} few {Galerie} other {Galerii}}",
         "images": "{count, plural, one {Obraz} few {Obrazy} other {Obrazów}}",
         "markers": "{count, plural, one {Znacznik} few {Znaczniki} other {Znaczników}}",
-        "movies": "{count, plural, one {Film} few {Filmy} other {Filmów}}",
         "performers": "{count, plural, one {Aktor} few {Aktorów} other {Aktorów}}",
         "scenes": "{count, plural, one {Scena} few {Sceny} other {Scen}}",
         "studios": "{count, plural, one {Studio} few {Studia} other {Studiów}}",
@@ -807,7 +837,6 @@
             "destination": "Cel",
             "source": "Źródło"
         },
-        "overwrite_filter_confirm": "Czy na pewno chcesz nadpisać istniejące zapisane zapytanie {entityName}?",
         "reassign_entity_title": "Przypisz {count, plural, one {{singularEntity}} other {{pluralEntity}}}",
         "reassign_files": {
             "destination": "Przypisz ponownie do"
@@ -1004,9 +1033,6 @@
     },
     "megabits_per_second": "{value} megabitów na sekundę",
     "metadata": "Metadane",
-    "movie": "Film",
-    "movie_scene_number": "Numer sceny filmu",
-    "movies": "Filmy",
     "name": "Nazwa",
     "new": "Dodaj",
     "none": "Brak",
@@ -1030,7 +1056,6 @@
     "penis_length_cm": "Długość penisa (cm)",
     "perceptual_similarity": "Podobieństwo percepcyjne (phash)",
     "performer": "Aktor",
-    "performer_tags": "Tagi aktorów",
     "performer_age": "Wiek aktora",
     "performer_count": "Liczba aktorów",
     "performer_favorite": "Ulubiony aktor",
@@ -1070,6 +1095,7 @@
         "update_performers": "Zaktualizowano aktorów",
         "updating_untagged_performers_description": "Aktualizowanie nieotagowanych aktorów spróbuje dopasować aktorów, którym brakuje stashid i zaktualizować metadane."
     },
+    "performer_tags": "Tagi aktorów",
     "performers": "Aktorzy",
     "piercings": "Kolczyki",
     "play_count": "Liczba odtworzeń",
@@ -1085,12 +1111,12 @@
     "resume_time": "Rozpocznij od",
     "scene": "Scena",
     "sceneTagger": "Otagowywacz scen",
-    "scene_tags": "Tagi sceny",
     "scene_code": "Kod studia",
     "scene_count": "Liczba scen",
     "scene_created_at": "Scena utworzona",
     "scene_date": "Data sceny",
     "scene_id": "ID sceny",
+    "scene_tags": "Tagi sceny",
     "scene_updated_at": "Scena zaktualizowana",
     "scenes": "Sceny",
     "scenes_updated_at": "Scena aktualizowana",
@@ -1110,17 +1136,12 @@
             "cache_directory": "Katalog pamięci podręcznej",
             "configuration_file_location": "Lokalizacja pliku konfiguracyjnego:",
             "database_file_path": "Ścieżka do pliku bazy danych",
-            "default_blobs_location": "<użyj bazy dancyh>",
-            "default_cache_location": "<ścieżka zawierająca plik konfiguracyjny>/cache",
-            "default_db_location": "<ścieżka zawierająca plik konfiguracyjny>/stash-go.sqlite",
-            "default_generated_content_location": "<ścieżka zawierająca plik konfiguracyjny>/generated",
             "generated_directory": "Folder z wygenerowaną zawartością",
             "nearly_there": "Już prawie gotowe!",
             "stash_library_directories": "Katalogi biblioteki Stash"
         },
         "creating": {
-            "creating_your_system": "Tworzenie systemu",
-            "ffmpeg_notice": "Jeśli <code>ffmpeg</code> nie znajduje się jeszcze w twoich ścieżkach, zachowaj cierpliwość, gdy stash go pobierze. Zobacz wyjście konsoli, aby zobaczyć postęp pobierania."
+            "creating_your_system": "Tworzenie systemu"
         },
         "errors": {
             "something_went_wrong": "O nie! Coś poszło nie tak!",
@@ -1250,14 +1271,23 @@
     "updated_at": "Zaktualizowano",
     "url": "URL",
     "validation": {
-        "aliases_must_be_unique": "aliasy muszą być unikatowe",
         "date_invalid_form": "${path} musi być w formacie RRRR-MM-DD",
-        "required": "${path} jest wymagana"
+        "required": "${path} jest wymagana",
+        "unique": "${path} musi być unikalny",
+        "blank": "${path} nie może być puste"
     },
     "videos": "Filmy wideo",
     "view_all": "Pokaż wszystko",
     "weight": "Waga",
     "weight_kg": "Waga (kg)",
     "years_old": "lat(a)",
-    "zip_file_count": "Liczba plików zip"
+    "zip_file_count": "Liczba plików zip",
+    "audio_codec": "Kodek audio",
+    "sub_group": "Podgrupa",
+    "sub_group_count": "Ilość Podgrup",
+    "sub_group_of": "Podgrupa {parent}",
+    "sub_group_order": "Kolejność podgrup",
+    "sub_groups": "Podgrupy",
+    "unknown_date": "Nieznana data",
+    "video_codec": "Kodek Wideo"
 }

@@ -1,5 +1,8 @@
 import { CriterionModifier } from "src/core/generated-graphql";
-import { CriterionOption, IHierarchicalLabeledIdCriterion } from "./criterion";
+import {
+  ModifierCriterionOption,
+  IHierarchicalLabeledIdCriterion,
+} from "./criterion";
 import { CriterionType } from "../types";
 
 const defaultModifierOptions = [
@@ -20,7 +23,7 @@ const withoutEqualsModifierOptions = [
 const defaultModifier = CriterionModifier.IncludesAll;
 const inputType = "tags";
 
-class BaseTagsCriterionOption extends CriterionOption {
+class BaseTagsCriterionOption extends ModifierCriterionOption {
   constructor(
     messageID: string,
     type: CriterionType,
@@ -54,6 +57,13 @@ export const PerformerTagsCriterionOption = new BaseTagsCriterionOption(
   "performer_tags",
   withoutEqualsModifierOptions
 );
+
+// TODO - this requires using a nested studios_filter which needs to be added separately
+// export const StudioTagsCriterionOption = new BaseTagsCriterionOption(
+//   "studio_tags",
+//   "studio_tags",
+//   withoutEqualsModifierOptions
+// );
 
 export const ParentTagsCriterionOption = new BaseTagsCriterionOption(
   "parent_tags",

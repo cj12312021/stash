@@ -5,7 +5,11 @@ import {
   MultiCriterionInput,
 } from "src/core/generated-graphql";
 import { ILabeledId, ILabeledValueListValue } from "../types";
-import { Criterion, CriterionOption, IEncodedCriterion } from "./criterion";
+import {
+  ModifierCriterion,
+  ModifierCriterionOption,
+  ISavedCriterion,
+} from "./criterion";
 
 const modifierOptions = [
   CriterionModifier.IncludesAll,
@@ -19,7 +23,7 @@ const defaultModifier = CriterionModifier.IncludesAll;
 
 const inputType = "performers";
 
-export const PerformersCriterionOption = new CriterionOption({
+export const PerformersCriterionOption = new ModifierCriterionOption({
   messageID: "performers",
   type: "performers",
   modifierOptions,
@@ -28,9 +32,17 @@ export const PerformersCriterionOption = new CriterionOption({
   makeCriterion: () => new PerformersCriterion(),
 });
 
-export class PerformersCriterion extends Criterion<ILabeledValueListValue> {
+export class PerformersCriterion extends ModifierCriterion<ILabeledValueListValue> {
   constructor() {
     super(PerformersCriterionOption, { items: [], excluded: [] });
+  }
+
+  public cloneValues() {
+    this.value = {
+      ...this.value,
+      items: this.value.items.map((v) => ({ ...v })),
+      excluded: this.value.excluded.map((v) => ({ ...v })),
+    };
   }
 
   override get modifier(): CriterionModifier {
@@ -49,10 +61,10 @@ export class PerformersCriterion extends Criterion<ILabeledValueListValue> {
     }
   }
 
-  public setFromEncodedCriterion(
-    encodedCriterion: IEncodedCriterion<ILabeledId[] | ILabeledValueListValue>
+  public setFromSavedCriterion(
+    criterion: ISavedCriterion<ILabeledId[] | ILabeledValueListValue>
   ) {
-    const { modifier, value } = encodedCriterion;
+    const { modifier, value } = criterion;
 
     // #3619 - the format of performer value was changed from an array
     // to an object. Check for both formats.
@@ -80,7 +92,7 @@ export class PerformersCriterion extends Criterion<ILabeledValueListValue> {
     return this.value.items.map((v) => v.label).join(", ");
   }
 
-  protected toCriterionInput(): MultiCriterionInput {
+  public toCriterionInput(): MultiCriterionInput {
     let excludes: string[] = [];
     if (this.value.excluded) {
       excludes = this.value.excluded.map((v) => v.id);
@@ -108,7 +120,10 @@ export class PerformersCriterion extends Criterion<ILabeledValueListValue> {
 
   public getLabel(intl: IntlShape): string {
     let id = "criterion_modifier.format_string";
-    let modifierString = Criterion.getModifierLabel(intl, this.modifier);
+    let modifierString = ModifierCriterion.getModifierLabel(
+      intl,
+      this.modifier
+    );
     let valueString = "";
     let excludedString = "";
 
@@ -120,7 +135,7 @@ export class PerformersCriterion extends Criterion<ILabeledValueListValue> {
 
       if (this.value.excluded && this.value.excluded.length > 0) {
         if (this.value.items.length === 0) {
-          modifierString = Criterion.getModifierLabel(
+          modifierString = ModifierCriterion.getModifierLabel(
             intl,
             CriterionModifier.Excludes
           );

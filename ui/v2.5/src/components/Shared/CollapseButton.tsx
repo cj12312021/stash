@@ -1,32 +1,73 @@
 import {
   faChevronDown,
   faChevronRight,
+  faChevronUp,
 } from "@fortawesome/free-solid-svg-icons";
-import React, { useState } from "react";
-import { Button, Collapse } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
+import { Button, Collapse, CollapseProps } from "react-bootstrap";
 import { Icon } from "./Icon";
 
 interface IProps {
-  text: string;
+  className?: string;
+  text: React.ReactNode;
+  collapseProps?: Partial<CollapseProps>;
+  outsideCollapse?: React.ReactNode;
+  onOpenChanged?: (o: boolean) => void;
+  open?: boolean;
+  disabled?: boolean;
 }
 
 export const CollapseButton: React.FC<React.PropsWithChildren<IProps>> = (
   props: React.PropsWithChildren<IProps>
 ) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(props.open ?? false);
+
+  function toggleOpen() {
+    if (props.disabled) return;
+    const nv = !open;
+    setOpen(nv);
+    props.onOpenChanged?.(nv);
+  }
+
+  useEffect(() => {
+    if (props.open !== undefined) {
+      setOpen(props.open);
+    }
+  }, [props.open]);
 
   return (
-    <div>
-      <Button
-        onClick={() => setOpen(!open)}
-        className="minimal collapse-button"
-      >
-        <Icon icon={open ? faChevronDown : faChevronRight} />
-        <span>{props.text}</span>
-      </Button>
-      <Collapse in={open}>
+    <div className={props.className}>
+      <div className="collapse-header">
+        <Button
+          onClick={() => toggleOpen()}
+          className="minimal collapse-button"
+        >
+          <Icon icon={open ? faChevronDown : faChevronRight} fixedWidth />
+          <span>{props.text}</span>
+        </Button>
+      </div>
+      {props.outsideCollapse}
+      <Collapse in={open} {...props.collapseProps}>
         <div>{props.children}</div>
       </Collapse>
     </div>
+  );
+};
+
+export const ExpandCollapseButton: React.FC<{
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
+}> = ({ collapsed, setCollapsed }) => {
+  const buttonIcon = collapsed ? faChevronDown : faChevronUp;
+
+  return (
+    <span className="detail-expand-collapse">
+      <Button
+        className="minimal expand-collapse"
+        onClick={() => setCollapsed(!collapsed)}
+      >
+        <Icon icon={buttonIcon} fixedWidth />
+      </Button>
+    </span>
   );
 };

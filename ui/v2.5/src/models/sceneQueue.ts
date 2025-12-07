@@ -1,11 +1,20 @@
 import { FilterMode, Scene } from "src/core/generated-graphql";
 import { ListFilterModel } from "./list-filter/filter";
-import { SceneListFilterOptions } from "./list-filter/scenes";
 import { INamedObject } from "src/utils/navigation";
+
+export interface IFileObject {
+  id: string;
+  duration: number;
+  height: number;
+  path: string;
+  width: number;
+  size: number;
+}
 
 export type QueuedScene = Pick<Scene, "id" | "title" | "date" | "paths"> & {
   performers?: INamedObject[] | null;
   studio?: INamedObject | null;
+  files: IFileObject[];
 };
 
 export interface IPlaySceneOptions {
@@ -97,11 +106,7 @@ export class SceneQueue {
         c: params.getAll("qfc"),
       };
       const decoded = ListFilterModel.decodeParams(translated);
-      const query = new ListFilterModel(
-        FilterMode.Scenes,
-        undefined,
-        SceneListFilterOptions.defaultSortBy
-      );
+      const query = new ListFilterModel(FilterMode.Scenes);
       query.configureFromDecodedParams(decoded);
       ret.query = query;
     } else if (params.has("qs")) {

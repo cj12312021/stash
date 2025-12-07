@@ -10,8 +10,11 @@ import {
   IntCriterionInput,
 } from "src/core/generated-graphql";
 import { INumberValue } from "../types";
-import { Criterion, CriterionOption } from "./criterion";
-import { IUIConfig } from "src/core/config";
+import {
+  encodeRangeValue,
+  ModifierCriterion,
+  ModifierCriterionOption,
+} from "./criterion";
 
 const modifierOptions = [
   CriterionModifier.Equals,
@@ -25,12 +28,10 @@ const modifierOptions = [
 ];
 
 function getRatingSystemOptions(config?: ConfigDataFragment) {
-  return (
-    (config?.ui as IUIConfig)?.ratingSystemOptions ?? defaultRatingSystemOptions
-  );
+  return config?.ui.ratingSystemOptions ?? defaultRatingSystemOptions;
 }
 
-export const RatingCriterionOption = new CriterionOption({
+export const RatingCriterionOption = new ModifierCriterionOption({
   messageID: "rating",
   type: "rating100",
   modifierOptions,
@@ -40,8 +41,17 @@ export const RatingCriterionOption = new CriterionOption({
   inputType: "number",
 });
 
-export class RatingCriterion extends Criterion<INumberValue> {
+export class RatingCriterion extends ModifierCriterion<INumberValue> {
   ratingSystem: RatingSystemOptions;
+
+  constructor(ratingSystem: RatingSystemOptions) {
+    super(RatingCriterionOption, { value: 0, value2: undefined });
+    this.ratingSystem = ratingSystem;
+  }
+
+  public cloneValues() {
+    this.value = { ...this.value };
+  }
 
   public get value(): INumberValue {
     return this._value;
@@ -58,12 +68,25 @@ export class RatingCriterion extends Criterion<INumberValue> {
     }
   }
 
-  protected toCriterionInput(): IntCriterionInput {
+  public toCriterionInput(): IntCriterionInput {
     return {
       modifier: this.modifier,
       value: this.value.value ?? 0,
       value2: this.value.value2,
     };
+  }
+
+  public setFromSavedCriterion(c: {
+    modifier: CriterionModifier;
+    value: number | INumberValue;
+    value2?: number;
+  }) {
+    super.setFromSavedCriterion(c);
+    // this.value = decodeRangeValue(c);
+  }
+
+  protected encodeValue(): unknown {
+    return encodeRangeValue(this.modifier, this.value);
   }
 
   protected getLabelValue() {
@@ -78,10 +101,5 @@ export class RatingCriterion extends Criterion<INumberValue> {
     } else {
       return `${convertToRatingFormat(value, this.ratingSystem) ?? 0}`;
     }
-  }
-
-  constructor(ratingSystem: RatingSystemOptions) {
-    super(RatingCriterionOption, { value: 0, value2: undefined });
-    this.ratingSystem = ratingSystem;
   }
 }

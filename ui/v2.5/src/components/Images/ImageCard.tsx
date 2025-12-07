@@ -7,7 +7,7 @@ import { GalleryLink, TagLink } from "src/components/Shared/TagLink";
 import { HoverPopover } from "src/components/Shared/HoverPopover";
 import { SweatDrops } from "src/components/Shared/SweatDrops";
 import { PerformerPopoverButton } from "src/components/Shared/PerformerPopoverButton";
-import { GridCard } from "src/components/Shared/GridCard";
+import { GridCard } from "src/components/Shared/GridCard/GridCard";
 import { RatingBanner } from "src/components/Shared/RatingBanner";
 import {
   faBox,
@@ -15,11 +15,13 @@ import {
   faSearch,
   faTag,
 } from "@fortawesome/free-solid-svg-icons";
-import { objectTitle } from "src/core/files";
+import { imageTitle } from "src/core/files";
 import { TruncatedText } from "../Shared/TruncatedText";
+import { StudioOverlay } from "../Shared/GridCard/StudioOverlay";
 
 interface IImageCardProps {
   image: GQL.SlimImageDataFragment;
+  cardWidth?: number;
   selecting?: boolean;
   selected?: boolean | undefined;
   zoomIndex: number;
@@ -62,7 +64,12 @@ export const ImageCard: React.FC<IImageCardProps> = (
   function maybeRenderPerformerPopoverButton() {
     if (props.image.performers.length <= 0) return;
 
-    return <PerformerPopoverButton performers={props.image.performers} />;
+    return (
+      <PerformerPopoverButton
+        performers={props.image.performers}
+        linkType="image"
+      />
+    );
   }
 
   function maybeRenderOCounter() {
@@ -153,7 +160,8 @@ export const ImageCard: React.FC<IImageCardProps> = (
     <GridCard
       className={`image-card zoom-${props.zoomIndex}`}
       url={`/images/${props.image.id}`}
-      title={objectTitle(props.image)}
+      width={props.cardWidth}
+      title={imageTitle(props.image)}
       linkClassName="image-card-link"
       image={
         <>
@@ -186,6 +194,7 @@ export const ImageCard: React.FC<IImageCardProps> = (
           />
         </div>
       }
+      overlays={<StudioOverlay studio={props.image.studio} />}
       popovers={maybeRenderPopoverButtonGroup()}
       selected={props.selected}
       selecting={props.selecting}

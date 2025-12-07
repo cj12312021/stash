@@ -10,6 +10,7 @@ import (
 	"github.com/stashapp/stash/pkg/image"
 	"github.com/stashapp/stash/pkg/models"
 	"github.com/stashapp/stash/pkg/plugin"
+	"github.com/stashapp/stash/pkg/plugin/hook"
 	"github.com/stashapp/stash/pkg/sliceutil"
 	"github.com/stashapp/stash/pkg/sliceutil/stringslice"
 	"github.com/stashapp/stash/pkg/utils"
@@ -27,7 +28,7 @@ func (r *mutationResolver) getImage(ctx context.Context, id int) (ret *models.Im
 	return ret, nil
 }
 
-func (r *mutationResolver) ImageUpdate(ctx context.Context, input ImageUpdateInput) (ret *models.Image, err error) {
+func (r *mutationResolver) ImageUpdate(ctx context.Context, input models.ImageUpdateInput) (ret *models.Image, err error) {
 	translator := changesetTranslator{
 		inputMap: getUpdateInputMap(ctx),
 	}
@@ -41,11 +42,11 @@ func (r *mutationResolver) ImageUpdate(ctx context.Context, input ImageUpdateInp
 	}
 
 	// execute post hooks outside txn
-	r.hookExecutor.ExecutePostHooks(ctx, ret.ID, plugin.ImageUpdatePost, input, translator.getFields())
+	r.hookExecutor.ExecutePostHooks(ctx, ret.ID, hook.ImageUpdatePost, input, translator.getFields())
 	return r.getImage(ctx, ret.ID)
 }
 
-func (r *mutationResolver) ImagesUpdate(ctx context.Context, input []*ImageUpdateInput) (ret []*models.Image, err error) {
+func (r *mutationResolver) ImagesUpdate(ctx context.Context, input []*models.ImageUpdateInput) (ret []*models.Image, err error) {
 	inputMaps := getUpdateInputMaps(ctx)
 
 	// Start the transaction and save the image
@@ -75,7 +76,7 @@ func (r *mutationResolver) ImagesUpdate(ctx context.Context, input []*ImageUpdat
 			inputMap: inputMaps[i],
 		}
 
-		r.hookExecutor.ExecutePostHooks(ctx, image.ID, plugin.ImageUpdatePost, input, translator.getFields())
+		r.hookExecutor.ExecutePostHooks(ctx, image.ID, hook.ImageUpdatePost, input, translator.getFields())
 
 		image, err = r.getImage(ctx, image.ID)
 		if err != nil {
@@ -88,7 +89,7 @@ func (r *mutationResolver) ImagesUpdate(ctx context.Context, input []*ImageUpdat
 	return newRet, nil
 }
 
-func (r *mutationResolver) imageUpdate(ctx context.Context, input ImageUpdateInput, translator changesetTranslator) (*models.Image, error) {
+func (r *mutationResolver) imageUpdate(ctx context.Context, input models.ImageUpdateInput, translator changesetTranslator) (*models.Image, error) {
 	imageID, err := strconv.Atoi(input.ID)
 	if err != nil {
 		return nil, fmt.Errorf("converting id: %w", err)
@@ -288,7 +289,7 @@ func (r *mutationResolver) BulkImageUpdate(ctx context.Context, input BulkImageU
 	// execute post hooks outside of txn
 	var newRet []*models.Image
 	for _, image := range ret {
-		r.hookExecutor.ExecutePostHooks(ctx, image.ID, plugin.ImageUpdatePost, input, translator.getFields())
+		r.hookExecutor.ExecutePostHooks(ctx, image.ID, hook.ImageUpdatePost, input, translator.getFields())
 
 		image, err = r.getImage(ctx, image.ID)
 		if err != nil {
@@ -332,7 +333,7 @@ func (r *mutationResolver) ImageDestroy(ctx context.Context, input models.ImageD
 	fileDeleter.Commit()
 
 	// call post hook after performing the other actions
-	r.hookExecutor.ExecutePostHooks(ctx, i.ID, plugin.ImageDestroyPost, plugin.ImageDestroyInput{
+	r.hookExecutor.ExecutePostHooks(ctx, i.ID, hook.ImageDestroyPost, plugin.ImageDestroyInput{
 		ImageDestroyInput: input,
 		Checksum:          i.Checksum,
 		Path:              i.Path,
@@ -383,7 +384,7 @@ func (r *mutationResolver) ImagesDestroy(ctx context.Context, input models.Image
 
 	for _, image := range images {
 		// call post hook after performing the other actions
-		r.hookExecutor.ExecutePostHooks(ctx, image.ID, plugin.ImageDestroyPost, plugin.ImagesDestroyInput{
+		r.hookExecutor.ExecutePostHooks(ctx, image.ID, hook.ImageDestroyPost, plugin.ImagesDestroyInput{
 			ImagesDestroyInput: input,
 			Checksum:           image.Checksum,
 			Path:               image.Path,

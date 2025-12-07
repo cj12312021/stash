@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/match"
 	"github.com/stashapp/stash/pkg/models"
+	"github.com/stashapp/stash/pkg/sliceutil"
 	"github.com/stashapp/stash/pkg/txn"
 )
 
@@ -40,6 +42,7 @@ type GlobalConfig interface {
 	GetScraperCertCheck() bool
 	GetPythonPath() string
 	GetProxy() string
+	GetScraperExcludeTagPatterns() []string
 }
 
 func isCDPPathHTTP(c GlobalConfig) bool {
@@ -53,6 +56,7 @@ func isCDPPathWS(c GlobalConfig) bool {
 type SceneFinder interface {
 	models.SceneGetter
 	models.URLLoader
+	models.VideoFileLoader
 }
 
 type PerformerFinder interface {
@@ -76,14 +80,21 @@ type GalleryFinder interface {
 	models.URLLoader
 }
 
+type ImageFinder interface {
+	models.ImageGetter
+	models.FileLoader
+	models.URLLoader
+}
+
 type Repository struct {
 	TxnManager models.TxnManager
 
 	SceneFinder     SceneFinder
 	GalleryFinder   GalleryFinder
+	ImageFinder     ImageFinder
 	TagFinder       TagFinder
 	PerformerFinder PerformerFinder
-	MovieFinder     match.MovieNamesFinder
+	GroupFinder     match.GroupNamesFinder
 	StudioFinder    StudioFinder
 }
 
@@ -92,9 +103,10 @@ func NewRepository(repo models.Repository) Repository {
 		TxnManager:      repo.TxnManager,
 		SceneFinder:     repo.Scene,
 		GalleryFinder:   repo.Gallery,
+		ImageFinder:     repo.Image,
 		TagFinder:       repo.Tag,
 		PerformerFinder: repo.Performer,
-		MovieFinder:     repo.Movie,
+		GroupFinder:     repo.Group,
 		StudioFinder:    repo.Studio,
 	}
 }
@@ -226,6 +238,10 @@ func (c Cache) findScraper(scraperID string) scraper {
 	return nil
 }
 
+func (c Cache) compileExcludeTagPatterns() []*regexp.Regexp {
+	return CompileExclusionRegexps(c.globalConfig.GetScraperExcludeTagPatterns())
+}
+
 func (c Cache) ScrapeName(ctx context.Context, id, query string, ty ScrapeContentType) ([]ScrapedContent, error) {
 	// find scraper with the provided id
 	s := c.findScraper(id)
@@ -246,12 +262,19 @@ func (c Cache) ScrapeName(ctx context.Context, id, query string, ty ScrapeConten
 		return nil, fmt.Errorf("error while name scraping with scraper %s: %w", id, err)
 	}
 
+	ignoredRegex := c.compileExcludeTagPatterns()
+
+	var ignoredTags []string
 	for i, cc := range content {
-		content[i], err = c.postScrape(ctx, cc)
+		var thisIgnoredTags []string
+		content[i], thisIgnoredTags, err = c.postScrape(ctx, cc, ignoredRegex)
 		if err != nil {
 			return nil, fmt.Errorf("error while post-scraping with scraper %s: %w", id, err)
 		}
+		ignoredTags = sliceutil.AppendUniques(ignoredTags, thisIgnoredTags)
 	}
+
+	LogIgnoredTags(ignoredTags)
 
 	return content, nil
 }
@@ -276,7 +299,7 @@ func (c Cache) ScrapeFragment(ctx context.Context, id string, input Input) (Scra
 		return nil, fmt.Errorf("error while fragment scraping with scraper %s: %w", id, err)
 	}
 
-	return c.postScrape(ctx, content)
+	return c.postScrapeSingle(ctx, content)
 }
 
 // ScrapeURL scrapes a given url for the given content. Searches the scraper cache
@@ -298,7 +321,7 @@ func (c Cache) ScrapeURL(ctx context.Context, url string, ty ScrapeContentType) 
 				return ret, nil
 			}
 
-			return c.postScrape(ctx, ret)
+			return c.postScrapeSingle(ctx, ret)
 		}
 	}
 
@@ -359,9 +382,31 @@ func (c Cache) ScrapeID(ctx context.Context, scraperID string, id int, ty Scrape
 		if scraped != nil {
 			ret = scraped
 		}
+
+	case ScrapeContentTypeImage:
+		is, ok := s.(imageScraper)
+		if !ok {
+			return nil, fmt.Errorf("%w: cannot use scraper %s as a image scraper", ErrNotSupported, scraperID)
+		}
+
+		scene, err := c.getImage(ctx, id)
+		if err != nil {
+			return nil, fmt.Errorf("scraper %s: unable to load image id %v: %w", scraperID, id, err)
+		}
+
+		// don't assign nil concrete pointer to ret interface, otherwise nil
+		// detection is harder
+		scraped, err := is.viaImage(ctx, c.client, scene)
+		if err != nil {
+			return nil, fmt.Errorf("scraper %s: %w", scraperID, err)
+		}
+
+		if scraped != nil {
+			ret = scraped
+		}
 	}
 
-	return c.postScrape(ctx, ret)
+	return c.postScrapeSingle(ctx, ret)
 }
 
 func (c Cache) getScene(ctx context.Context, sceneID int) (*models.Scene, error) {
@@ -380,7 +425,15 @@ func (c Cache) getScene(ctx context.Context, sceneID int) (*models.Scene, error)
 			return fmt.Errorf("scene with id %d not found", sceneID)
 		}
 
-		return ret.LoadURLs(ctx, qb)
+		if err := ret.LoadURLs(ctx, qb); err != nil {
+			return err
+		}
+
+		if err := ret.LoadFiles(ctx, qb); err != nil {
+			return err
+		}
+
+		return nil
 	}); err != nil {
 		return nil, err
 	}
@@ -401,6 +454,37 @@ func (c Cache) getGallery(ctx context.Context, galleryID int) (*models.Gallery, 
 
 		if ret == nil {
 			return fmt.Errorf("gallery with id %d not found", galleryID)
+		}
+
+		if err := ret.LoadURLs(ctx, qb); err != nil {
+			return err
+		}
+
+		if err := ret.LoadFiles(ctx, qb); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (c Cache) getImage(ctx context.Context, imageID int) (*models.Image, error) {
+	var ret *models.Image
+	r := c.repository
+	if err := r.WithReadTxn(ctx, func(ctx context.Context) error {
+		qb := r.ImageFinder
+
+		var err error
+		ret, err = qb.Find(ctx, imageID)
+		if err != nil {
+			return err
+		}
+
+		if ret == nil {
+			return fmt.Errorf("image with id %d not found", imageID)
 		}
 
 		err = ret.LoadFiles(ctx, qb)

@@ -12,6 +12,10 @@ An example using various aspects of `PluginApi` may be found in the source code 
 
 An instance of the React library.
 
+### `ReactDOM`
+
+An instance of the ReactDOM library.
+
 ### `GQL`
 
 This namespace contains the generated graphql client interface. This is a low-level interface. In many cases, `StashService` should be used instead.
@@ -25,6 +29,10 @@ This namespace contains the generated graphql client interface. This is a low-le
 - `Intl`
 - `FontAwesomeRegular`
 - `FontAwesomeSolid`
+- `FontAwesomeBrands`
+- `Mousetrap`
+- `MousetrapPause`
+- `ReactSelect`
 
 ### `register`
 
@@ -58,7 +66,7 @@ This namespace contains all of the components available to plugins. These includ
 
 ### `utils`
 
-This namespace provides access to the `NavUtils` and `StashService` namespaces. It also provides access to the `loadComponents` method.
+This namespace provides access to the `NavUtils` , `StashService` and `InteractiveUtils` namespaces. It also provides access to the `loadComponents` method.
 
 #### `PluginApi.utils.loadComponents`
 
@@ -72,10 +80,79 @@ In general, `PluginApi.hooks.useLoadComponents` hook should be used instead.
 
 Returns a `Promise<void>` that resolves when all of the components have been loaded.
 
+#### `PluginApi.utils.InteractiveUtils`
+This namespace provides access to `interactiveClientProvider` and `getPlayer`
+ - `getPlayer` returns the current `videojs` player object
+ - `interactiveClientProvider` takes `IInteractiveClientProvider` which allows a developer to hook into the lifecycle of funscripts.
+```ts
+  export interface IDeviceSettings {
+  connectionKey: string;
+  scriptOffset: number;
+  estimatedServerTimeOffset?: number;
+  useStashHostedFunscript?: boolean;
+  [key: string]: unknown;
+}
+
+export interface IInteractiveClientProviderOptions {
+  handyKey: string;
+  scriptOffset: number;
+  defaultClientProvider?: IInteractiveClientProvider;
+  stashConfig?: GQL.ConfigDataFragment;
+}
+export interface IInteractiveClientProvider {
+  (options: IInteractiveClientProviderOptions): IInteractiveClient;
+}
+
+/**
+ * Interface that is used for InteractiveProvider
+ */
+export interface IInteractiveClient {
+  connect(): Promise<void>;
+  handyKey: string;
+  uploadScript: (funscriptPath: string, apiKey?: string) => Promise<void>;
+  sync(): Promise<number>;
+  configure(config: Partial<IDeviceSettings>): Promise<void>;
+  play(position: number): Promise<void>;
+  pause(): Promise<void>;
+  ensurePlaying(position: number): Promise<void>;
+  setLooping(looping: boolean): Promise<void>;
+  readonly connected: boolean;
+  readonly playing: boolean;
+}
+
+```
+##### Example
+For instance say I wanted to add extra logging when `IInteractiveClient.connect()` is called.
+In my plugin you would install your own client provider as seen below
+
+```ts
+InteractiveUtils.interactiveClientProvider = (
+  opts
+) => {
+  if (!opts.defaultClientProvider) {
+    throw new Error('invalid setup');
+  }
+
+  const client = opts.defaultClientProvider(opts);
+  const connect = client.connect;
+  client.connect = async () => {
+      console.log('patching connect method');
+      return connect.call(client);
+    };
+   
+  return client;
+};
+
+```
+
+
 ### `hooks`
 
 This namespace provides access to the following core utility hooks:
+- `useGalleryLightbox`
+- `useLightbox`
 - `useSpriteInfo`
+- `useToast`
 
 It also provides plugin-specific hooks.
 
@@ -92,6 +169,8 @@ Returns a `boolean` which will be `true` if the components are loading.
 ### `loadableComponents`
 
 This namespace contains all of the components that may need to be loaded using the `loadComponents` method. Components are added to this namespace as needed. Please make a development request if a required component is not in this namespace.
+
+This component also includes coarse-grained entries for every lazily loaded import in the stock UI. If a component is not available in `components` when the page loads, it can be loaded using the coarse-grained entry. For example, `PerformerCard` can be loaded using `loadableComponents.Performers`.
 
 ### `patch`
 
@@ -110,12 +189,12 @@ Returns `void`.
 
 #### `PluginApi.patch.instead`
 
-Registers a replacement function for a component. The provided function will be called with the arguments passed to the original render function, plus the original render function as the last argument. An error will be thrown if the component already has a replacement function registered.
+Registers a replacement function for a component. The provided function will be called with the arguments passed to the original render function, plus the next render function as the last argument. Replacement functions will be called in the order that they are registered. If a replacement function does not call the next render function then the following replacement functions will not be called or applied.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `component` | `string` | The name of the component to patch. |
-| `fn` | `Function` | The replacement function. It accepts the same arguments as the original render function, plus the original render function, and is expected to return the replacement component. |
+| `fn` | `Function` | The replacement function. It accepts the same arguments as the original render function, plus the next render function, and is expected to return the replacement component. |
 
 Returns `void`.
 
@@ -129,3 +208,114 @@ Registers an after function. An after function is called after the render functi
 | `fn` | `Function` | The after function. It accepts the same arguments as the original render function, plus the result of the original render function, and is expected to return the rendered component. |
 
 Returns `void`.
+
+#### Patchable components and functions
+
+- `AlertModal`
+- `App`
+- `BackgroundImage`
+- `BooleanSetting`
+- `ChangeButtonSetting`
+- `CompressedPerformerDetailsPanel`
+- `ConstantSetting`
+- `CountrySelect`
+- `CustomFieldInput`
+- `CustomFields`
+- `DateInput`
+- `DetailImage`
+- `ExternalLinkButtons`
+- `ExternalLinksButton`
+- `FolderSelect`
+- `FrontPage`
+- `GalleryCard`
+- `GalleryCard.Details`
+- `GalleryCard.Image`
+- `GalleryCard.Overlays`
+- `GalleryCard.Popovers`
+- `GalleryIDSelect`
+- `GallerySelect`
+- `GallerySelect.sort`
+- `GroupIDSelect`
+- `GroupSelect`
+- `GroupSelect.sort`
+- `HeaderImage`
+- `HoverPopover`
+- `Icon`
+- `ImageDetailPanel`
+- `ImageInput`
+- `LightboxLink`
+- `LoadingIndicator`
+- `MainNavBar.MenuItems`
+- `MainNavBar.UtilityItems`
+- `ModalSetting`
+- `NumberSetting`
+- `Pagination`
+- `PaginationIndex`
+- `PerformerAppearsWithPanel`
+- `PerformerCard`
+- `PerformerCard.Details`
+- `PerformerCard.Image`
+- `PerformerCard.Overlays`
+- `PerformerCard.Popovers`
+- `PerformerCard.Title`
+- `PerformerDetailsPanel`
+- `PerformerDetailsPanel.DetailGroup`
+- `PerformerGalleriesPanel`
+- `PerformerGroupsPanel`
+- `PerformerHeaderImage`
+- `PerformerIDSelect`
+- `PerformerImagesPanel`
+- `PerformerPage`
+- `PerformerScenesPanel`
+- `PerformerSelect`
+- `PerformerSelect.sort`
+- `PluginRoutes`
+- `PluginSettings`
+- `RatingNumber`
+- `RatingStars`
+- `RatingSystem`
+- `SceneCard`
+- `SceneCard.Details`
+- `SceneCard.Image`
+- `SceneCard.Overlays`
+- `SceneCard.Popovers`
+- `SceneFileInfoPanel`
+- `SceneIDSelect`
+- `ScenePage`
+- `ScenePage.TabContent`
+- `ScenePage.Tabs`
+- `ScenePlayer`
+- `SceneSelect`
+- `SceneSelect.sort`
+- `SelectSetting`
+- `Setting`
+- `SettingGroup`
+- `SettingModal`
+- `StringListSetting`
+- `StringSetting`
+- `StudioIDSelect`
+- `StudioSelect`
+- `StudioSelect.sort`
+- `SweatDrops`
+- `TabTitleCounter`
+- `TagCard`
+- `TagCard.Details`
+- `TagCard.Image`
+- `TagCard.Overlays`
+- `TagCard.Popovers`
+- `TagCard.Title`
+- `TagIDSelect`
+- `TagLink`
+- `TagSelect`
+- `TagSelect.sort`
+- `TruncatedText`
+
+### `PluginApi.Event`
+
+Allows plugins to listen for Stash's events.
+
+```js
+PluginApi.Event.addEventListener("stash:location", (e) => console.log("Page Changed", e.detail.data.location.pathname))
+```
+
+

@@ -1,14 +1,14 @@
 import { CriterionModifier } from "src/core/generated-graphql";
 import { CriterionType } from "../types";
-import { CriterionOption, StringCriterion, Option } from "./criterion";
+import { ModifierCriterionOption, StringCriterion, Option } from "./criterion";
 
 export class IsMissingCriterion extends StringCriterion {
-  protected toCriterionInput(): string {
+  public toCriterionInput(): string {
     return this.value;
   }
 }
 
-class IsMissingCriterionOption extends CriterionOption {
+class IsMissingCriterionOption extends ModifierCriterionOption {
   constructor(messageID: string, type: CriterionType, options: Option[]) {
     super({
       messageID,
@@ -32,7 +32,7 @@ export const SceneIsMissingCriterionOption = new IsMissingCriterionOption(
     "date",
     "galleries",
     "studio",
-    "movie",
+    "group",
     "performers",
     "tags",
     "stash_id",
@@ -50,8 +50,6 @@ export const PerformerIsMissingCriterionOption = new IsMissingCriterionOption(
   "is_missing",
   [
     "url",
-    "twitter",
-    "instagram",
     "ethnicity",
     "country",
     "hair_color",
@@ -89,7 +87,7 @@ export const StudioIsMissingCriterionOption = new IsMissingCriterionOption(
   ["image", "stash_id", "details"]
 );
 
-export const MovieIsMissingCriterionOption = new IsMissingCriterionOption(
+export const GroupIsMissingCriterionOption = new IsMissingCriterionOption(
   "isMissing",
   "is_missing",
   ["front_image", "back_image", "scenes"]

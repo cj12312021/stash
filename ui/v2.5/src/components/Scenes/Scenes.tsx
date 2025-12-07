@@ -2,29 +2,24 @@ import React from "react";
 import { Route, Switch } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { useTitleProps } from "src/hooks/title";
-import { PersistanceLevel } from "../List/ItemList";
 import { lazyComponent } from "src/utils/lazyComponent";
-import { useScrollToTopOnMount } from "src/hooks/scrollToTop";
+import { View } from "../List/views";
 
-const SceneList = lazyComponent(() => import("./SceneList"));
+const SceneList = lazyComponent(() => import("src/extensions/lists/SceneList"));
 const SceneMarkerList = lazyComponent(() => import("./SceneMarkerList"));
-const Scene = lazyComponent(() => import("./SceneDetails/Scene"));
+const Scene = lazyComponent(() => import("src/extensions/components/Scene/Scene"));
 const SceneCreate = lazyComponent(() => import("./SceneDetails/SceneCreate"));
 
 const Scenes: React.FC = () => {
-  useScrollToTopOnMount();
-
-  return <SceneList persistState={PersistanceLevel.ALL} />;
+  return <SceneList view={View.Scenes} />;
 };
 
 const SceneMarkers: React.FC = () => {
-  useScrollToTopOnMount();
-
   const titleProps = useTitleProps({ id: "markers" });
   return (
     <>
       <Helmet {...titleProps} />
-      <SceneMarkerList />
+      <SceneMarkerList view={View.SceneMarkers} />
     </>
   );
 };

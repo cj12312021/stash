@@ -1,17 +1,20 @@
 import React from "react";
 import * as GQL from "src/core/generated-graphql";
 import { useStudioFilterHook } from "src/core/studios";
-import { PerformerList } from "src/components/Performers/PerformerList";
+import { EnhancedPerformerList as PerformerList } from "src/extensions/facets/enhanced";
 import { StudiosCriterion } from "src/models/list-filter/criteria/studios";
+import { View } from "src/components/List/views";
 
 interface IStudioPerformersPanel {
   active: boolean;
   studio: GQL.StudioDataFragment;
+  showChildStudioContent?: boolean;
 }
 
 export const StudioPerformersPanel: React.FC<IStudioPerformersPanel> = ({
   active,
   studio,
+  showChildStudioContent,
 }) => {
   const studioCriterion = new StudiosCriterion();
   studioCriterion.value = {
@@ -24,16 +27,17 @@ export const StudioPerformersPanel: React.FC<IStudioPerformersPanel> = ({
     scenes: [studioCriterion],
     images: [studioCriterion],
     galleries: [studioCriterion],
-    movies: [studioCriterion],
+    groups: [studioCriterion],
   };
 
-  const filterHook = useStudioFilterHook(studio);
+  const filterHook = useStudioFilterHook(studio, showChildStudioContent);
 
   return (
     <PerformerList
       filterHook={filterHook}
       extraCriteria={extraCriteria}
       alterQuery={active}
+      view={View.StudioPerformers}
     />
   );
 };

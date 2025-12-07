@@ -2,7 +2,13 @@ import { IntlShape } from "react-intl";
 import { ITypename } from "src/utils/data";
 import { ImageWallOptions } from "src/utils/imageWall";
 import { RatingSystemOptions } from "src/utils/rating";
-import { FilterMode, SortDirectionEnum } from "./generated-graphql";
+import {
+  FilterMode,
+  SavedFilterDataFragment,
+  SortDirectionEnum,
+} from "./generated-graphql";
+import { View } from "src/components/List/views";
+import { ITaggerConfig } from "src/components/Tagger/constants";
 
 // NOTE: double capitals aren't converted correctly in the backend
 
@@ -25,10 +31,19 @@ export interface ICustomFilter extends ITypename {
   direction: SortDirectionEnum;
 }
 
-// NOTE: This value cannot be more defined, because the generated enum it depends upon is UpperCase, which leads to errors on saving
-export type PinnedFilters = Record<string, Array<string>>;
+export interface IAIRecommendationFilter extends ITypename {
+  __typename: "AIRecommendation";
+  message?: IMessage;
+  title?: string;
+  mode: FilterMode;
+  limit: number;
+}
 
-export type FrontPageContent = ISavedFilterRow | ICustomFilter;
+export type DefaultFilters = {
+  [P in View]?: SavedFilterDataFragment;
+};
+
+export type FrontPageContent = ISavedFilterRow | ICustomFilter | IAIRecommendationFilter;
 
 export const defaultMaxOptionsShown = 200;
 
@@ -45,9 +60,15 @@ export interface IUIConfig {
   ratingSystemOptions?: RatingSystemOptions;
 
   // if true a background image will be display on header
+  enableGalleryBackgroundImage?: boolean;
+  // if true a background image will be display on header
+  enableImageBackgroundImage?: boolean;
+  // if true a background image will be display on header
   enableMovieBackgroundImage?: boolean;
   // if true a background image will be display on header
   enablePerformerBackgroundImage?: boolean;
+  // if true a background image will be display on header
+  enableSceneBackgroundImage?: boolean;
   // if true a background image will be display on header
   enableStudioBackgroundImage?: boolean;
   // if true a background image will be display on header
@@ -63,6 +84,8 @@ export interface IUIConfig {
   // if true the fullscreen mobile media auto-rotate option will be disabled
   disableMobileMediaAutoRotateEnabled?: boolean;
 
+  // if true markers with end times will display with a horizontal bar in the scene player
+  showRangeMarkers?: boolean;
   // if true continue scene will always play from the beginning
   alwaysStartFromBeginning?: boolean;
   // if true enable activity tracking
@@ -82,51 +105,24 @@ export interface IUIConfig {
   lastNoteSeen?: number;
 
   vrTag?: string;
-  pinnedFilters?: PinnedFilters;
+
+  pinnedFilters?: Record<string, string[]>;
+  tableColumns?: Record<string, string[]>;
+  sidebarFilters?: Record<string, string[]>;
 
   advancedMode?: boolean;
+
+  taskDefaults?: Record<string, {}>;
+
+  defaultFilters?: DefaultFilters;
+
+  taggerConfig?: ITaggerConfig;
 }
 
-interface ISavedFilterRowBroken extends ISavedFilterRow {
-  savedfilterid?: number;
-}
-
-interface ICustomFilterBroken extends ICustomFilter {
-  sortby?: string;
-}
-
-type FrontPageContentBroken = ISavedFilterRowBroken | ICustomFilterBroken;
-
-// #4128: deal with incorrectly insensitivised keys (sortBy and savedFilterId)
 export function getFrontPageContent(
-  ui: IUIConfig
+  ui: IUIConfig | undefined
 ): FrontPageContent[] | undefined {
-  return (ui.frontPageContent as FrontPageContentBroken[] | undefined)?.map(
-    (content) => {
-      switch (content.__typename) {
-        case "SavedFilter":
-          if (content.savedfilterid) {
-            return {
-              ...content,
-              savedFilterId: content.savedFilterId ?? content.savedfilterid,
-              savedfilterid: undefined,
-            };
-          }
-          return content;
-        case "CustomFilter":
-          if (content.sortby) {
-            return {
-              ...content,
-              sortBy: content.sortBy ?? content.sortby,
-              sortby: undefined,
-            };
-          }
-          return content;
-        default:
-          return content;
-      }
-    }
-  );
+  return ui?.frontPageContent as FrontPageContent[] | undefined;
 }
 
 function recentlyReleased(
@@ -167,21 +163,37 @@ export function generateDefaultFrontPageContent(intl: IntlShape) {
   return [
     recentlyReleased(intl, FilterMode.Scenes, "scenes"),
     recentlyAdded(intl, FilterMode.Studios, "studios"),
-    recentlyReleased(intl, FilterMode.Movies, "movies"),
+    recentlyReleased(intl, FilterMode.Groups, "groups"),
     recentlyAdded(intl, FilterMode.Performers, "performers"),
     recentlyReleased(intl, FilterMode.Galleries, "galleries"),
   ];
 }
 
+function aiRecommendedScenes(
+  intl: IntlShape,
+  limit: number
+): IAIRecommendationFilter {
+  return {
+    __typename: "AIRecommendation",
+    message: {
+      id: "recommended_scenes",
+      values: { count: limit.toString() },
+    },
+    mode: FilterMode.Scenes,
+    limit,
+  };
+}
+
 export function generatePremadeFrontPageContent(intl: IntlShape) {
   return [
+    aiRecommendedScenes(intl, 100),
     recentlyReleased(intl, FilterMode.Scenes, "scenes"),
     recentlyAdded(intl, FilterMode.Scenes, "scenes"),
     recentlyReleased(intl, FilterMode.Galleries, "galleries"),
     recentlyAdded(intl, FilterMode.Galleries, "galleries"),
     recentlyAdded(intl, FilterMode.Images, "images"),
-    recentlyReleased(intl, FilterMode.Movies, "movies"),
-    recentlyAdded(intl, FilterMode.Movies, "movies"),
+    recentlyReleased(intl, FilterMode.Groups, "groups"),
+    recentlyAdded(intl, FilterMode.Groups, "groups"),
     recentlyAdded(intl, FilterMode.Studios, "studios"),
     recentlyAdded(intl, FilterMode.Performers, "performers"),
   ];

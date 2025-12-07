@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/stashapp/stash/pkg/plugin/hook"
+	"github.com/stashapp/stash/pkg/python"
 	"github.com/stashapp/stash/pkg/utils"
 	"gopkg.in/yaml.v2"
 )
@@ -195,7 +197,7 @@ func (c Config) getPluginHooks(includePlugin bool) []*PluginHook {
 	return ret
 }
 
-func convertHooks(hooks []HookTriggerEnum) []string {
+func convertHooks(hooks []hook.TriggerEnum) []string {
 	var ret []string
 	for _, h := range hooks {
 		ret = append(ret, h.String())
@@ -275,7 +277,7 @@ func (c Config) getTask(name string) *OperationConfig {
 	return nil
 }
 
-func (c Config) getHooks(hookType HookTriggerEnum) []*HookConfig {
+func (c Config) getHooks(hookType hook.TriggerEnum) []*HookConfig {
 	var ret []*HookConfig
 	for _, h := range c.Hooks {
 		for _, t := range h.TriggeredBy {
@@ -293,14 +295,18 @@ func (c Config) getConfigPath() string {
 }
 
 func (c Config) getExecCommand(task *OperationConfig) []string {
-	ret := c.Exec
+	// #4859 - don't modify the original exec command
+	ret := append([]string{}, c.Exec...)
 
-	ret = append(ret, task.ExecArgs...)
+	if task != nil {
+		ret = append(ret, task.ExecArgs...)
+	}
 
-	if len(ret) > 0 {
+	// #4859 - don't use the plugin path in the exec command if it is a python command
+	if len(ret) > 0 && !python.IsPythonCommand(ret[0]) {
 		_, err := exec.LookPath(ret[0])
 		if err != nil {
-			// change command to use absolute path
+			// change command to run from the plugin path
 			pluginPath := filepath.Dir(c.path)
 			ret[0] = filepath.Join(pluginPath, ret[0])
 		}
@@ -397,7 +403,7 @@ type HookConfig struct {
 	OperationConfig `yaml:",inline"`
 
 	// A list of stash operations that will be used to trigger this hook operation.
-	TriggeredBy []HookTriggerEnum `yaml:"triggeredBy"`
+	TriggeredBy []hook.TriggerEnum `yaml:"triggeredBy"`
 }
 
 func loadPluginFromYAML(reader io.Reader) (*Config, error) {

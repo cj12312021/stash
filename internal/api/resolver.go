@@ -11,9 +11,8 @@ import (
 	"github.com/stashapp/stash/internal/manager"
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
-	"github.com/stashapp/stash/pkg/plugin"
+	"github.com/stashapp/stash/pkg/plugin/hook"
 	"github.com/stashapp/stash/pkg/scraper"
-	"github.com/stashapp/stash/pkg/scraper/stashbox"
 )
 
 var (
@@ -29,7 +28,7 @@ var (
 )
 
 type hookExecutor interface {
-	ExecutePostHooks(ctx context.Context, id int, hookType plugin.HookTriggerEnum, input interface{}, inputFields []string)
+	ExecutePostHooks(ctx context.Context, id int, hookType hook.TriggerEnum, input interface{}, inputFields []string)
 }
 
 type Resolver struct {
@@ -37,6 +36,7 @@ type Resolver struct {
 	sceneService   manager.SceneService
 	imageService   manager.ImageService
 	galleryService manager.GalleryService
+	groupService   manager.GroupService
 
 	hookExecutor hookExecutor
 }
@@ -72,9 +72,14 @@ func (r *Resolver) SceneMarker() SceneMarkerResolver {
 func (r *Resolver) Studio() StudioResolver {
 	return &studioResolver{r}
 }
-func (r *Resolver) Movie() MovieResolver {
-	return &movieResolver{r}
+
+func (r *Resolver) Group() GroupResolver {
+	return &groupResolver{r}
 }
+func (r *Resolver) Movie() MovieResolver {
+	return &movieResolver{&groupResolver{r}}
+}
+
 func (r *Resolver) Subscription() SubscriptionResolver {
 	return &subscriptionResolver{r}
 }
@@ -90,6 +95,12 @@ func (r *Resolver) VideoFile() VideoFileResolver {
 func (r *Resolver) ImageFile() ImageFileResolver {
 	return &imageFileResolver{r}
 }
+func (r *Resolver) BasicFile() BasicFileResolver {
+	return &basicFileResolver{r}
+}
+func (r *Resolver) Folder() FolderResolver {
+	return &folderResolver{r}
+}
 func (r *Resolver) SavedFilter() SavedFilterResolver {
 	return &savedFilterResolver{r}
 }
@@ -98,6 +109,12 @@ func (r *Resolver) Plugin() PluginResolver {
 }
 func (r *Resolver) ConfigResult() ConfigResultResolver {
 	return &configResultResolver{r}
+}
+func (r *Resolver) PerformerRecommendationsResultType() PerformerRecommendationsResultTypeResolver {
+	return &performerRecommendationsResultTypeResolver{r}
+}
+func (r *Resolver) SceneRecommendationsResultType() SceneRecommendationsResultTypeResolver {
+	return &sceneRecommendationsResultTypeResolver{r}
 }
 
 type mutationResolver struct{ *Resolver }
@@ -111,14 +128,22 @@ type sceneResolver struct{ *Resolver }
 type sceneMarkerResolver struct{ *Resolver }
 type imageResolver struct{ *Resolver }
 type studioResolver struct{ *Resolver }
-type movieResolver struct{ *Resolver }
+
+// movie is group under the hood
+type groupResolver struct{ *Resolver }
+type movieResolver struct{ *groupResolver }
+
 type tagResolver struct{ *Resolver }
 type galleryFileResolver struct{ *Resolver }
 type videoFileResolver struct{ *Resolver }
 type imageFileResolver struct{ *Resolver }
+type basicFileResolver struct{ *Resolver }
+type folderResolver struct{ *Resolver }
 type savedFilterResolver struct{ *Resolver }
 type pluginResolver struct{ *Resolver }
 type configResultResolver struct{ *Resolver }
+type performerRecommendationsResultTypeResolver struct{ *Resolver }
+type sceneRecommendationsResultTypeResolver struct{ *Resolver }
 
 func (r *Resolver) withTxn(ctx context.Context, fn func(ctx context.Context) error) error {
 	return r.repository.WithTxn(ctx, fn)
@@ -126,10 +151,6 @@ func (r *Resolver) withTxn(ctx context.Context, fn func(ctx context.Context) err
 
 func (r *Resolver) withReadTxn(ctx context.Context, fn func(ctx context.Context) error) error {
 	return r.repository.WithReadTxn(ctx, fn)
-}
-
-func (r *Resolver) stashboxRepository() stashbox.Repository {
-	return stashbox.NewRepository(r.repository)
 }
 
 func (r *queryResolver) MarkerWall(ctx context.Context, q *string) (ret []*models.SceneMarker, err error) {
@@ -173,7 +194,7 @@ func (r *queryResolver) Stats(ctx context.Context) (*StatsResultType, error) {
 		galleryQB := repo.Gallery
 		studioQB := repo.Studio
 		performerQB := repo.Performer
-		movieQB := repo.Movie
+		movieQB := repo.Group
 		tagQB := repo.Tag
 
 		// embrace the error
@@ -218,7 +239,7 @@ func (r *queryResolver) Stats(ctx context.Context) (*StatsResultType, error) {
 			return err
 		}
 
-		moviesCount, err := movieQB.Count(ctx)
+		groupsCount, err := movieQB.Count(ctx)
 		if err != nil {
 			return err
 		}
@@ -228,7 +249,7 @@ func (r *queryResolver) Stats(ctx context.Context) (*StatsResultType, error) {
 			return err
 		}
 
-		scenesTotalOCount, err := sceneQB.OCount(ctx)
+		scenesTotalOCount, err := sceneQB.GetAllOCount(ctx)
 		if err != nil {
 			return err
 		}
@@ -243,12 +264,12 @@ func (r *queryResolver) Stats(ctx context.Context) (*StatsResultType, error) {
 			return err
 		}
 
-		totalPlayCount, err := sceneQB.PlayCount(ctx)
+		totalPlayCount, err := sceneQB.CountAllViews(ctx)
 		if err != nil {
 			return err
 		}
 
-		uniqueScenePlayCount, err := sceneQB.UniqueScenePlayCount(ctx)
+		uniqueScenePlayCount, err := sceneQB.CountUniqueViews(ctx)
 		if err != nil {
 			return err
 		}
@@ -262,7 +283,8 @@ func (r *queryResolver) Stats(ctx context.Context) (*StatsResultType, error) {
 			GalleryCount:      galleryCount,
 			PerformerCount:    performersCount,
 			StudioCount:       studiosCount,
-			MovieCount:        moviesCount,
+			GroupCount:        groupsCount,
+			MovieCount:        groupsCount,
 			TagCount:          tagsCount,
 			TotalOCount:       totalOCount,
 			TotalPlayDuration: totalPlayDuration,
