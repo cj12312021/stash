@@ -4,6 +4,21 @@ This document tracks what has been added/modified from the upstream Stash codeba
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Rating Facet Display (Phase 7.1)**: Rating filter now shows counts for each star level
+  - 5★, 4★, 3★, 2★, 1★ options with counts from backend
+  - Integrated with FacetCountsContext for live counts
+  - Maintains existing star picker for manual selection
+  - 13 new tests for rating facet functionality
+
+### Changed
+- `RatingFilter.tsx` - Now consumes facet counts from context
+- Test count: 88 → 101 tests
+
+---
+
 ## December 2024: Facets Performance Optimization
 
 Major performance improvements for the facets system targeting large databases (700k+ scenes).

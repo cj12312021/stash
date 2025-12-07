@@ -38,9 +38,9 @@ This document outlines the plan for extending facet counts support to additional
 
 | Entity | Facet | Backend Support | Frontend Support | Status |
 |--------|-------|:---------------:|:----------------:|--------|
-| Scene | `ratings` | ✅ | ❌ Display broken | **FIX NEEDED** |
-| Gallery | `ratings` | ✅ | ❌ Display broken | **FIX NEEDED** |
-| Performer | `ratings` | ✅ | ❌ Display broken | **FIX NEEDED** |
+| Scene | `ratings` | ✅ | ✅ | **✅ COMPLETE** |
+| Gallery | `ratings` | ✅ | ✅ | **✅ COMPLETE** |
+| Performer | `ratings` | ✅ | ✅ | **✅ COMPLETE** |
 
 ### Priority 2: High-Value New Facets
 
@@ -77,11 +77,13 @@ This document outlines the plan for extending facet counts support to additional
 
 ## Implementation Plan
 
-### Phase 7.1: Fix Ratings Facet Display
+### Phase 7.1: Fix Ratings Facet Display ✅ COMPLETE
 
 **Goal**: Make ratings filter show counts from existing backend data
 
-**Changes Required**:
+**Status**: ✅ Completed - Rating filter now displays counts for all star levels
+
+**Changes Made**:
 
 #### 1. Update `RatingFilter.tsx`
 
@@ -341,15 +343,15 @@ type PerformerFacetsResult {
 
 ## Summary Table
 
-| Phase | Description | Entities | Effort | Priority |
-|-------|-------------|----------|--------|----------|
-| 7.1 | Fix ratings display | Scene, Gallery, Performer | 2-3h | 🔴 High |
-| 7.2 | Add ratings facets | Group, Studio | 4-6h | 🔴 High |
-| 7.3 | Add groups facet | Performer | 4-6h | 🔴 High |
-| 7.4 | Add boolean facets | Scene, Gallery | 6-8h | 🟡 Medium |
-| 7.5 | Add attribute facets | Performer | 6-8h | 🟡 Medium |
+| Phase | Description | Entities | Effort | Priority | Status |
+|-------|-------------|----------|--------|----------|--------|
+| 7.1 | Fix ratings display | Scene, Gallery, Performer | 2-3h | 🔴 High | ✅ Complete |
+| 7.2 | Add ratings facets | Group, Studio | 4-6h | 🔴 High | Pending |
+| 7.3 | Add groups facet | Performer | 4-6h | 🔴 High | Pending |
+| 7.4 | Add boolean facets | Scene, Gallery | 6-8h | 🟡 Medium | Pending |
+| 7.5 | Add attribute facets | Performer | 6-8h | 🟡 Medium | Pending |
 
-**Total estimated effort**: 22-31 hours
+**Total estimated effort**: 22-31 hours (Phase 7.1 complete: ~2h)
 
 ---
 

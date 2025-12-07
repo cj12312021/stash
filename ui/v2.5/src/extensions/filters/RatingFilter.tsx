@@ -1,7 +1,8 @@
-import React, { ReactNode, useCallback, useMemo, useState } from "react";
+import React, { ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faStar } from "@fortawesome/free-solid-svg-icons";
+import { faStar, faStarHalfAlt } from "@fortawesome/free-solid-svg-icons";
+import { faStar as faStarOutline } from "@fortawesome/free-regular-svg-icons";
 import { CriterionModifier } from "src/core/generated-graphql";
 import { INumberValue } from "src/models/list-filter/types";
 import {
@@ -20,6 +21,7 @@ import { ConfigurationContext } from "src/hooks/Config";
 import { RatingCriterion } from "src/models/list-filter/criteria/rating";
 import { ListFilterModel } from "src/models/list-filter/filter";
 import { Option, SidebarListFilter } from "./SidebarListFilter";
+import { FacetCountsContext } from "src/extensions/hooks/useFacetCounts";
 
 // ============================================================================
 // LEGACY EXPORTS FOR BACKWARDS COMPATIBILITY
@@ -107,13 +109,39 @@ function createRatingIcon(): React.ReactNode {
   );
 }
 
+// Convert database rating value (20-100) to star count (1-5)
+function ratingToStars(ratingValue: number): number {
+  return ratingValue / 20;
+}
+
+// Create star display for a rating value
+function createStarDisplay(stars: number): React.ReactNode {
+  const fullStars = Math.floor(stars);
+  const hasHalfStar = stars % 1 >= 0.5;
+  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+  
+  return (
+    <span className="rating-stars-display" style={{ color: "#f5c518" }}>
+      {Array(fullStars).fill(null).map((_, i) => (
+        <FontAwesomeIcon key={`full-${i}`} icon={faStar} />
+      ))}
+      {hasHalfStar && <FontAwesomeIcon icon={faStarHalfAlt} />}
+      {Array(emptyStars).fill(null).map((_, i) => (
+        <FontAwesomeIcon key={`empty-${i}`} icon={faStarOutline} style={{ opacity: 0.3 }} />
+      ))}
+    </span>
+  );
+}
+
 function useRatingFilterState(props: {
   option: CriterionOption;
   filter: ListFilterModel;
   setFilter: (f: ListFilterModel) => void;
+  ratingCounts: Map<number, number>;
+  countsLoading: boolean;
 }) {
   const intl = useIntl();
-  const { option, filter, setFilter } = props;
+  const { option, filter, setFilter, ratingCounts, countsLoading } = props;
 
   const { configuration: config } = React.useContext(ConfigurationContext);
   const ratingSystemOptions =
@@ -271,29 +299,56 @@ function useRatingFilterState(props: {
       return [];
     }
 
-    // Show any/none options when nothing is selected
-    return [
-      {
-        id: "any",
-        label: `(${intl.formatMessage({
-          id: "criterion_modifier_values.any",
-        })})`,
-        className: "modifier-object",
-        canExclude: false,
-      },
-      {
-        id: "none",
-        label: `(${intl.formatMessage({
-          id: "criterion_modifier_values.none",
-        })})`,
-        className: "modifier-object",
-        canExclude: false,
-      },
-    ];
-  }, [value, modifier, getModifierLabel, pendingRating, intl]);
+    const candidateList: Option[] = [];
+
+    // Add any/none options first
+    candidateList.push({
+      id: "any",
+      label: `(${intl.formatMessage({
+        id: "criterion_modifier_values.any",
+      })})`,
+      className: "modifier-object",
+      canExclude: false,
+    });
+    candidateList.push({
+      id: "none",
+      label: `(${intl.formatMessage({
+        id: "criterion_modifier_values.none",
+      })})`,
+      className: "modifier-object",
+      canExclude: false,
+    });
+
+    // Add rating options with counts (5 stars down to 1 star)
+    // Rating values: 100=5★, 80=4★, 60=3★, 40=2★, 20=1★
+    const ratingValues = [100, 80, 60, 40, 20];
+    for (const ratingValue of ratingValues) {
+      const count = ratingCounts.get(ratingValue);
+      // Only show ratings that have items (or show all if counts not loaded)
+      if (count === undefined || count > 0) {
+        const stars = ratingToStars(ratingValue);
+        candidateList.push({
+          id: `rating-${ratingValue}`,
+          label: `${"★".repeat(stars)}${"☆".repeat(5 - stars)}`,
+          count: count,
+          canExclude: false,
+        });
+      }
+    }
+
+    return candidateList;
+  }, [value, modifier, getModifierLabel, pendingRating, intl, ratingCounts]);
 
   const onSelect = useCallback(
     (v: Option, _exclude: boolean) => {
+      // Handle rating candidate selection (e.g., "rating-100" for 5 stars)
+      if (v.id.startsWith("rating-")) {
+        const ratingValue = parseInt(v.id.replace("rating-", ""), 10);
+        // Set pending rating and wait for modifier selection
+        setPendingRating(ratingValue);
+        return;
+      }
+
       if (v.className === "modifier-object") {
         // Handle any/none selection
         if (v.id === "any") {
@@ -380,6 +435,7 @@ function useRatingFilterState(props: {
     starPrecision,
     pendingRating,
     hasActiveFilter: value?.value !== undefined || modifier === CriterionModifier.NotNull || modifier === CriterionModifier.IsNull,
+    countsLoading,
   };
 }
 
@@ -398,7 +454,16 @@ export const SidebarRatingFilter: React.FC<ISidebarFilter> = ({
   setFilter,
   sectionID,
 }) => {
-  const state = useRatingFilterState({ option, filter, setFilter });
+  // Get facet counts from context
+  const { counts: facetCounts, loading: facetsLoading } = useContext(FacetCountsContext);
+  
+  const state = useRatingFilterState({ 
+    option, 
+    filter, 
+    setFilter,
+    ratingCounts: facetCounts.ratings,
+    countsLoading: facetsLoading,
+  });
 
   // Show rating stars input when nothing is selected and no pending rating
   const showRatingStars = !state.hasActiveFilter && state.pendingRating === null;
@@ -424,6 +489,7 @@ export const SidebarRatingFilter: React.FC<ISidebarFilter> = ({
       singleValue={true}
       sectionID={sectionID}
       preCandidates={ratingStarsInput}
+      countsLoading={state.countsLoading}
     />
   );
 };

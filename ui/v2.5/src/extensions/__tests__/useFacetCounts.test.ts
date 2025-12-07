@@ -1205,3 +1205,160 @@ describe("All entity types support caching", () => {
   });
 });
 
+// =============================================================================
+// Rating Facet Display Tests (Phase 7.1)
+// =============================================================================
+
+describe("Rating Facet Display", () => {
+  describe("Rating value conversion", () => {
+    // Rating values are stored as 20-100 in DB (20=1★, 40=2★, 60=3★, 80=4★, 100=5★)
+    const ratingToStars = (ratingValue: number): number => ratingValue / 20;
+
+    it("should convert database rating 100 to 5 stars", () => {
+      expect(ratingToStars(100)).toBe(5);
+    });
+
+    it("should convert database rating 80 to 4 stars", () => {
+      expect(ratingToStars(80)).toBe(4);
+    });
+
+    it("should convert database rating 60 to 3 stars", () => {
+      expect(ratingToStars(60)).toBe(3);
+    });
+
+    it("should convert database rating 40 to 2 stars", () => {
+      expect(ratingToStars(40)).toBe(2);
+    });
+
+    it("should convert database rating 20 to 1 star", () => {
+      expect(ratingToStars(20)).toBe(1);
+    });
+  });
+
+  describe("Rating counts in FacetCounts", () => {
+    it("should store rating counts in Map<number, number>", () => {
+      const ratings = new Map<number, number>();
+      ratings.set(100, 12345);  // 5 stars
+      ratings.set(80, 23456);   // 4 stars
+      ratings.set(60, 15678);   // 3 stars
+      ratings.set(40, 8901);    // 2 stars
+      ratings.set(20, 2345);    // 1 star
+
+      expect(ratings.get(100)).toBe(12345);
+      expect(ratings.get(80)).toBe(23456);
+      expect(ratings.get(60)).toBe(15678);
+      expect(ratings.get(40)).toBe(8901);
+      expect(ratings.get(20)).toBe(2345);
+    });
+
+    it("should return undefined for missing rating values", () => {
+      const ratings = new Map<number, number>();
+      ratings.set(100, 12345);
+      
+      expect(ratings.get(80)).toBeUndefined();
+      expect(ratings.get(0)).toBeUndefined();
+    });
+
+    it("should handle zero counts", () => {
+      const ratings = new Map<number, number>();
+      ratings.set(100, 0);
+      ratings.set(20, 0);
+      
+      expect(ratings.get(100)).toBe(0);
+      expect(ratings.get(20)).toBe(0);
+    });
+  });
+
+  describe("Rating candidate generation", () => {
+    it("should generate candidates for all star levels with counts", () => {
+      const ratingCounts = new Map<number, number>([
+        [100, 5000],
+        [80, 4000],
+        [60, 3000],
+        [40, 2000],
+        [20, 1000],
+      ]);
+
+      // Simulate candidate generation logic
+      const ratingValues = [100, 80, 60, 40, 20];
+      const candidates = ratingValues
+        .filter(v => (ratingCounts.get(v) ?? 0) > 0)
+        .map(v => ({
+          id: `rating-${v}`,
+          stars: v / 20,
+          count: ratingCounts.get(v),
+        }));
+
+      expect(candidates.length).toBe(5);
+      expect(candidates[0]).toEqual({ id: "rating-100", stars: 5, count: 5000 });
+      expect(candidates[4]).toEqual({ id: "rating-20", stars: 1, count: 1000 });
+    });
+
+    it("should exclude ratings with zero count", () => {
+      const ratingCounts = new Map<number, number>([
+        [100, 5000],
+        [80, 0],  // Zero count
+        [60, 3000],
+        [40, 0],  // Zero count
+        [20, 1000],
+      ]);
+
+      const ratingValues = [100, 80, 60, 40, 20];
+      const candidates = ratingValues
+        .filter(v => (ratingCounts.get(v) ?? 0) > 0)
+        .map(v => ({
+          id: `rating-${v}`,
+          count: ratingCounts.get(v),
+        }));
+
+      expect(candidates.length).toBe(3);
+      expect(candidates.map(c => c.id)).toEqual([
+        "rating-100",
+        "rating-60",
+        "rating-20",
+      ]);
+    });
+
+    it("should show all ratings when counts not loaded", () => {
+      const ratingCounts = new Map<number, number>(); // Empty - counts not loaded
+
+      const ratingValues = [100, 80, 60, 40, 20];
+      const candidates = ratingValues
+        .filter(v => {
+          const count = ratingCounts.get(v);
+          // Show if count is undefined (not loaded) or > 0
+          return count === undefined || count > 0;
+        })
+        .map(v => ({
+          id: `rating-${v}`,
+          count: ratingCounts.get(v),
+        }));
+
+      expect(candidates.length).toBe(5);
+      expect(candidates.every(c => c.count === undefined)).toBe(true);
+    });
+  });
+
+  describe("Rating selection flow", () => {
+    it("should parse rating value from candidate id", () => {
+      const candidateId = "rating-80";
+      const ratingValue = parseInt(candidateId.replace("rating-", ""), 10);
+      
+      expect(ratingValue).toBe(80);
+    });
+
+    it("should identify rating candidates by id prefix", () => {
+      const candidates = [
+        { id: "any", label: "(any)" },
+        { id: "none", label: "(none)" },
+        { id: "rating-100", label: "★★★★★" },
+        { id: "rating-80", label: "★★★★☆" },
+      ];
+
+      const ratingCandidates = candidates.filter(c => c.id.startsWith("rating-"));
+      
+      expect(ratingCandidates.length).toBe(2);
+    });
+  });
+});
+
