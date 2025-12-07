@@ -83,7 +83,7 @@ export const SidebarOrientationFilter: React.FC<ISidebarFilter> = ({
         count,
       };
     });
-  }, [facetCounts, facetsLoading]);
+  }, [facetCounts.orientations, facetsLoading]);
 
   const criteria = filter.criteriaFor(option.type) as OrientationCriterion[];
   const criterion = criteria.length > 0 ? criteria[0] : null;

@@ -35,6 +35,14 @@ const readDanglingNull: FieldReadFunction = (existing, { canRead }) => {
 };
 
 const typePolicies: TypePolicies = {
+  // Disable normalization for FacetCount objects.
+  // FacetCount is used across multiple facet fields (tags, studios, performer_tags, etc.)
+  // and they share the same ID space (e.g., performer_tags and tags both query from the tags table).
+  // Without this, Apollo would merge FacetCount objects with the same ID, causing
+  // performer tag data to appear in studio filters and vice versa.
+  FacetCount: {
+    keyFields: false,
+  },
   Query: {
     fields: {
       findImage: {
@@ -202,6 +210,12 @@ Please disable it on the server and refresh the page.`);
     .subscribe({
       next: () => {
         client.resetStore();
+        // Also invalidate facet cache - dynamic import to avoid circular deps
+        import("src/extensions/hooks/useFacetCounts").then(({ invalidateFacetCache }) => {
+          invalidateFacetCache();
+        }).catch(() => {
+          // Extension may not be available, ignore
+        });
       },
     });
 

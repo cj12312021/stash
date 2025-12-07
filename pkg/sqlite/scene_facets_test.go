@@ -17,7 +17,7 @@ func TestSceneFacets_ReturnsPerformers(t *testing.T) {
 		sqb := db.Scene
 
 		// Get facets with no filter - should return performers sorted by count
-		facets, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{})
+		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
@@ -40,7 +40,7 @@ func TestSceneFacets_ReturnsStudios(t *testing.T) {
 	withRollbackTxn(func(ctx context.Context) error {
 		sqb := db.Scene
 
-		facets, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{})
+		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
@@ -63,7 +63,7 @@ func TestSceneFacets_ReturnsTags(t *testing.T) {
 	withRollbackTxn(func(ctx context.Context) error {
 		sqb := db.Scene
 
-		facets, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{})
+		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
@@ -94,7 +94,7 @@ func TestSceneFacets_WithStudioFilter(t *testing.T) {
 			},
 		}
 
-		facets, err := sqb.GetFacets(ctx, studioFilter, 100, models.SceneFacetOptions{})
+		facets, err := sqb.GetFacets(ctx, studioFilter, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
@@ -124,7 +124,7 @@ func TestSceneFacets_WithStudioExcludeFilter(t *testing.T) {
 			},
 		}
 
-		facets, err := sqb.GetFacets(ctx, studioFilter, 100, models.SceneFacetOptions{})
+		facets, err := sqb.GetFacets(ctx, studioFilter, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
@@ -146,7 +146,7 @@ func TestSceneFacets_RespectsLimit(t *testing.T) {
 		sqb := db.Scene
 
 		limit := 5
-		facets, err := sqb.GetFacets(ctx, nil, limit, models.SceneFacetOptions{})
+		facets, err := sqb.GetFacets(ctx, nil, limit)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
@@ -157,42 +157,29 @@ func TestSceneFacets_RespectsLimit(t *testing.T) {
 		assert.LessOrEqual(t, len(facets.Tags), limit, "Tags should not exceed limit")
 		assert.LessOrEqual(t, len(facets.Studios), limit, "Studios should not exceed limit")
 		assert.LessOrEqual(t, len(facets.Groups), limit, "Groups should not exceed limit")
+		assert.LessOrEqual(t, len(facets.PerformerTags), limit, "PerformerTags should not exceed limit")
 
 		return nil
 	})
 }
 
-func TestSceneFacets_LazyLoadPerformerTags(t *testing.T) {
+func TestSceneFacets_ReturnsPerformerTags(t *testing.T) {
 	withRollbackTxn(func(ctx context.Context) error {
 		sqb := db.Scene
 
-		// Test with performer tags excluded (lazy loading off)
-		facetsWithout, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{
-			IncludePerformerTags: false,
-			IncludeCaptions:      false,
-		})
+		// All facets are always returned (no lazy loading)
+		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
 		}
 
-		// Performer tags should be empty when not requested
-		assert.Equal(t, 0, len(facetsWithout.PerformerTags),
-			"PerformerTags should be empty when not requested")
-
-		// Test with performer tags included
-		facetsWith, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{
-			IncludePerformerTags: true,
-			IncludeCaptions:      false,
-		})
-		if err != nil {
-			t.Errorf("Error getting facets: %s", err.Error())
-			return nil
+		// Performer tags are always computed now (may be empty if no data)
+		// Just verify the query executed without error
+		for _, pt := range facets.PerformerTags {
+			assert.Greater(t, pt.Count, 0, "PerformerTag count should be positive")
+			assert.NotEmpty(t, pt.ID, "PerformerTag ID should not be empty")
 		}
-
-		// Performer tags may or may not have results depending on test data,
-		// but the query should execute without error
-		_ = facetsWith
 
 		return nil
 	})
@@ -202,7 +189,7 @@ func TestSceneFacets_ReturnsBooleanFacets(t *testing.T) {
 	withRollbackTxn(func(ctx context.Context) error {
 		sqb := db.Scene
 
-		facets, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{})
+		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
@@ -224,7 +211,7 @@ func TestSceneFacets_ReturnsRatings(t *testing.T) {
 	withRollbackTxn(func(ctx context.Context) error {
 		sqb := db.Scene
 
-		facets, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{})
+		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
@@ -244,7 +231,7 @@ func TestSceneFacets_ReturnsGroups(t *testing.T) {
 	withRollbackTxn(func(ctx context.Context) error {
 		sqb := db.Scene
 
-		facets, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{})
+		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
@@ -265,7 +252,7 @@ func TestSceneFacets_ReturnsResolutions(t *testing.T) {
 	withRollbackTxn(func(ctx context.Context) error {
 		sqb := db.Scene
 
-		facets, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{})
+		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
@@ -285,7 +272,7 @@ func TestSceneFacets_ReturnsOrientations(t *testing.T) {
 	withRollbackTxn(func(ctx context.Context) error {
 		sqb := db.Scene
 
-		facets, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{})
+		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
@@ -305,7 +292,7 @@ func TestSceneFacets_ReturnsInteractive(t *testing.T) {
 	withRollbackTxn(func(ctx context.Context) error {
 		sqb := db.Scene
 
-		facets, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{})
+		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
@@ -322,37 +309,51 @@ func TestSceneFacets_ReturnsInteractive(t *testing.T) {
 	})
 }
 
-func TestSceneFacets_LazyLoadCaptions(t *testing.T) {
+func TestSceneFacets_ReturnsCaptions(t *testing.T) {
 	withRollbackTxn(func(ctx context.Context) error {
 		sqb := db.Scene
 
-		// Test with captions excluded (lazy loading off)
-		facetsWithout, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{
-			IncludePerformerTags: false,
-			IncludeCaptions:      false,
-		})
+		// All facets are always returned (no lazy loading)
+		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
 		}
 
-		// Captions should be empty when not requested
-		assert.Equal(t, 0, len(facetsWithout.Captions),
-			"Captions should be empty when not requested")
+		// Captions are always computed now (may be empty if no data)
+		// Just verify the query executed without error
+		for _, c := range facets.Captions {
+			assert.Greater(t, c.Count, 0, "Caption count should be positive")
+			assert.NotEmpty(t, c.Language, "Caption language should not be empty")
+		}
 
-		// Test with captions included
-		facetsWith, err := sqb.GetFacets(ctx, nil, 100, models.SceneFacetOptions{
-			IncludePerformerTags: false,
-			IncludeCaptions:      true,
-		})
+		return nil
+	})
+}
+
+func TestSceneFacets_AllFacetsReturnedInParallel(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		sqb := db.Scene
+
+		// Test that all 11 facets are returned in a single call
+		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
 			return nil
 		}
 
-		// Captions may or may not have results depending on test data,
-		// but the query should execute without error
-		_ = facetsWith
+		// All facet slices should be initialized (not nil)
+		assert.NotNil(t, facets.Tags, "Tags should not be nil")
+		assert.NotNil(t, facets.Performers, "Performers should not be nil")
+		assert.NotNil(t, facets.Studios, "Studios should not be nil")
+		assert.NotNil(t, facets.Groups, "Groups should not be nil")
+		assert.NotNil(t, facets.PerformerTags, "PerformerTags should not be nil")
+		assert.NotNil(t, facets.Resolutions, "Resolutions should not be nil")
+		assert.NotNil(t, facets.Orientations, "Orientations should not be nil")
+		assert.NotNil(t, facets.Organized, "Organized should not be nil")
+		assert.NotNil(t, facets.Interactive, "Interactive should not be nil")
+		assert.NotNil(t, facets.Ratings, "Ratings should not be nil")
+		assert.NotNil(t, facets.Captions, "Captions should not be nil")
 
 		return nil
 	})

@@ -64,3 +64,15 @@ node_modules
 dist
 .DS_Store
 /.local*
+
+####
+# Extension Testing
+####
+
+# Test database files - place production DB copies in /test-data/ for testing
+# The README.md in test-data/ is tracked, but database files are ignored
+/test-data/*.sqlite
+/test-data/*.sqlite-wal
+/test-data/*.sqlite-shm
+*.sqlite-wal
+*.sqlite-shm

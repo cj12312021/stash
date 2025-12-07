@@ -169,7 +169,7 @@ export const SidebarPerformersFilter: React.FC<{
           return c.count !== 0;
         });
     }
-  }, [state.candidates, state.selected, state.query, facetCounts, facetsLoading]);
+  }, [state.candidates, state.selected, state.query, facetCounts.performers, facetsLoading]);
 
   const onOpen = useCallback(() => {
     state.onOpen?.();

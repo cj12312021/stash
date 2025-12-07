@@ -37,8 +37,9 @@ type SceneQueryer interface {
 }
 
 // SceneFaceter provides methods to get facet counts for scenes.
+// All facets are computed in parallel - no lazy loading options.
 type SceneFaceter interface {
-	GetFacets(ctx context.Context, sceneFilter *SceneFilterType, limit int, options SceneFacetOptions) (*SceneFacets, error)
+	GetFacets(ctx context.Context, sceneFilter *SceneFilterType, limit int) (*SceneFacets, error)
 }
 
 // SceneCounter provides methods to count scenes.

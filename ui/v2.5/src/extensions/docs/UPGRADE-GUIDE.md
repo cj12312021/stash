@@ -254,6 +254,74 @@ echo "  git tag last-upstream-sync"
 
 ---
 
+## Backend Upgrade Notes
+
+The extension system includes backend modifications that must be preserved during upstream merges.
+
+### Extension Indexes
+
+The facets system includes fork-safe database indexes defined in `pkg/sqlite/extension_indexes.go`.
+
+**After upstream merge, verify:**
+
+1. `pkg/sqlite/extension_indexes.go` exists (new file, no conflicts expected)
+2. `internal/manager/init.go` contains the index hook:
+
+```go
+// After s.Database.Open(...):
+if err := s.Database.EnsureExtensionIndexes(ctx); err != nil {
+    logger.Warnf("Failed to ensure extension indexes: %v", err)
+}
+```
+
+### Repository Interfaces
+
+If `pkg/models/repository_*.go` files conflict, re-add Faceter interfaces:
+
+```go
+// In repository_scene.go:
+type SceneFaceter interface {
+    GetFacets(ctx context.Context, filter *SceneFilterType, limit int) (*SceneFacets, error)
+}
+
+type SceneReader interface {
+    // ... existing ...
+    SceneFaceter  // <-- Add this
+}
+```
+
+### GraphQL Schema
+
+If `graphql/schema/schema.graphql` conflicts, re-add facet queries:
+
+```graphql
+sceneFacets(scene_filter: SceneFilterType, limit: Int): SceneFacetsResult!
+performerFacets(performer_filter: PerformerFilterType, limit: Int): PerformerFacetsResult!
+# ... etc (see BACKEND-API.md for full list)
+```
+
+Then regenerate:
+```bash
+go run github.com/99designs/gqlgen generate
+```
+
+### Backend Files to Preserve
+
+These extension files don't exist upstream (no conflicts expected):
+
+```
+pkg/sqlite/extension_indexes.go      # Extension database indexes
+pkg/sqlite/*_facets.go               # Facets implementations
+pkg/models/facets.go                 # Facets models
+internal/api/resolver_query_facets.go
+internal/api/types_facets.go
+graphql/schema/types/facets.graphql
+```
+
+See [BACKEND-API.md](./BACKEND-API.md) for complete backend documentation.
+
+---
+
 ## Sync History
 
 Track your upstream sync points here:

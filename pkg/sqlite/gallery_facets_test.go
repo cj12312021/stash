@@ -197,3 +197,79 @@ func TestGalleryFacets_WithStudioExcludeFilter(t *testing.T) {
 		return nil
 	})
 }
+
+// Phase 6: Test performer_tags facet (new feature)
+func TestGalleryFacets_ReturnsPerformerTags(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		gqb := db.Gallery
+
+		facets, err := gqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// PerformerTags is a new field added in Phase 6
+		// It should return tags associated with performers in the galleries
+		assert.NotNil(t, facets.PerformerTags, "PerformerTags should not be nil")
+
+		// If there are performer tags, they should be sorted by count descending
+		for i := 1; i < len(facets.PerformerTags); i++ {
+			assert.GreaterOrEqual(t, facets.PerformerTags[i-1].Count, facets.PerformerTags[i].Count,
+				"PerformerTags should be sorted by count descending")
+		}
+
+		return nil
+	})
+}
+
+// Phase 6: Test parallel execution (indirectly - verify all facets return together)
+func TestGalleryFacets_ReturnsAllFacetsInParallel(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		gqb := db.Gallery
+
+		facets, err := gqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// All facet types should be populated (not nil)
+		assert.NotNil(t, facets.Tags, "Tags should not be nil")
+		assert.NotNil(t, facets.Performers, "Performers should not be nil")
+		assert.NotNil(t, facets.Studios, "Studios should not be nil")
+		assert.NotNil(t, facets.PerformerTags, "PerformerTags should not be nil")
+		assert.NotNil(t, facets.Organized, "Organized should not be nil")
+		assert.NotNil(t, facets.Ratings, "Ratings should not be nil")
+
+		return nil
+	})
+}
+
+// Phase 6: Test unfiltered fast path (nil filter should work efficiently)
+func TestGalleryFacets_UnfilteredFastPath(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		gqb := db.Gallery
+
+		// Calling with nil filter should trigger the unfiltered fast path
+		facets, err := gqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets with nil filter: %s", err.Error())
+			return nil
+		}
+
+		assert.NotNil(t, facets, "Facets should not be nil with nil filter")
+
+		// Also test with empty filter struct (should also use fast path)
+		emptyFilter := &models.GalleryFilterType{}
+		facets2, err := gqb.GetFacets(ctx, emptyFilter, 100)
+		if err != nil {
+			t.Errorf("Error getting facets with empty filter: %s", err.Error())
+			return nil
+		}
+
+		assert.NotNil(t, facets2, "Facets should not be nil with empty filter")
+
+		return nil
+	})
+}

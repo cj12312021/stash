@@ -170,7 +170,7 @@ export { FilteredSceneList as SceneList, ScenesFilterSidebarSections } from "./S
 
 | Category | Components |
 |----------|------------|
-| **NEW** (13) | AgeFilter, CaptionsFilter, CircumcisedFilter, CountryFilter, GenderFilter, GroupsFilter, IsMissingFilter, MyFilterSidebar, OrientationFilter, PerformerTagsFilter, ResolutionFilter, SidebarFilterSelector, StringFilter |
+| **NEW** (13) | AgeFilter, CaptionsFilter, CircumcisedFilter, CountryFilter, GenderFilter, GroupsFilter, IsMissingFilter, OrientationFilter, PerformerTagsFilter, ResolutionFilter, SidebarFilterSelector, StringFilter + FilterSidebar (in ui/) |
 | **Enhanced** (16) | BooleanFilter, DateFilter, DurationFilter, LabeledIdFilter, NumberFilter, PathFilter, PerformersFilter, PhashFilter, RatingFilter, SelectableFilter, SidebarDurationFilter, SidebarListFilter, StashIDFilter, StudiosFilter, TagsFilter, + utilities |
 
 **Key enhancements:**

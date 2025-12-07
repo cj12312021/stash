@@ -39,18 +39,8 @@ fragment CaptionFacetCountData on CaptionFacetCount {
   count
 }
 
-query SceneFacets(
-  $scene_filter: SceneFilterType
-  $limit: Int
-  $include_performer_tags: Boolean
-  $include_captions: Boolean
-) {
-  sceneFacets(
-    scene_filter: $scene_filter
-    limit: $limit
-    include_performer_tags: $include_performer_tags
-    include_captions: $include_captions
-  ) {
+query SceneFacets($scene_filter: SceneFilterType, $limit: Int) {
+  sceneFacets(scene_filter: $scene_filter, limit: $limit) {
     tags {
       ...FacetCountData
     }
@@ -122,6 +112,9 @@ query GalleryFacets($gallery_filter: GalleryFilterType, $limit: Int) {
       ...FacetCountData
     }
     studios {
+      ...FacetCountData
+    }
+    performer_tags {
       ...FacetCountData
     }
     organized {

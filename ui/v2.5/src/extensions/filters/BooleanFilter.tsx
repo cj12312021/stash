@@ -183,7 +183,7 @@ export const SidebarBooleanFilter: React.FC<ISidebarFilter> = ({
       count,
       icon: trueIcon,
     };
-  }, [trueLabel, facetCounts, facetBooleanKey, trueIcon]);
+  }, [trueLabel, facetCounts.booleans, facetBooleanKey, trueIcon]);
 
   const falseOption = useMemo(() => {
     const count = facetBooleanKey
@@ -195,7 +195,7 @@ export const SidebarBooleanFilter: React.FC<ISidebarFilter> = ({
       count,
       icon: falseIcon,
     };
-  }, [falseLabel, facetCounts, facetBooleanKey, falseIcon]);
+  }, [falseLabel, facetCounts.booleans, facetBooleanKey, falseIcon]);
 
   const criteria = filter.criteriaFor(option.type) as BooleanCriterion[];
   const criterion = criteria.length > 0 ? criteria[0] : null;

@@ -70,27 +70,26 @@ const { counts, loading } = useFacetCountsContext();
 
 | Entity | Facets Available |
 |--------|------------------|
-| Scenes | tags, performers, studios, groups, performer_tags*, captions*, resolutions, orientations, organized, interactive, ratings |
+| Scenes | tags, performers, studios, groups, performer_tags, captions, resolutions, orientations, organized, interactive, ratings |
 | Performers | tags, studios, genders, countries, circumcised, favorite, ratings |
 | Galleries | tags, performers, studios, organized, ratings |
 | Groups | tags, performers, studios, containing_groups, sub_groups |
 | Studios | tags, parents, favorite |
 | Tags | parents, children, favorite |
 
-\* = Lazy loaded on-demand when section expands
-
 ## Performance Optimizations
 
-### Lazy Loading
-- Facets only fetched when sidebar is open
-- Expensive facets (performer tags, captions) load on demand
+### Parallel Execution (Backend)
+- All facets computed in parallel using goroutines
+- Wall-clock time = slowest query, not sum of queries
+- Extension indexes optimize query performance
 
-### Batching
-- `useBatchedFilterCounts` groups multiple facet requests
-- `useSceneFacets` pre-fetches related facets
+### Sidebar-Aware Loading
+- Facets only fetched when sidebar is open
+- All facets returned in single request (no lazy loading)
 
 ### Debouncing
-- Filter changes are debounced (300ms) before fetching
+- Filter changes are debounced (500ms) before fetching
 - Prevents API spam during rapid filter changes
 
 ## Usage Example

@@ -79,11 +79,12 @@ type PerformerFacetsResult struct {
 
 // GalleryFacetsResult contains all facet counts for gallery filtering
 type GalleryFacetsResult struct {
-	Tags       []*FacetCount        `json:"tags"`
-	Performers []*FacetCount        `json:"performers"`
-	Studios    []*FacetCount        `json:"studios"`
-	Organized  []*BooleanFacetCount `json:"organized"`
-	Ratings    []*RatingFacetCount  `json:"ratings"`
+	Tags          []*FacetCount        `json:"tags"`
+	Performers    []*FacetCount        `json:"performers"`
+	Studios       []*FacetCount        `json:"studios"`
+	PerformerTags []*FacetCount        `json:"performer_tags"`
+	Organized     []*BooleanFacetCount `json:"organized"`
+	Ratings       []*RatingFacetCount  `json:"ratings"`
 }
 
 // GroupFacetsResult contains all facet counts for group filtering

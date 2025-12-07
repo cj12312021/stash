@@ -150,7 +150,7 @@ Features are typically added to the sidebar or toolbar:
 
 ```tsx
 // In the list component
-const MyFilterSidebarSections = (props) => (
+const FilterSidebarSections = (props) => (
   <>
     <ExistingFilters {...props} />
     <MySidebarSection {...props} />  {/* Add your section */}

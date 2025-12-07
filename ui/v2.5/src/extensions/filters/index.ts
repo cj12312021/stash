@@ -49,8 +49,8 @@ export {
   setObjectFilter,
 } from "./LabeledIdFilter";
 
-// MyFilterSidebar - note: FilteredSidebarHeader and useFilteredSidebarKeybinds 
-// are exported from extensions/ui/FilterSidebar.tsx to avoid duplicates
+// FilterSidebar components (FilteredSidebarHeader, useFilteredSidebarKeybinds)
+// are in extensions/ui/FilterSidebar.tsx
 
 // Number filter
 export {
