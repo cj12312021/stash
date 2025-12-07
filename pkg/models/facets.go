@@ -49,15 +49,8 @@ type CaptionFacetCount struct {
 	Count    int
 }
 
-// SceneFacetOptions controls which expensive facets to include
-type SceneFacetOptions struct {
-	// Include performer_tags facet (expensive - 3 joins)
-	IncludePerformerTags bool
-	// Include captions facet (expensive - file joins)
-	IncludeCaptions bool
-}
-
 // SceneFacets contains all facet counts for scene filtering
+// All facets are always computed (no lazy loading) - they run in parallel goroutines
 type SceneFacets struct {
 	Tags          []FacetCount
 	Performers    []FacetCount
@@ -84,12 +77,14 @@ type PerformerFacets struct {
 }
 
 // GalleryFacets contains all facet counts for gallery filtering
+// All facets are always computed (no lazy loading) - they run in parallel goroutines
 type GalleryFacets struct {
-	Tags       []FacetCount
-	Performers []FacetCount
-	Studios    []FacetCount
-	Organized  []BooleanFacetCount
-	Ratings    []RatingFacetCount
+	Tags          []FacetCount
+	Performers    []FacetCount
+	Studios       []FacetCount
+	PerformerTags []FacetCount
+	Organized     []BooleanFacetCount
+	Ratings       []RatingFacetCount
 }
 
 // GroupFacets contains all facet counts for group filtering

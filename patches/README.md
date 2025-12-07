@@ -22,6 +22,7 @@ This fork is based on **Stash v0.29.3**.
 |------|---------|----------|
 | `schema-queries.md` | GraphQL query additions (facets + recommendations) | **High** |
 | `repository-interfaces.md` | Faceter interface embeddings | **High** |
+| `extension-indexes.md` | Database index optimization (init.go hook) | **High** |
 | `tag-filter-extensions.md` | Tag filter additions (performers_filter, groups_filter) | Medium |
 | `config-extensions.md` | Frontend config changes (recommendations, sidebar) | Medium |
 | `utility-additions.md` | Small utility functions | Low |
@@ -46,19 +47,24 @@ If `graphql/schema/schema.graphql` conflicts:
 If `pkg/models/repository_*.go` files conflict:
 - See `repository-interfaces.md` for Faceter interface lines
 
-### Step 4: Handle Tag Filter Conflicts
+### Step 4: Handle Extension Indexes
+
+If `internal/manager/init.go` conflicts:
+- See `extension-indexes.md` for the startup hook
+
+### Step 5: Handle Tag Filter Conflicts
 
 If `pkg/sqlite/tag*.go` or `graphql/schema/types/filters.graphql` conflict:
 - See `tag-filter-extensions.md` for tag filter additions
 
-### Step 5: Regenerate & Build
+### Step 6: Regenerate & Build
 
 ```bash
 go generate ./...
 go build ./...
 ```
 
-### Step 6: Test
+### Step 7: Test
 
 ```bash
 # Backend tests
@@ -81,6 +87,7 @@ These files don't exist upstream - they'll merge cleanly:
 graphql/schema/types/facets.graphql
 pkg/models/facets.go
 pkg/sqlite/*_facets.go (6 files + tests)
+pkg/sqlite/extension_indexes.go      # Database indexes (created at startup)
 internal/api/resolver_query_facets.go
 internal/api/types_facets.go
 ```
@@ -120,6 +127,7 @@ ui/v2.5/src/extensions/           # All custom frontend code (~80 files)
 |------|---------|-----------|
 | `graphql/schema/schema.graphql` | Facet + recommendation queries | `schema-queries.md` |
 | `pkg/models/repository_*.go` | Faceter interfaces | `repository-interfaces.md` |
+| `internal/manager/init.go` | Extension index startup hook | `extension-indexes.md` |
 | `graphql/schema/types/filters.graphql` | Tag filter fields | `tag-filter-extensions.md` |
 | `pkg/models/tag.go` | TagFilterType fields | `tag-filter-extensions.md` |
 | `pkg/sqlite/tag.go` | Join repos + FindFavoriteTagIDs | `tag-filter-extensions.md`, `utility-additions.md` |

@@ -12,24 +12,17 @@ func (r *queryResolver) SceneFacets(
 	ctx context.Context,
 	sceneFilter *models.SceneFilterType,
 	limit *int,
-	includePerformerTags *bool,
-	includeCaptions *bool,
 ) (*SceneFacetsResult, error) {
 	effectiveLimit := defaultFacetLimit
 	if limit != nil && *limit > 0 {
 		effectiveLimit = *limit
 	}
 
-	// Build options for expensive facets (default to false for lazy loading)
-	options := models.SceneFacetOptions{
-		IncludePerformerTags: includePerformerTags != nil && *includePerformerTags,
-		IncludeCaptions:      includeCaptions != nil && *includeCaptions,
-	}
-
 	var result *SceneFacetsResult
 
 	if err := r.withReadTxn(ctx, func(ctx context.Context) error {
-		facets, err := r.repository.Scene.GetFacets(ctx, sceneFilter, effectiveLimit, options)
+		// All facets are computed in parallel - no lazy loading
+		facets, err := r.repository.Scene.GetFacets(ctx, sceneFilter, effectiveLimit)
 		if err != nil {
 			return err
 		}
@@ -222,11 +215,12 @@ func convertGalleryFacets(f *models.GalleryFacets) *GalleryFacetsResult {
 	}
 
 	return &GalleryFacetsResult{
-		Tags:       convertFacetCounts(f.Tags),
-		Performers: convertFacetCounts(f.Performers),
-		Studios:    convertFacetCounts(f.Studios),
-		Organized:  convertBooleanFacetCounts(f.Organized),
-		Ratings:    convertRatingFacetCounts(f.Ratings),
+		Tags:          convertFacetCounts(f.Tags),
+		Performers:    convertFacetCounts(f.Performers),
+		Studios:       convertFacetCounts(f.Studios),
+		PerformerTags: convertFacetCounts(f.PerformerTags),
+		Organized:     convertBooleanFacetCounts(f.Organized),
+		Ratings:       convertRatingFacetCounts(f.Ratings),
 	}
 }
 

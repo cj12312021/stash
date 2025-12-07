@@ -17,8 +17,8 @@ export {
 // List Results Header - pagination and sort controls
 export { ListResultsHeader } from "./ListResultsHeader";
 
-// Filter Sidebar - wrapper for sidebar filters
+// Filter Sidebar - search, saved filters, keyboard shortcuts
 export {
   FilteredSidebarHeader,
   useFilteredSidebarKeybinds,
-} from "src/extensions/filters/MyFilterSidebar";
+} from "./FilterSidebar";

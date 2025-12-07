@@ -152,16 +152,13 @@ type Query {
   Get facet counts for scenes based on current filter.
   Returns counts for each filter dimension, allowing the UI to show
   how many results each filter option would return.
+  All facets are computed in parallel for optimal performance.
   """
   sceneFacets(
     "Scene filter to apply when calculating facets"
     scene_filter: SceneFilterType
     "Maximum facets to return per category (default: 100)"
     limit: Int
-    "Include performer_tags facet (expensive, default: false)"
-    include_performer_tags: Boolean
-    "Include captions facet (expensive, default: false)"
-    include_captions: Boolean
   ): SceneFacetsResult!
 
   """

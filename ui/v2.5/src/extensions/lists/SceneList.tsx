@@ -1033,12 +1033,10 @@ export const FilteredSceneList = (props: IFilteredScenes) => {
 
   // Fetch facet counts for sidebar filters
   // Note: showSidebar can be undefined initially, so we default to false
-  // Expensive facets (performer_tags, captions) are lazy-loaded only when their section is expanded
+  // All facets are computed in parallel on the backend - no lazy loading needed
   const { counts: facetCounts, loading: facetLoading } = useSceneFacetCounts(filter, { 
     isOpen: showSidebar ?? false,
     debounceMs: 300, // Faster response for filter changes
-    includePerformerTags: baseSectionOpen["performer_tags"] ?? false,
-    includeCaptions: baseSectionOpen["captions"] ?? false,
   });
 
   const { effectiveFilter, result, cachedResult, items, totalCount } =

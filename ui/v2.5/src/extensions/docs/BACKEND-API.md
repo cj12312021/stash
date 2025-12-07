@@ -27,12 +27,10 @@ The facets system adds 6 new GraphQL queries for fetching aggregated filter coun
 # graphql/schema/schema.graphql
 
 type Query {
-  # Scene facets with lazy loading options
+  # Scene facets - all facets computed in parallel
   sceneFacets(
     scene_filter: SceneFilterType
     limit: Int
-    include_performer_tags: Boolean  # Expensive, load on-demand
-    include_captions: Boolean         # Expensive, load on-demand
   ): SceneFacetsResult!
   
   # Standard facets queries
@@ -50,8 +48,6 @@ type Query {
 |-----------|------|---------|-------------|
 | `*_filter` | FilterType | `null` | Filter criteria (same as list queries) |
 | `limit` | Int | `100` | Max facets per category |
-| `include_performer_tags` | Boolean | `false` | Load performer tags (scene only) |
-| `include_captions` | Boolean | `false` | Load caption languages (scene only) |
 
 ---
 
@@ -115,19 +111,19 @@ type CircumcisedFacetCount {
 ### Result Types
 
 ```graphql
-# Scene facets result
+# Scene facets result - all 11 facets always included
 type SceneFacetsResult {
   tags: [FacetCount!]!
   performers: [FacetCount!]!
   studios: [FacetCount!]!
   groups: [FacetCount!]!
-  performer_tags: [FacetCount!]        # Only if include_performer_tags=true
+  performer_tags: [FacetCount!]!      # Always included
   resolutions: [ResolutionFacetCount!]!
   orientations: [OrientationFacetCount!]!
   organized: [BooleanFacetCount!]!
   interactive: [BooleanFacetCount!]!
   ratings: [RatingFacetCount!]!
-  captions: [CaptionFacetCount!]       # Only if include_captions=true
+  captions: [CaptionFacetCount!]!     # Always included
 }
 
 # Performer facets result
@@ -174,6 +170,79 @@ type TagFacetsResult {
 
 ---
 
+## Extension Database Indexes
+
+The extension system includes fork-safe database indexes for optimal facet query performance.
+
+### How Indexes Are Applied
+
+Indexes are created **automatically on every startup**, immediately after the database opens:
+
+```
+Stash Startup
+    │
+    ▼
+s.Database.Open(...)                    ← Opens DB, runs migrations
+    │
+    ▼
+s.Database.EnsureExtensionIndexes(ctx)  ← Creates indexes HERE
+    │
+    ▼
+(rest of startup continues...)
+```
+
+### Index Definitions
+
+| Index Name | Table | Columns | Purpose |
+|------------|-------|---------|---------|
+| `idx_ext_scenes_tags_scene_tag` | scenes_tags | (scene_id, tag_id) | Tag facet counts |
+| `idx_ext_performers_scenes_scene_performer` | performers_scenes | (scene_id, performer_id) | Performer facet counts |
+| `idx_ext_groups_scenes_scene_group` | groups_scenes | (scene_id, group_id) | Group facet counts |
+| `idx_ext_performers_tags_performer_tag` | performers_tags | (performer_id, tag_id) | Performer tags facet |
+| `idx_ext_video_files_facets` | video_files | (file_id, height, width, interactive) | Resolution/orientation facets |
+| `idx_ext_scenes_studio_not_null` | scenes | studio_id WHERE NOT NULL | Studio facet (partial) |
+| `idx_ext_scenes_rating_not_null` | scenes | rating WHERE NOT NULL | Rating facet (partial) |
+
+### Fork-Safe Design
+
+The index system is designed to avoid conflicts with upstream stash:
+
+1. **Outside Migration System** - Indexes are NOT created via numbered migrations
+2. **Idempotent** - Uses `CREATE INDEX IF NOT EXISTS` 
+3. **Unique Prefix** - All indexes use `idx_ext_` prefix
+4. **Non-Blocking** - If creation fails, startup continues (indexes are optimization only)
+
+### Implementation Files
+
+| File | Purpose |
+|------|---------|
+| `pkg/sqlite/extension_indexes.go` | Index definitions and creation logic |
+| `internal/manager/init.go` | Startup hook that calls `EnsureExtensionIndexes` |
+
+### First Startup Behavior
+
+On first startup after building with extension indexes:
+
+```
+INFO: Ensuring extension indexes exist...
+INFO: Extension indexes verified (7 indexes)
+```
+
+**First creation** takes 10-60 seconds depending on database size.
+**Subsequent startups** are instant (indexes already exist).
+
+### Manual Index Management
+
+```go
+// Create all extension indexes
+db.EnsureExtensionIndexes(ctx)
+
+// Drop all extension indexes (if needed)
+db.DropExtensionIndexes(ctx)
+```
+
+---
+
 ## Backend File Reference
 
 ### New Files (Must Preserve)
@@ -181,13 +250,14 @@ type TagFacetsResult {
 | File | Purpose | Lines |
 |------|---------|-------|
 | `graphql/schema/types/facets.graphql` | GraphQL type definitions | ~100 |
-| `pkg/models/facets.go` | Go model structs | ~150 |
-| `pkg/sqlite/scene_facets.go` | Scene facets SQLite implementation | ~400 |
+| `pkg/models/facets.go` | Go model structs | ~115 |
+| `pkg/sqlite/scene_facets.go` | Scene facets - 8 parallel queries | ~500 |
 | `pkg/sqlite/performer_facets.go` | Performer facets SQLite implementation | ~250 |
 | `pkg/sqlite/gallery_facets.go` | Gallery facets SQLite implementation | ~200 |
 | `pkg/sqlite/group_facets.go` | Group facets SQLite implementation | ~150 |
 | `pkg/sqlite/studio_facets.go` | Studio facets SQLite implementation | ~150 |
 | `pkg/sqlite/tag_facets.go` | Tag facets SQLite implementation | ~100 |
+| `pkg/sqlite/extension_indexes.go` | Extension index definitions | ~116 |
 | `internal/api/resolver_query_facets.go` | GraphQL resolvers | ~200 |
 | `internal/api/types_facets.go` | API type mappings | ~100 |
 
@@ -196,6 +266,7 @@ type TagFacetsResult {
 | File | Changes |
 |------|---------|
 | `graphql/schema/schema.graphql` | Added facet + recommendation queries |
+| `internal/manager/init.go` | Added `EnsureExtensionIndexes` call |
 | `pkg/models/repository_scene.go` | Added `SceneFaceter` interface |
 | `pkg/models/repository_performer.go` | Added `PerformerFaceter` interface |
 | `pkg/models/repository_gallery.go` | Added `GalleryFaceter` interface |
@@ -321,14 +392,10 @@ Each entity type has a Faceter interface added to its repository:
 ```go
 // pkg/models/repository_scene.go
 
+// SceneFaceter provides methods to get facet counts for scenes.
+// All facets are computed in parallel - no lazy loading options.
 type SceneFaceter interface {
-    GetFacets(ctx context.Context, filter *SceneFilterType, limit int, options SceneFacetOptions) (*SceneFacets, error)
-}
-
-// SceneFacetOptions controls lazy loading of expensive facets
-type SceneFacetOptions struct {
-    IncludePerformerTags bool
-    IncludeCaptions      bool
+    GetFacets(ctx context.Context, filter *SceneFilterType, limit int) (*SceneFacets, error)
 }
 ```
 
@@ -344,9 +411,38 @@ type PerformerFaceter interface {
 
 ## SQLite Implementation
 
-### Query Strategy
+### Parallel Query Strategy
 
-Facets use CTE (Common Table Expression) queries for efficiency:
+Scene facets use 8 parallel goroutines:
+
+```go
+// pkg/sqlite/scene_facets.go
+
+func (qb *SceneStore) GetFacets(ctx context.Context, filter *SceneFilterType, limit int) (*SceneFacets, error) {
+    var wg sync.WaitGroup
+    var mu sync.Mutex
+    errChan := make(chan error, 8)
+    
+    // Build base CTE once
+    baseSQL := query.toSQL(false)
+    baseArgs := query.args
+    
+    // Launch 8 parallel goroutines
+    wg.Add(1); go qb.getTagsFacet(ctx, baseSQL, baseArgs, limit, result, &mu)
+    wg.Add(1); go qb.getPerformersFacet(ctx, baseSQL, baseArgs, limit, result, &mu)
+    wg.Add(1); go qb.getStudiosFacet(ctx, baseSQL, baseArgs, limit, result, &mu)
+    wg.Add(1); go qb.getGroupsFacet(ctx, baseSQL, baseArgs, limit, result, &mu)
+    wg.Add(1); go qb.getVideoFacets(ctx, baseSQL, baseArgs, result, &mu)
+    wg.Add(1); go qb.getSimpleFacets(ctx, baseSQL, baseArgs, result, &mu)
+    wg.Add(1); go qb.getPerformerTagsFacet(ctx, baseSQL, baseArgs, limit, result, &mu)
+    wg.Add(1); go qb.getCaptionsFacet(ctx, baseSQL, baseArgs, result, &mu)
+    
+    wg.Wait()
+    return result, nil
+}
+```
+
+### CTE Query Structure
 
 ```sql
 -- Base filter applied ONCE
@@ -355,72 +451,14 @@ WITH filtered_scenes AS (
     WHERE ... -- all filter criteria
 )
 
--- Tag counts
-SELECT 'tag' as facet_type, t.id, t.name as label, 
-       COUNT(DISTINCT st.scene_id) as count
+-- Each goroutine runs one of these queries
+SELECT t.id, t.name as label, COUNT(DISTINCT st.scene_id) as count
 FROM filtered_scenes fs
 INNER JOIN scenes_tags st ON fs.id = st.scene_id
 INNER JOIN tags t ON st.tag_id = t.id
 GROUP BY t.id
 ORDER BY count DESC
 LIMIT ?
-
-UNION ALL
-
--- Performer counts (same pattern)
-SELECT 'performer' as facet_type, p.id, p.name as label,
-       COUNT(DISTINCT sp.scene_id) as count
-FROM filtered_scenes fs
-INNER JOIN performers_scenes sp ON fs.id = sp.scene_id
-INNER JOIN performers p ON sp.performer_id = p.id
-GROUP BY p.id
-ORDER BY count DESC
-LIMIT ?
-
--- ... more facet types
-```
-
-### Lazy Loading Implementation
-
-Expensive facets run in goroutines:
-
-```go
-// pkg/sqlite/scene_facets.go
-
-func (qb *SceneStore) GetFacets(ctx context.Context, filter *SceneFilterType, 
-    limit int, options SceneFacetOptions) (*SceneFacets, error) {
-    
-    var wg sync.WaitGroup
-    var mu sync.Mutex
-    result := &SceneFacets{}
-    
-    // Core facets always run
-    wg.Add(1)
-    go func() {
-        defer wg.Done()
-        qb.getCoreFacets(ctx, baseSQL, baseArgs, limit, result, &mu)
-    }()
-    
-    // Expensive facets only if requested
-    if options.IncludePerformerTags {
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            qb.getPerformerTagsFacet(ctx, baseSQL, baseArgs, limit, result, &mu)
-        }()
-    }
-    
-    if options.IncludeCaptions {
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            qb.getCaptionsFacet(ctx, baseSQL, baseArgs, result, &mu)
-        }()
-    }
-    
-    wg.Wait()
-    return result, nil
-}
 ```
 
 ---
@@ -432,29 +470,19 @@ The frontend queries are defined in:
 ```graphql
 # ui/v2.5/graphql/data/facets.graphql
 
-query SceneFacets(
-  $scene_filter: SceneFilterType
-  $limit: Int
-  $includePerformerTags: Boolean!
-  $includeCaptions: Boolean!
-) {
-  sceneFacets(
-    scene_filter: $scene_filter
-    limit: $limit
-    include_performer_tags: $includePerformerTags
-    include_captions: $includeCaptions
-  ) {
+query SceneFacets($scene_filter: SceneFilterType, $limit: Int) {
+  sceneFacets(scene_filter: $scene_filter, limit: $limit) {
     tags { id label count }
     performers { id label count }
     studios { id label count }
     groups { id label count }
-    performer_tags @include(if: $includePerformerTags) { id label count }
+    performer_tags { id label count }
     resolutions { resolution count }
     orientations { orientation count }
     organized { value count }
     interactive { value count }
     ratings { rating count }
-    captions @include(if: $includeCaptions) { language count }
+    captions { language count }
   }
 }
 
@@ -482,7 +510,7 @@ go test -v -tags=integration ./... -run Facet
 
 | Component | Tests | Coverage |
 |-----------|-------|----------|
-| Scene Facets | 14 | All facet types, filters, lazy loading |
+| Scene Facets | 14 | All facet types, filters |
 | Performer Facets | 9 | Tags, genders, studios, countries |
 | Gallery Facets | 8 | Tags, performers, studios, organized |
 | Group Facets | 6 | Tags, performers, studios |
@@ -502,6 +530,7 @@ For backend merge conflicts, re-add:
 1. **GraphQL queries** - Add facet queries to `schema.graphql`
 2. **Repository interfaces** - Add `*Faceter` interfaces to `repository_*.go` files
 3. **Type definitions** - Preserve `types/facets.graphql`
+4. **Extension indexes** - Preserve `extension_indexes.go` and init.go hook
 
 ### 1. Preserve New Files
 
@@ -509,9 +538,10 @@ These files don't exist upstream - they won't conflict:
 ```
 graphql/schema/types/facets.graphql
 pkg/models/facets.go
-pkg/models/facets_interfaces.go      # NEW: Interface definitions
+pkg/models/facets_interfaces.go
 pkg/sqlite/*_facets.go
 pkg/sqlite/*_facets_test.go
+pkg/sqlite/extension_indexes.go      # NEW: Extension indexes
 internal/api/resolver_query_facets.go
 internal/api/types_facets.go
 ```
@@ -520,16 +550,14 @@ internal/api/types_facets.go
 
 If `graphql/schema/schema.graphql` conflicts:
 
-The full query definitions are in `graphql/schema/schema.graphql`.
-
 Add after `findTags` query:
 ```graphql
-  sceneFacets(...): SceneFacetsResult!
-  performerFacets(...): PerformerFacetsResult!
-  galleryFacets(...): GalleryFacetsResult!
-  groupFacets(...): GroupFacetsResult!
-  studioFacets(...): StudioFacetsResult!
-  tagFacets(...): TagFacetsResult!
+  sceneFacets(scene_filter: SceneFilterType, limit: Int): SceneFacetsResult!
+  performerFacets(performer_filter: PerformerFilterType, limit: Int): PerformerFacetsResult!
+  galleryFacets(gallery_filter: GalleryFilterType, limit: Int): GalleryFacetsResult!
+  groupFacets(group_filter: GroupFilterType, limit: Int): GroupFacetsResult!
+  studioFacets(studio_filter: StudioFilterType, limit: Int): StudioFacetsResult!
+  tagFacets(tag_filter: TagFilterType, limit: Int): TagFacetsResult!
 ```
 
 ### 3. Re-add Repository Interfaces
@@ -549,14 +577,26 @@ type SceneReader interface {
 }
 ```
 
-### 4. Regenerate GraphQL
+### 4. Re-add Extension Index Hook
+
+If `internal/manager/init.go` conflicts, add after `s.Database.Open(...)`:
+
+```go
+// Ensure extension-specific indexes exist (safe for fork/upstream compatibility)
+if err := s.Database.EnsureExtensionIndexes(ctx); err != nil {
+    logger.Warnf("Failed to ensure extension indexes: %v", err)
+    // Don't fail startup - indexes are optimization only
+}
+```
+
+### 5. Regenerate GraphQL
 
 After resolving conflicts:
 ```bash
 go generate ./...
 ```
 
-### 5. Run Tests
+### 6. Run Tests
 
 ```bash
 # Backend
@@ -586,14 +626,20 @@ yarn test
 
 ### Slow facets on large database
 
-**Cause**: Missing indexes or expensive filter
+**Cause**: Missing extension indexes or expensive filter
 **Mitigations**:
+- Wait for first startup to complete (creates indexes)
 - Use `limit` parameter (default 100)
-- Enable lazy loading for expensive facets
-- Add database indexes on frequently filtered columns
+- Add more specific filters to reduce working set
 
 ### Empty facet counts
 
 **Cause**: Filter too restrictive or no matching items
 **Check**: Try with no filter to verify endpoint works
+
+### Slow first startup
+
+**Cause**: Extension indexes being created
+**Fix**: Normal behavior - wait 10-60 seconds for indexes to be created
+**Subsequent startups**: Instant (indexes already exist)
 

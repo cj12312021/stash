@@ -1,0 +1,223 @@
+# Stash Fork Extension Strategy Rules
+
+This project is a fork of stashapp/stash. All fork-specific code must follow the extension strategy to minimize merge conflicts with upstream.
+
+## Production Database Available
+
+**A copy of the production database is available at `test-data/stash-go.sqlite`** for performance testing and validation.
+
+Database characteristics:
+- **~700,000+ scenes** - Very large dataset
+- **~800,000+ galleries** - Larger than scenes
+- **~150,000+ performers**
+- **Complex tag/performer relationships**
+
+**Always consider performance implications** when implementing features that query this data:
+- Test queries against the production database before finalizing
+- Use `EXPLAIN QUERY PLAN` to verify index usage
+- Document performance benchmarks in `extensions/docs/FACETS-BENCHMARK-RESULTS.md`
+- Consider pagination, caching, and query optimization for large result sets
+
+## Test-Driven Development
+
+**All new features MUST include tests.** Follow TDD principles:
+
+### Frontend Tests (Required)
+
+Location: `ui/v2.5/src/extensions/__tests__/`
+
+**For every new hook or significant component:**
+1. Write tests BEFORE or alongside implementation
+2. Test file naming: `{feature}.test.ts` or `{component}.test.tsx`
+3. Cover: happy path, edge cases, error handling
+
+```bash
+# Run frontend tests
+cd ui/v2.5
+yarn test --run extensions
+```
+
+**Current test files:**
+- `useFacetCounts.test.ts` - Facet counting logic (50+ tests)
+- `facetCandidateUtils.test.ts` - Candidate filtering utilities
+- `GroupsFilter.test.ts` - Groups filter component
+- `upgrade-verification.test.ts` - Migration verification
+
+### Backend Tests (Required)
+
+Location: `pkg/sqlite/*_test.go` for integration tests
+
+**For every new facet or query implementation:**
+1. Write integration tests that run against a test database
+2. Test file naming: `{feature}_test.go`
+3. Use build tag: `-tags=integration`
+
+```bash
+# Run backend facet tests
+go test -v -tags=integration ./pkg/sqlite/... -run Facet
+```
+
+**Current test files:**
+- `scene_facets_test.go` - Scene facet queries
+- `gallery_facets_test.go` - Gallery facet queries
+- `performer_facets_test.go` - Performer facet queries
+- `group_facets_test.go` - Group facet queries
+
+### Test Requirements Checklist
+
+Before completing any feature:
+- [ ] Frontend unit tests added/updated
+- [ ] Backend integration tests added/updated
+- [ ] All tests pass: `yarn test` and `go test`
+- [ ] Performance tested against production database
+- [ ] Benchmark results documented (if performance-critical)
+
+## Critical Rules
+
+### 1. Frontend Code Isolation
+
+**ALL frontend fork code MUST be placed in `ui/v2.5/src/extensions/`**
+
+- ✅ `ui/v2.5/src/extensions/lists/` - List page components
+- ✅ `ui/v2.5/src/extensions/filters/` - Filter components  
+- ✅ `ui/v2.5/src/extensions/hooks/` - Custom React hooks
+- ✅ `ui/v2.5/src/extensions/ui/` - Reusable UI components
+- ✅ `ui/v2.5/src/extensions/styles/` - Custom SCSS styles
+- ✅ `ui/v2.5/src/extensions/__tests__/` - Extension tests
+- ✅ `ui/v2.5/src/extensions/docs/` - Extension documentation
+
+**NEVER modify these upstream frontend directories directly:**
+- ❌ `ui/v2.5/src/components/List/Filters/` - Kept at v0.29.3 baseline
+- ❌ `ui/v2.5/src/components/Scenes/` - Use extensions/components/ instead
+- ❌ `ui/v2.5/src/hooks/` - Use extensions/hooks/ for new hooks
+
+### 2. Backend Code Strategy
+
+**New backend files (won't conflict with upstream):**
+- ✅ `pkg/sqlite/*_facets.go` - Facet query implementations
+- ✅ `pkg/sqlite/extension_indexes.go` - Fork-specific database indexes
+- ✅ `pkg/models/facets.go` - Facet data models
+- ✅ `pkg/recommendation/*.go` - Recommendation system
+- ✅ `graphql/schema/types/facets.graphql` - Facet GraphQL types
+- ✅ `internal/api/resolver_query_facets.go` - Facet resolvers
+- ✅ `internal/api/types_facets.go` - Generated facet types
+
+**Upstream files requiring modifications (DOCUMENT in `/patches/`):**
+- `graphql/schema/schema.graphql` → Document in `patches/schema-queries.md`
+- `pkg/models/repository_*.go` → Document in `patches/repository-interfaces.md`
+- `internal/manager/init.go` → Document in `patches/extension-indexes.md`
+- `pkg/sqlite/tag*.go` → Document in `patches/tag-filter-extensions.md`
+
+### 3. Database Index Strategy
+
+**NEVER use numbered migrations for fork-specific indexes.**
+
+Instead:
+- Add indexes to `pkg/sqlite/extension_indexes.go`
+- All indexes must use `idx_ext_` prefix
+- All indexes must use `CREATE INDEX IF NOT EXISTS`
+- Indexes are created via startup hook in `init.go`, not migrations
+
+### 4. Documentation Requirements
+
+**When modifying upstream backend files:**
+1. Document changes in `/patches/*.md`
+2. Use diff format to show exactly what was added
+3. Include line numbers and context
+
+**When modifying upstream frontend files:**
+1. Document changes in `ui/v2.5/src/extensions/patches/*.md`
+2. Prefer extracting to extensions over in-place modification
+
+### 5. Import Patterns
+
+**Use absolute imports in extensions:**
+```typescript
+// ✅ Correct
+import { Component } from "src/components/Shared/Component";
+import { useHook } from "src/extensions/hooks";
+
+// ❌ Wrong  
+import { Component } from "../../../components/Shared/Component";
+```
+
+**Export from index files:**
+```typescript
+// ✅ Correct - clean imports
+import { SidebarTagsFilter, useSceneFacetCounts } from "src/extensions";
+
+// ❌ Wrong - deep imports
+import { SidebarTagsFilter } from "src/extensions/filters/TagsFilter";
+```
+
+### 6. GraphQL Strategy
+
+**Frontend queries:** Add new queries to `ui/v2.5/graphql/data/` or `queries/`
+- Document new files in `extensions/patches/graphql-frontend.md`
+
+**Backend schema:** 
+- New types go in new files (e.g., `facets.graphql`)
+- Query additions to `schema.graphql` must be documented in `patches/schema-queries.md`
+
+## File Categories
+
+### Files That Won't Conflict (Safe)
+
+These are new files that don't exist in upstream stash:
+- Everything in `ui/v2.5/src/extensions/`
+- `pkg/sqlite/*_facets.go`
+- `pkg/sqlite/extension_indexes.go`
+- `pkg/models/facets.go`
+- `pkg/recommendation/`
+- `graphql/schema/types/facets.graphql`
+- `internal/api/resolver_query_facets.go`
+- `internal/api/types_facets.go`
+
+### Files That May Conflict (Documented)
+
+These modify upstream and must be re-applied after merges:
+- `graphql/schema/schema.graphql` - See `patches/schema-queries.md`
+- `pkg/models/repository_*.go` - See `patches/repository-interfaces.md`
+- `internal/manager/init.go` - See `patches/extension-indexes.md`
+- Frontend route files - See `extensions/docs/ARCHITECTURE.md`
+
+## Checklist Before Committing
+
+### Code Organization
+- [ ] New frontend code is in `extensions/` directory
+- [ ] New backend files use appropriate naming (`*_facets.go`, etc.)
+- [ ] Database indexes use `idx_ext_` prefix and `IF NOT EXISTS`
+- [ ] Upstream file modifications are documented in `/patches/`
+- [ ] Absolute imports used (not relative)
+- [ ] Index files updated for new exports
+
+### Testing (Required)
+- [ ] Frontend tests added: `extensions/__tests__/*.test.ts`
+- [ ] Backend tests added: `pkg/sqlite/*_test.go`
+- [ ] All frontend tests pass: `cd ui/v2.5 && yarn test --run extensions`
+- [ ] All backend tests pass: `go test -v -tags=integration ./pkg/sqlite/... -run Facet`
+
+### Performance (For Query/Data Features)
+- [ ] Tested against production database (`test-data/stash-go.sqlite`)
+- [ ] Query plans verified with `EXPLAIN QUERY PLAN`
+- [ ] Performance benchmarks documented if significant
+
+## Reference Documentation
+
+### Architecture & Strategy
+- `ui/v2.5/src/extensions/README.md` - Extension overview
+- `ui/v2.5/src/extensions/docs/ARCHITECTURE.md` - Full architecture guide
+- `ui/v2.5/src/extensions/docs/UPGRADE-GUIDE.md` - Upstream merge guide
+- `/patches/README.md` - Backend patches overview
+
+### Facets System
+- `ui/v2.5/src/extensions/docs/FACETS-SYSTEM.md` - Facets technical reference
+- `ui/v2.5/src/extensions/docs/FACETS-OPTIMIZATION-PLAN.md` - Performance optimization details
+- `ui/v2.5/src/extensions/docs/FACETS-BENCHMARK-RESULTS.md` - Performance benchmarks
+- `ui/v2.5/src/extensions/docs/FACETS-EXTENSION-PLAN.md` - Future facet additions
+
+### Testing
+- Frontend tests: `ui/v2.5/src/extensions/__tests__/`
+- Backend tests: `pkg/sqlite/*_facets_test.go`
+- Production database: `test-data/stash-go.sqlite`
+

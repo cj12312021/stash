@@ -125,6 +125,8 @@ type GalleryFacetsResult {
   performers: [FacetCount!]!
   "Counts per studio (ordered by count descending)"
   studios: [FacetCount!]!
+  "Counts per performer tag (ordered by count descending)"
+  performer_tags: [FacetCount!]!
   "Counts for organized true/false"
   organized: [BooleanFacetCount!]!
   "Counts per rating (1-5 stars)"

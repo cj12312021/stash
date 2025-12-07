@@ -155,7 +155,7 @@ export const SidebarStudiosFilter: React.FC<{
           return c.count !== 0;
         });
     }
-  }, [state.candidates, state.selected, state.query, facetCounts, facetsLoading]);
+  }, [state.candidates, state.selected, state.query, facetCounts.studios, facetsLoading]);
 
   const onOpen = useCallback(() => {
     state.onOpen?.();

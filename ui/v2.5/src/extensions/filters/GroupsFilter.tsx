@@ -152,7 +152,7 @@ export const SidebarGroupsFilter: React.FC<{
           return c.count !== 0;
         });
     }
-  }, [state.candidates, state.selected, state.query, facetCounts, facetsLoading]);
+  }, [state.candidates, state.selected, state.query, facetCounts.groups, facetsLoading]);
 
   const onOpen = useCallback(() => {
     state.onOpen?.();

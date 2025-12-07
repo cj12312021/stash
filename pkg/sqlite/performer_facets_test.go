@@ -205,3 +205,55 @@ func TestPerformerFacets_ReturnsCountries(t *testing.T) {
 		return nil
 	})
 }
+
+// Phase 6: Test parallel execution (indirectly - verify all facets return together)
+func TestPerformerFacets_ReturnsAllFacetsInParallel(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		pqb := db.Performer
+
+		facets, err := pqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// All facet types should be populated (not nil)
+		assert.NotNil(t, facets.Tags, "Tags should not be nil")
+		assert.NotNil(t, facets.Studios, "Studios should not be nil")
+		assert.NotNil(t, facets.Genders, "Genders should not be nil")
+		assert.NotNil(t, facets.Countries, "Countries should not be nil")
+		assert.NotNil(t, facets.Circumcised, "Circumcised should not be nil")
+		assert.NotNil(t, facets.Favorite, "Favorite should not be nil")
+		assert.NotNil(t, facets.Ratings, "Ratings should not be nil")
+
+		return nil
+	})
+}
+
+// Phase 6: Test unfiltered fast path (nil filter should work efficiently)
+func TestPerformerFacets_UnfilteredFastPath(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		pqb := db.Performer
+
+		// Calling with nil filter should trigger the unfiltered fast path
+		facets, err := pqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets with nil filter: %s", err.Error())
+			return nil
+		}
+
+		assert.NotNil(t, facets, "Facets should not be nil with nil filter")
+
+		// Also test with empty filter struct (should also use fast path)
+		emptyFilter := &models.PerformerFilterType{}
+		facets2, err := pqb.GetFacets(ctx, emptyFilter, 100)
+		if err != nil {
+			t.Errorf("Error getting facets with empty filter: %s", err.Error())
+			return nil
+		}
+
+		assert.NotNil(t, facets2, "Facets should not be nil with empty filter")
+
+		return nil
+	})
+}

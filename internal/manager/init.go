@@ -236,6 +236,13 @@ func (s *Manager) postInit(ctx context.Context) error {
 		}
 	}
 
+	// Ensure extension-specific indexes exist (safe for fork/upstream compatibility)
+	// These are created outside the migration system to avoid version conflicts
+	if err := s.Database.EnsureExtensionIndexes(ctx); err != nil {
+		logger.Warnf("Failed to ensure extension indexes: %v", err)
+		// Don't fail startup - indexes are optimization only
+	}
+
 	// Set the proxy if defined in config
 	if s.Config.GetProxy() != "" {
 		os.Setenv("HTTP_PROXY", s.Config.GetProxy())
