@@ -501,12 +501,12 @@ yarn test --run extensions
 
 | File | Tests | Categories |
 |------|-------|------------|
-| `useFacetCounts.test.ts` | 63 | Data structures, API conversion, stale prevention, cache system, entity builders, rating facets |
+| `useFacetCounts.test.ts` | 67 | Data structures, API conversion, stale prevention, cache system, entity builders, rating facets |
 | `facetCandidateUtils.test.ts` | 18 | Candidate filtering, count merging |
 | `GroupsFilter.test.ts` | 8 | Hierarchical group filtering |
 | `upgrade-verification.test.ts` | 12 | Extension integrity checks |
 
-**Total: 101 tests**
+**Total: 105 tests**
 
 #### Cache System Tests (17 tests)
 
@@ -533,7 +533,7 @@ Tests for the build*FacetCounts helper functions:
 | Tag facets builder | 2 | All facets, non-tag exclusions |
 | All entity caching | 3 | Cache per entity, filter variations, invalidation |
 
-#### Rating Facet Display Tests (Phase 7.1 - 13 tests)
+#### Rating Facet Display Tests (Phase 7.1 - 17 tests)
 
 Tests for the rating facet display functionality:
 
@@ -541,8 +541,9 @@ Tests for the rating facet display functionality:
 |----------|-------|----------|
 | Rating value conversion | 5 | DB value (20-100) to stars (1-5) mapping |
 | Rating counts storage | 3 | Map operations, missing values, zero counts |
-| Rating candidate generation | 3 | Count display, zero filtering, loading state |
-| Rating selection flow | 2 | ID parsing, candidate identification |
+| Rating bucket system | 5 | Bucket count summing, range handling, precision |
+| Rating bucket selection | 2 | Bucket ID parsing, candidate identification |
+| Rating selection flow (legacy) | 2 | ID parsing, candidate identification |
 
 ---
 

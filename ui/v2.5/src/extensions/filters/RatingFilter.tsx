@@ -83,8 +83,49 @@ export const RatingFilter: React.FC<IRatingFilterProps> = ({
 };
 
 // ============================================================================
-// NEW IMPROVED SIDEBAR RATING FILTER
+// NEW IMPROVED SIDEBAR RATING FILTER WITH BUCKETS
 // ============================================================================
+
+// Rating bucket definitions
+// Each bucket represents a star level with its database value range
+interface RatingBucket {
+  id: string;
+  label: string;
+  stars: number;
+  minValue: number;  // Inclusive
+  maxValue: number;  // Inclusive
+}
+
+const RATING_BUCKETS: RatingBucket[] = [
+  { id: "bucket-5", label: "★★★★★", stars: 5, minValue: 100, maxValue: 100 },  // Exactly 5 stars
+  { id: "bucket-4", label: "★★★★☆", stars: 4, minValue: 80, maxValue: 99 },   // 4.0-4.9 stars
+  { id: "bucket-3", label: "★★★☆☆", stars: 3, minValue: 60, maxValue: 79 },   // 3.0-3.9 stars
+  { id: "bucket-2", label: "★★☆☆☆", stars: 2, minValue: 40, maxValue: 59 },   // 2.0-2.9 stars
+  { id: "bucket-1", label: "★☆☆☆☆", stars: 1, minValue: 20, maxValue: 39 },   // 1.0-1.9 stars
+];
+
+// Sum counts within a rating range from the facet counts map
+function sumBucketCount(ratingCounts: Map<number, number>, minValue: number, maxValue: number): number {
+  let sum = 0;
+  // Iterate through all possible values in the range
+  // Rating values can be any multiple of 5 (for quarter precision) or 10 (for half precision) or 20 (for full precision)
+  for (let rating = minValue; rating <= maxValue; rating++) {
+    const count = ratingCounts.get(rating);
+    if (count !== undefined) {
+      sum += count;
+    }
+  }
+  return sum;
+}
+
+// Calculate total rated count (sum of all rating buckets)
+function getTotalRatedCount(ratingCounts: Map<number, number>): number {
+  let total = 0;
+  ratingCounts.forEach((count) => {
+    total += count;
+  });
+  return total;
+}
 
 // Format rating value for display
 function formatRatingValue(value: number | undefined, precision: string): string {
@@ -109,28 +150,24 @@ function createRatingIcon(): React.ReactNode {
   );
 }
 
-// Convert database rating value (20-100) to star count (1-5)
-function ratingToStars(ratingValue: number): number {
-  return ratingValue / 20;
-}
-
-// Create star display for a rating value
-function createStarDisplay(stars: number): React.ReactNode {
-  const fullStars = Math.floor(stars);
-  const hasHalfStar = stars % 1 >= 0.5;
-  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-  
-  return (
-    <span className="rating-stars-display" style={{ color: "#f5c518" }}>
-      {Array(fullStars).fill(null).map((_, i) => (
-        <FontAwesomeIcon key={`full-${i}`} icon={faStar} />
-      ))}
-      {hasHalfStar && <FontAwesomeIcon icon={faStarHalfAlt} />}
-      {Array(emptyStars).fill(null).map((_, i) => (
-        <FontAwesomeIcon key={`empty-${i}`} icon={faStarOutline} style={{ opacity: 0.3 }} />
-      ))}
-    </span>
-  );
+// Get bucket label for a given filter value
+function getBucketLabelForValue(value: number, value2?: number): string {
+  // Check if it's a bucket range
+  for (const bucket of RATING_BUCKETS) {
+    if (bucket.minValue === bucket.maxValue) {
+      // Single value bucket (5-star)
+      if (value === bucket.minValue && value2 === undefined) {
+        return bucket.label;
+      }
+    } else {
+      // Range bucket
+      if (value === bucket.minValue && value2 === bucket.maxValue) {
+        return bucket.label;
+      }
+    }
+  }
+  // Not a standard bucket - return formatted value
+  return `${value / 20}★`;
 }
 
 function useRatingFilterState(props: {
@@ -148,7 +185,9 @@ function useRatingFilterState(props: {
     config?.ui.ratingSystemOptions ?? defaultRatingSystemOptions;
   const starPrecision = ratingSystemOptions.starPrecision ?? defaultRatingStarPrecision;
 
-  // Track pending rating (selected but no modifier chosen yet)
+  // Track if custom mode is active (showing star picker + modifiers)
+  const [customMode, setCustomMode] = useState(false);
+  // Track pending rating in custom mode (selected but no modifier chosen yet)
   const [pendingRating, setPendingRating] = useState<number | null>(null);
 
   const criteria = filter.criteriaFor(option.type) as RatingCriterion[];
@@ -194,6 +233,11 @@ function useRatingFilterState(props: {
             id: "criterion_modifier.less_than",
             defaultMessage: "less than",
           });
+        case CriterionModifier.Between:
+          return intl.formatMessage({
+            id: "criterion_modifier.between",
+            defaultMessage: "between",
+          });
         case CriterionModifier.NotNull:
           return intl.formatMessage({
             id: "criterion_modifier_values.any",
@@ -215,79 +259,99 @@ function useRatingFilterState(props: {
   const selected = useMemo(() => {
     const selectedItems: Option[] = [];
 
-    // Check for any/none modifiers first
-    if (modifier === CriterionModifier.NotNull) {
-      selectedItems.push({
-        id: "any",
-        label: `(${getModifierLabel(CriterionModifier.NotNull)})`,
-        className: "modifier-object",
-      });
-      return selectedItems;
-    }
+    // Check for unrated filter
     if (modifier === CriterionModifier.IsNull) {
       selectedItems.push({
-        id: "none",
-        label: `(${getModifierLabel(CriterionModifier.IsNull)})`,
-        className: "modifier-object",
+        id: "unrated",
+        label: intl.formatMessage({ id: "unrated", defaultMessage: "Unrated" }),
       });
       return selectedItems;
     }
 
-    // If filter is active (has value in criterion), show modifier and value
+    // Check if it matches a bucket (BETWEEN or EQUALS for buckets)
     if (value?.value !== undefined) {
-      // Add the modifier indicator
+      // Check if this is a standard bucket
+      for (const bucket of RATING_BUCKETS) {
+        const isBucketMatch = 
+          (bucket.minValue === bucket.maxValue && 
+           modifier === CriterionModifier.Equals && 
+           value.value === bucket.minValue) ||
+          (bucket.minValue !== bucket.maxValue && 
+           modifier === CriterionModifier.Between && 
+           value.value === bucket.minValue && 
+           value.value2 === bucket.maxValue);
+        
+        if (isBucketMatch) {
+          selectedItems.push({
+            id: bucket.id,
+            label: bucket.label,
+            icon: createRatingIcon(),
+          });
+          return selectedItems;
+        }
+      }
+
+      // Custom filter - show modifier and value
       selectedItems.push({
-        id: "modifier",
-        label: `(${getModifierLabel(modifier!)})`,
-        className: "modifier-object",
-      });
-      // Add the rating value
-      const ratingDisplay = formatRatingValue(value.value, starPrecision);
-      selectedItems.push({
-        id: "rating",
-        label: `${ratingDisplay} ★`,
+        id: "custom-filter",
+        label: `(${getModifierLabel(modifier!)}) ${formatRatingValue(value.value, starPrecision)}★`,
         icon: createRatingIcon(),
       });
     }
-    // If there's a pending rating (selected but no modifier yet), show it
+    // If there's a pending rating in custom mode, show it
     else if (pendingRating !== null) {
       const ratingDisplay = formatRatingValue(pendingRating, starPrecision);
       selectedItems.push({
         id: "pending",
-        label: `${ratingDisplay} ★`,
+        label: `${ratingDisplay}★`,
         icon: createRatingIcon(),
       });
     }
 
     return selectedItems;
-  }, [value, modifier, getModifierLabel, pendingRating, starPrecision]);
+  }, [value, modifier, getModifierLabel, pendingRating, starPrecision, intl]);
+
+  // Calculate bucket counts
+  const bucketCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const bucket of RATING_BUCKETS) {
+      counts[bucket.id] = sumBucketCount(ratingCounts, bucket.minValue, bucket.maxValue);
+    }
+    return counts;
+  }, [ratingCounts]);
 
   // Build candidates list
   const candidates = useMemo(() => {
-    // If a rating is pending (selected but no modifier yet), show modifier options
-    if (pendingRating !== null) {
+    // If in custom mode with pending rating, show modifier options
+    if (customMode && pendingRating !== null) {
       return [
         {
-          id: "equals",
+          id: "mod-equals",
           label: `(${getModifierLabel(CriterionModifier.Equals)})`,
           className: "modifier-object",
           canExclude: false,
         },
         {
-          id: "not_equals",
+          id: "mod-not_equals",
           label: `(${getModifierLabel(CriterionModifier.NotEquals)})`,
           className: "modifier-object",
           canExclude: false,
         },
         {
-          id: "greater_than",
+          id: "mod-greater_than",
           label: `(${getModifierLabel(CriterionModifier.GreaterThan)})`,
           className: "modifier-object",
           canExclude: false,
         },
         {
-          id: "less_than",
+          id: "mod-less_than",
           label: `(${getModifierLabel(CriterionModifier.LessThan)})`,
+          className: "modifier-object",
+          canExclude: false,
+        },
+        {
+          id: "cancel-custom",
+          label: `(${intl.formatMessage({ id: "actions.cancel", defaultMessage: "Cancel" })})`,
           className: "modifier-object",
           canExclude: false,
         },
@@ -295,109 +359,124 @@ function useRatingFilterState(props: {
     }
 
     // If filter is already active, don't show any candidates
-    if (value?.value !== undefined || modifier === CriterionModifier.NotNull || modifier === CriterionModifier.IsNull) {
+    if (value?.value !== undefined || modifier === CriterionModifier.IsNull) {
       return [];
     }
 
     const candidateList: Option[] = [];
 
-    // Add any/none options first
-    candidateList.push({
-      id: "any",
-      label: `(${intl.formatMessage({
-        id: "criterion_modifier_values.any",
-      })})`,
-      className: "modifier-object",
-      canExclude: false,
-    });
-    candidateList.push({
-      id: "none",
-      label: `(${intl.formatMessage({
-        id: "criterion_modifier_values.none",
-      })})`,
-      className: "modifier-object",
-      canExclude: false,
-    });
-
-    // Add rating options with counts (5 stars down to 1 star)
-    // Rating values: 100=5★, 80=4★, 60=3★, 40=2★, 20=1★
-    const ratingValues = [100, 80, 60, 40, 20];
-    for (const ratingValue of ratingValues) {
-      const count = ratingCounts.get(ratingValue);
-      // Only show ratings that have items (or show all if counts not loaded)
-      if (count === undefined || count > 0) {
-        const stars = ratingToStars(ratingValue);
-        candidateList.push({
-          id: `rating-${ratingValue}`,
-          label: `${"★".repeat(stars)}${"☆".repeat(5 - stars)}`,
-          count: count,
-          canExclude: false,
-        });
-      }
+    // Add rating bucket options with counts (5 stars down to 1 star)
+    for (const bucket of RATING_BUCKETS) {
+      const count = bucketCounts[bucket.id];
+      // Show all buckets, but indicate zero count
+      candidateList.push({
+        id: bucket.id,
+        label: bucket.label,
+        count: countsLoading ? undefined : count,
+        canExclude: false,
+      });
     }
 
+    // Add separator-like "Unrated" option
+    const totalRated = getTotalRatedCount(ratingCounts);
+    candidateList.push({
+      id: "unrated",
+      label: intl.formatMessage({ id: "unrated", defaultMessage: "Unrated" }),
+      count: undefined, // We don't have unrated count from backend
+      canExclude: false,
+    });
+
+    // Add "Custom..." option for advanced filtering
+    candidateList.push({
+      id: "custom",
+      label: `${intl.formatMessage({ id: "custom", defaultMessage: "Custom" })}...`,
+      className: "modifier-object",
+      canExclude: false,
+    });
+
     return candidateList;
-  }, [value, modifier, getModifierLabel, pendingRating, intl, ratingCounts]);
+  }, [value, modifier, customMode, pendingRating, getModifierLabel, intl, bucketCounts, ratingCounts, countsLoading]);
 
   const onSelect = useCallback(
     (v: Option, _exclude: boolean) => {
-      // Handle rating candidate selection (e.g., "rating-100" for 5 stars)
-      if (v.id.startsWith("rating-")) {
-        const ratingValue = parseInt(v.id.replace("rating-", ""), 10);
-        // Set pending rating and wait for modifier selection
-        setPendingRating(ratingValue);
+      // Handle bucket selection - apply filter immediately
+      if (v.id.startsWith("bucket-")) {
+        const bucket = RATING_BUCKETS.find(b => b.id === v.id);
+        if (bucket) {
+          const newCriterion = criterion
+            ? (criterion.clone() as RatingCriterion)
+            : (option.makeCriterion() as RatingCriterion);
+          
+          if (bucket.minValue === bucket.maxValue) {
+            // Single value (5-star) - use EQUALS
+            newCriterion.modifier = CriterionModifier.Equals;
+            newCriterion.value = { value: bucket.minValue, value2: undefined };
+          } else {
+            // Range - use BETWEEN
+            newCriterion.modifier = CriterionModifier.Between;
+            newCriterion.value = { value: bucket.minValue, value2: bucket.maxValue };
+          }
+          
+          setCriterion(newCriterion);
+          setCustomMode(false);
+          setPendingRating(null);
+        }
         return;
       }
 
-      if (v.className === "modifier-object") {
-        // Handle any/none selection
-        if (v.id === "any") {
-          const newCriterion = criterion
-            ? (criterion.clone() as RatingCriterion)
-            : (option.makeCriterion() as RatingCriterion);
-          newCriterion.modifier = CriterionModifier.NotNull;
-          newCriterion.value = { value: undefined, value2: undefined };
-          setCriterion(newCriterion);
-          setPendingRating(null);
-          return;
-        }
-        if (v.id === "none") {
-          const newCriterion = criterion
-            ? (criterion.clone() as RatingCriterion)
-            : (option.makeCriterion() as RatingCriterion);
-          newCriterion.modifier = CriterionModifier.IsNull;
-          newCriterion.value = { value: undefined, value2: undefined };
-          setCriterion(newCriterion);
-          setPendingRating(null);
-          return;
-        }
+      // Handle "Unrated" selection
+      if (v.id === "unrated") {
+        const newCriterion = criterion
+          ? (criterion.clone() as RatingCriterion)
+          : (option.makeCriterion() as RatingCriterion);
+        newCriterion.modifier = CriterionModifier.IsNull;
+        newCriterion.value = { value: undefined, value2: undefined };
+        setCriterion(newCriterion);
+        setCustomMode(false);
+        setPendingRating(null);
+        return;
+      }
 
-        // User selected a modifier after choosing a rating
-        if (pendingRating !== null) {
-          const newCriterion = criterion
-            ? (criterion.clone() as RatingCriterion)
-            : (option.makeCriterion() as RatingCriterion);
-          newCriterion.value = { value: pendingRating, value2: undefined };
+      // Handle "Custom..." selection
+      if (v.id === "custom") {
+        setCustomMode(true);
+        setPendingRating(null);
+        return;
+      }
 
-          let mod = CriterionModifier.Equals;
-          switch (v.id) {
-            case "equals":
-              mod = CriterionModifier.Equals;
-              break;
-            case "not_equals":
-              mod = CriterionModifier.NotEquals;
-              break;
-            case "greater_than":
-              mod = CriterionModifier.GreaterThan;
-              break;
-            case "less_than":
-              mod = CriterionModifier.LessThan;
-              break;
-          }
-          newCriterion.modifier = mod;
-          setCriterion(newCriterion);
-          setPendingRating(null);
+      // Handle cancel in custom mode
+      if (v.id === "cancel-custom") {
+        setCustomMode(false);
+        setPendingRating(null);
+        return;
+      }
+
+      // Handle modifier selection in custom mode
+      if (v.id.startsWith("mod-") && pendingRating !== null) {
+        const newCriterion = criterion
+          ? (criterion.clone() as RatingCriterion)
+          : (option.makeCriterion() as RatingCriterion);
+        newCriterion.value = { value: pendingRating, value2: undefined };
+
+        let mod = CriterionModifier.Equals;
+        switch (v.id) {
+          case "mod-equals":
+            mod = CriterionModifier.Equals;
+            break;
+          case "mod-not_equals":
+            mod = CriterionModifier.NotEquals;
+            break;
+          case "mod-greater_than":
+            mod = CriterionModifier.GreaterThan;
+            break;
+          case "mod-less_than":
+            mod = CriterionModifier.LessThan;
+            break;
         }
+        newCriterion.modifier = mod;
+        setCriterion(newCriterion);
+        setCustomMode(false);
+        setPendingRating(null);
       }
     },
     [criterion, option, setCriterion, pendingRating]
@@ -405,11 +484,10 @@ function useRatingFilterState(props: {
 
   const onUnselect = useCallback(
     (v: Option, _exclude: boolean) => {
-      if (v.className === "modifier-object" || v.id === "rating" || v.id === "pending") {
-        // Clear the filter
-        setCriterion(null);
-        setPendingRating(null);
-      }
+      // Clear the filter
+      setCriterion(null);
+      setCustomMode(false);
+      setPendingRating(null);
     },
     [setCriterion]
   );
@@ -420,7 +498,7 @@ function useRatingFilterState(props: {
         setPendingRating(null);
         return;
       }
-      // Store as pending - wait for modifier selection
+      // In custom mode, store as pending - wait for modifier selection
       setPendingRating(ratingValue);
     },
     []
@@ -434,7 +512,8 @@ function useRatingFilterState(props: {
     onRatingSelect,
     starPrecision,
     pendingRating,
-    hasActiveFilter: value?.value !== undefined || modifier === CriterionModifier.NotNull || modifier === CriterionModifier.IsNull,
+    customMode,
+    hasActiveFilter: value?.value !== undefined || modifier === CriterionModifier.IsNull,
     countsLoading,
   };
 }
@@ -465,11 +544,14 @@ export const SidebarRatingFilter: React.FC<ISidebarFilter> = ({
     countsLoading: facetsLoading,
   });
 
-  // Show rating stars input when nothing is selected and no pending rating
-  const showRatingStars = !state.hasActiveFilter && state.pendingRating === null;
+  // Show rating stars input only in custom mode (after clicking "Custom...")
+  const showRatingStars = state.customMode && state.pendingRating === null;
 
   const ratingStarsInput = showRatingStars ? (
-    <div className="rating-stars-input">
+    <div className="rating-stars-input" style={{ padding: "0.5rem", borderBottom: "1px solid var(--bs-border-color)" }}>
+      <div style={{ marginBottom: "0.25rem", fontSize: "0.85em", opacity: 0.7 }}>
+        <FormattedMessage id="select_rating" defaultMessage="Select a rating:" />
+      </div>
       <RatingStars
         value={null}
         onSetRating={state.onRatingSelect}

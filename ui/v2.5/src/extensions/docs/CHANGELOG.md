@@ -7,15 +7,20 @@ This document tracks what has been added/modified from the upstream Stash codeba
 ## [Unreleased]
 
 ### Added
-- **Rating Facet Display (Phase 7.1)**: Rating filter now shows counts for each star level
-  - 5★, 4★, 3★, 2★, 1★ options with counts from backend
-  - Integrated with FacetCountsContext for live counts
-  - Maintains existing star picker for manual selection
-  - 13 new tests for rating facet functionality
+- **Rating Facet Display (Phase 7.1)**: Improved rating filter UX with bucket-based selection
+  - **Bucket-based options**: 5★, 4★, 3★, 2★, 1★ with aggregated counts
+    - 5★ = exactly 5.0 stars
+    - 4★ = 4.0-4.9 stars (sums all ratings 80-99)
+    - 3★ = 3.0-3.9 stars (sums all ratings 60-79)
+    - etc.
+  - **Unrated option**: Filter for items without ratings
+  - **Custom mode**: For advanced users needing specific modifiers (=, ≠, >, <)
+  - Counts shown match actual filter results (no more misleading counts)
+  - 17 new tests for rating facet functionality
 
 ### Changed
-- `RatingFilter.tsx` - Now consumes facet counts from context
-- Test count: 88 → 101 tests
+- `RatingFilter.tsx` - Complete rewrite with bucket-based UX
+- Test count: 88 → 105 tests
 
 ---
 

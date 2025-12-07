@@ -1269,77 +1269,110 @@ describe("Rating Facet Display", () => {
     });
   });
 
-  describe("Rating candidate generation", () => {
-    it("should generate candidates for all star levels with counts", () => {
+  describe("Rating bucket system", () => {
+    // Rating buckets:
+    // 5★: 100 (exactly 5 stars)
+    // 4★: 80-99 (4.0-4.9 stars)
+    // 3★: 60-79 (3.0-3.9 stars)
+    // 2★: 40-59 (2.0-2.9 stars)
+    // 1★: 20-39 (1.0-1.9 stars)
+
+    // Helper to sum counts within a range
+    const sumBucketCount = (ratingCounts: Map<number, number>, min: number, max: number): number => {
+      let sum = 0;
+      for (let rating = min; rating <= max; rating++) {
+        sum += ratingCounts.get(rating) ?? 0;
+      }
+      return sum;
+    };
+
+    it("should sum counts for 5-star bucket (single value)", () => {
       const ratingCounts = new Map<number, number>([
         [100, 5000],
-        [80, 4000],
-        [60, 3000],
-        [40, 2000],
-        [20, 1000],
       ]);
 
-      // Simulate candidate generation logic
-      const ratingValues = [100, 80, 60, 40, 20];
-      const candidates = ratingValues
-        .filter(v => (ratingCounts.get(v) ?? 0) > 0)
-        .map(v => ({
-          id: `rating-${v}`,
-          stars: v / 20,
-          count: ratingCounts.get(v),
-        }));
-
-      expect(candidates.length).toBe(5);
-      expect(candidates[0]).toEqual({ id: "rating-100", stars: 5, count: 5000 });
-      expect(candidates[4]).toEqual({ id: "rating-20", stars: 1, count: 1000 });
+      const fiveStarCount = sumBucketCount(ratingCounts, 100, 100);
+      expect(fiveStarCount).toBe(5000);
     });
 
-    it("should exclude ratings with zero count", () => {
+    it("should sum counts for 4-star bucket (range 80-99)", () => {
+      const ratingCounts = new Map<number, number>([
+        [80, 2000],  // 4.0 stars
+        [85, 500],   // 4.25 stars (quarter precision)
+        [90, 3000],  // 4.5 stars
+        [95, 800],   // 4.75 stars
+        [99, 100],   // Just under 5 stars
+      ]);
+
+      const fourStarCount = sumBucketCount(ratingCounts, 80, 99);
+      expect(fourStarCount).toBe(2000 + 500 + 3000 + 800 + 100);
+    });
+
+    it("should return 0 for empty bucket", () => {
       const ratingCounts = new Map<number, number>([
         [100, 5000],
-        [80, 0],  // Zero count
-        [60, 3000],
-        [40, 0],  // Zero count
-        [20, 1000],
+        [80, 3000],
       ]);
 
-      const ratingValues = [100, 80, 60, 40, 20];
-      const candidates = ratingValues
-        .filter(v => (ratingCounts.get(v) ?? 0) > 0)
-        .map(v => ({
-          id: `rating-${v}`,
-          count: ratingCounts.get(v),
-        }));
-
-      expect(candidates.length).toBe(3);
-      expect(candidates.map(c => c.id)).toEqual([
-        "rating-100",
-        "rating-60",
-        "rating-20",
-      ]);
+      const threeStarCount = sumBucketCount(ratingCounts, 60, 79);
+      expect(threeStarCount).toBe(0);
     });
 
-    it("should show all ratings when counts not loaded", () => {
-      const ratingCounts = new Map<number, number>(); // Empty - counts not loaded
+    it("should handle half-star precision values", () => {
+      const ratingCounts = new Map<number, number>([
+        [60, 1000],  // 3.0 stars
+        [70, 2000],  // 3.5 stars
+      ]);
 
-      const ratingValues = [100, 80, 60, 40, 20];
-      const candidates = ratingValues
-        .filter(v => {
-          const count = ratingCounts.get(v);
-          // Show if count is undefined (not loaded) or > 0
-          return count === undefined || count > 0;
-        })
-        .map(v => ({
-          id: `rating-${v}`,
-          count: ratingCounts.get(v),
-        }));
+      const threeStarCount = sumBucketCount(ratingCounts, 60, 79);
+      expect(threeStarCount).toBe(3000);
+    });
 
-      expect(candidates.length).toBe(5);
-      expect(candidates.every(c => c.count === undefined)).toBe(true);
+    it("should calculate all bucket counts correctly", () => {
+      const ratingCounts = new Map<number, number>([
+        [100, 1000],  // 5★
+        [90, 2000],   // 4★ (4.5)
+        [80, 1500],   // 4★ (4.0)
+        [70, 3000],   // 3★ (3.5)
+        [60, 2500],   // 3★ (3.0)
+        [50, 1800],   // 2★ (2.5)
+        [40, 1200],   // 2★ (2.0)
+        [30, 800],    // 1★ (1.5)
+        [20, 400],    // 1★ (1.0)
+      ]);
+
+      expect(sumBucketCount(ratingCounts, 100, 100)).toBe(1000);     // 5★
+      expect(sumBucketCount(ratingCounts, 80, 99)).toBe(3500);       // 4★
+      expect(sumBucketCount(ratingCounts, 60, 79)).toBe(5500);       // 3★
+      expect(sumBucketCount(ratingCounts, 40, 59)).toBe(3000);       // 2★
+      expect(sumBucketCount(ratingCounts, 20, 39)).toBe(1200);       // 1★
     });
   });
 
-  describe("Rating selection flow", () => {
+  describe("Rating bucket selection", () => {
+    it("should identify bucket candidates by id prefix", () => {
+      const candidates = [
+        { id: "bucket-5", label: "★★★★★" },
+        { id: "bucket-4", label: "★★★★☆" },
+        { id: "bucket-3", label: "★★★☆☆" },
+        { id: "bucket-2", label: "★★☆☆☆" },
+        { id: "bucket-1", label: "★☆☆☆☆" },
+        { id: "unrated", label: "Unrated" },
+        { id: "custom", label: "Custom..." },
+      ];
+
+      const bucketCandidates = candidates.filter(c => c.id.startsWith("bucket-"));
+      expect(bucketCandidates.length).toBe(5);
+    });
+
+    it("should parse bucket star level from id", () => {
+      const bucketId = "bucket-4";
+      const starLevel = parseInt(bucketId.replace("bucket-", ""), 10);
+      expect(starLevel).toBe(4);
+    });
+  });
+
+  describe("Rating selection flow (legacy)", () => {
     it("should parse rating value from candidate id", () => {
       const candidateId = "rating-80";
       const ratingValue = parseInt(candidateId.replace("rating-", ""), 10);
