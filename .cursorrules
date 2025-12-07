@@ -239,6 +239,48 @@ These modify upstream and must be re-applied after merges:
 - [ ] Query plans verified with `EXPLAIN QUERY PLAN`
 - [ ] Performance benchmarks documented if significant
 
+### Documentation (Required)
+- [ ] `CHANGELOG.md` updated with new features/fixes
+- [ ] `FACETS-SYSTEM.md` updated if facets changed
+- [ ] `FACETS-EXTENSION-PLAN.md` updated (mark phases complete, add new phases)
+- [ ] `README.md` updated if new exports added
+- [ ] Relevant patch files updated if upstream files modified
+
+## Documentation Requirements
+
+**Keep documentation in sync with code changes.** Update these files as needed:
+
+### For New Features
+| Change Type | Update These Docs |
+|-------------|-------------------|
+| New facet added | `FACETS-SYSTEM.md`, `FACETS-EXTENSION-PLAN.md`, `CHANGELOG.md` |
+| New filter component | `FILTER-COMPONENTS.md`, `README.md`, `CHANGELOG.md` |
+| New hook | `README.md`, `CHANGELOG.md` |
+| New list enhancement | `ARCHITECTURE.md`, `CHANGELOG.md` |
+| Performance improvement | `FACETS-BENCHMARK-RESULTS.md`, `FACETS-OPTIMIZATION-PLAN.md` |
+
+### For Bug Fixes
+- Update `CHANGELOG.md` with fix description
+- If fix relates to a documented feature, update that doc
+
+### For Backend Changes
+- Update `/patches/*.md` if modifying upstream files
+- Update `BACKEND-API.md` if GraphQL schema changes
+
+### CHANGELOG.md Format
+```markdown
+## [Unreleased]
+
+### Added
+- New feature description
+
+### Fixed
+- Bug fix description
+
+### Changed
+- Change description
+```
+
 ## Reference Documentation
 
 ### Architecture & Strategy
