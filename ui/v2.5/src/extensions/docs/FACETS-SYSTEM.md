@@ -501,12 +501,12 @@ yarn test --run extensions
 
 | File | Tests | Categories |
 |------|-------|------------|
-| `useFacetCounts.test.ts` | 67 | Data structures, API conversion, stale prevention, cache system, entity builders, rating facets |
+| `useFacetCounts.test.ts` | 71 | Data structures, API conversion, stale prevention, cache system, entity builders, rating facets |
 | `facetCandidateUtils.test.ts` | 18 | Candidate filtering, count merging |
 | `GroupsFilter.test.ts` | 8 | Hierarchical group filtering |
 | `upgrade-verification.test.ts` | 12 | Extension integrity checks |
 
-**Total: 105 tests**
+**Total: 109 tests**
 
 #### Cache System Tests (17 tests)
 
@@ -533,7 +533,7 @@ Tests for the build*FacetCounts helper functions:
 | Tag facets builder | 2 | All facets, non-tag exclusions |
 | All entity caching | 3 | Cache per entity, filter variations, invalidation |
 
-#### Rating Facet Display Tests (Phase 7.1 - 17 tests)
+#### Rating Facet Display Tests (Phase 7.1 - 21 tests)
 
 Tests for the rating facet display functionality:
 
@@ -544,6 +544,7 @@ Tests for the rating facet display functionality:
 | Rating bucket system | 5 | Bucket count summing, range handling, precision |
 | Rating bucket selection | 2 | Bucket ID parsing, candidate identification |
 | Rating selection flow (legacy) | 2 | ID parsing, candidate identification |
+| Unrated count calculation | 4 | Total-based calculation, edge cases |
 
 ---
 

@@ -13,14 +13,16 @@ This document tracks what has been added/modified from the upstream Stash codeba
     - 4★ = 4.0-4.9 stars (sums all ratings 80-99)
     - 3★ = 3.0-3.9 stars (sums all ratings 60-79)
     - etc.
-  - **Unrated option**: Filter for items without ratings
+  - **Unrated option**: Filter for items without ratings, with calculated count
+    - Count calculated as: `totalCount - sum(ratedCounts)`
   - **Custom mode**: For advanced users needing specific modifiers (=, ≠, >, <)
   - Counts shown match actual filter results (no more misleading counts)
-  - 17 new tests for rating facet functionality
+  - 21 new tests for rating facet functionality
 
 ### Changed
-- `RatingFilter.tsx` - Complete rewrite with bucket-based UX
-- Test count: 88 → 105 tests
+- `RatingFilter.tsx` - Complete rewrite with bucket-based UX, added `totalCount` prop
+- All list pages now pass `totalCount` to rating filter
+- Test count: 88 → 109 tests
 
 ---
 
