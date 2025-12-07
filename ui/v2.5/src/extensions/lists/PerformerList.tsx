@@ -462,6 +462,7 @@ const SidebarContent: React.FC<{
                 filter={filter}
                 setFilter={setFilter}
                 sectionID="rating"
+                totalCount={count}
               />
             </FilterWrapper>
             <FilterWrapper filterId="favorite">

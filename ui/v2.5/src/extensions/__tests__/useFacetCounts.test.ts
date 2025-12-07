@@ -1372,6 +1372,67 @@ describe("Rating Facet Display", () => {
     });
   });
 
+  describe("Unrated count calculation", () => {
+    // Helper to get total rated count
+    const getTotalRatedCount = (ratingCounts: Map<number, number>): number => {
+      let total = 0;
+      ratingCounts.forEach((count) => {
+        total += count;
+      });
+      return total;
+    };
+
+    it("should calculate unrated count from total", () => {
+      const ratingCounts = new Map<number, number>([
+        [100, 1000],  // 5★
+        [80, 2000],   // 4★
+        [60, 3000],   // 3★
+        [40, 2000],   // 2★
+        [20, 1000],   // 1★
+      ]);
+      
+      const totalCount = 15000;
+      const totalRated = getTotalRatedCount(ratingCounts);
+      const unratedCount = totalCount - totalRated;
+      
+      expect(totalRated).toBe(9000);
+      expect(unratedCount).toBe(6000);
+    });
+
+    it("should return 0 if all items are rated", () => {
+      const ratingCounts = new Map<number, number>([
+        [100, 5000],
+        [80, 5000],
+      ]);
+      
+      const totalCount = 10000;
+      const totalRated = getTotalRatedCount(ratingCounts);
+      const unratedCount = Math.max(0, totalCount - totalRated);
+      
+      expect(unratedCount).toBe(0);
+    });
+
+    it("should handle empty rating counts (all unrated)", () => {
+      const ratingCounts = new Map<number, number>();
+      
+      const totalCount = 5000;
+      const totalRated = getTotalRatedCount(ratingCounts);
+      const unratedCount = totalCount - totalRated;
+      
+      expect(totalRated).toBe(0);
+      expect(unratedCount).toBe(5000);
+    });
+
+    it("should return undefined when totalCount is not available", () => {
+      const totalCount = undefined;
+      const unratedCount = totalCount !== undefined 
+        ? Math.max(0, totalCount - 1000) 
+        : undefined;
+      
+      expect(unratedCount).toBeUndefined();
+    });
+  });
+
   describe("Rating selection flow (legacy)", () => {
     it("should parse rating value from candidate id", () => {
       const candidateId = "rating-80";

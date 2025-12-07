@@ -176,9 +176,10 @@ function useRatingFilterState(props: {
   setFilter: (f: ListFilterModel) => void;
   ratingCounts: Map<number, number>;
   countsLoading: boolean;
+  totalCount?: number;  // Total items in list (used to calculate unrated count)
 }) {
   const intl = useIntl();
-  const { option, filter, setFilter, ratingCounts, countsLoading } = props;
+  const { option, filter, setFilter, ratingCounts, countsLoading, totalCount } = props;
 
   const { configuration: config } = React.useContext(ConfigurationContext);
   const ratingSystemOptions =
@@ -377,12 +378,17 @@ function useRatingFilterState(props: {
       });
     }
 
-    // Add separator-like "Unrated" option
+    // Add "Unrated" option with calculated count
     const totalRated = getTotalRatedCount(ratingCounts);
+    // Calculate unrated count if we have the total count
+    const unratedCount = totalCount !== undefined && !countsLoading
+      ? Math.max(0, totalCount - totalRated)
+      : undefined;
+    
     candidateList.push({
       id: "unrated",
       label: intl.formatMessage({ id: "unrated", defaultMessage: "Unrated" }),
-      count: undefined, // We don't have unrated count from backend
+      count: unratedCount,
       canExclude: false,
     });
 
@@ -395,7 +401,7 @@ function useRatingFilterState(props: {
     });
 
     return candidateList;
-  }, [value, modifier, customMode, pendingRating, getModifierLabel, intl, bucketCounts, ratingCounts, countsLoading]);
+  }, [value, modifier, customMode, pendingRating, getModifierLabel, intl, bucketCounts, ratingCounts, countsLoading, totalCount]);
 
   const onSelect = useCallback(
     (v: Option, _exclude: boolean) => {
@@ -524,6 +530,8 @@ interface ISidebarFilter {
   filter: ListFilterModel;
   setFilter: (f: ListFilterModel) => void;
   sectionID?: string;
+  /** Total count of items in the list (used to calculate unrated count) */
+  totalCount?: number;
 }
 
 export const SidebarRatingFilter: React.FC<ISidebarFilter> = ({
@@ -532,6 +540,7 @@ export const SidebarRatingFilter: React.FC<ISidebarFilter> = ({
   filter,
   setFilter,
   sectionID,
+  totalCount,
 }) => {
   // Get facet counts from context
   const { counts: facetCounts, loading: facetsLoading } = useContext(FacetCountsContext);
@@ -542,6 +551,7 @@ export const SidebarRatingFilter: React.FC<ISidebarFilter> = ({
     setFilter,
     ratingCounts: facetCounts.ratings,
     countsLoading: facetsLoading,
+    totalCount,
   });
 
   // Show rating stars input only in custom mode (after clicking "Custom...")
