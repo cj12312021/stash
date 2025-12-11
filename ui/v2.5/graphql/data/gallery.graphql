@@ -54,14 +54,10 @@ fragment SelectGalleryData on Gallery {
       thumbnail
     }
   }
-  paths {
-    preview
-  }
   files {
     path
   }
   folder {
     path
   }
-  image_count
 }

@@ -42,10 +42,6 @@ fragment SelectPerformerData on Performer {
   image_path
   birthdate
   death_date
-  scene_count
-  image_count
-  gallery_count
-  group_count
 }
 
 # Minimal fragment for sidebar filter - only essential fields for fast loading

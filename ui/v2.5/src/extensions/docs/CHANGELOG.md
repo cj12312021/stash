@@ -4,7 +4,14 @@ This document tracks what has been added/modified from the upstream Stash codeba
 
 ---
 
-## [Unreleased]
+## Added
+
+### Performance
+- **Select Fragment Optimization**: Removed unused count fields from `Select*Data` GraphQL fragments
+  - Affects: `SelectTagData`, `SelectStudioData`, `SelectPerformerData`, `SelectGroupData`, `SelectGalleryData`
+  - Removed expensive `*_count_all` recursive CTE queries that were never displayed in dropdown selectors
+  - **Impact**: Dropdown selectors now ~10x faster on large databases
+  - See: `/patches/graphql-select-fragments.md` for full details
 
 ### Added
 - **Rating Facet Display (Phase 7.1)**: Improved rating filter UX with bucket-based selection

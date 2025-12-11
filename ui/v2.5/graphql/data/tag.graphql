@@ -44,11 +44,6 @@ fragment SelectTagData on Tag {
   description
   aliases
   image_path
-  scene_count
-  scene_count_all: scene_count(depth: -1)
-  image_count
-  gallery_count
-  performer_count
 
   parents {
     id
