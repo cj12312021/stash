@@ -782,7 +782,12 @@ export const MyFilteredTagList: React.FC<IFilteredTags> = (props) => {
   });
 
   // Fetch facet counts for sidebar filters
-  const { counts: facetCounts, loading: facetLoading } = useTagFacetCounts(filter, {
+  // Apply filterHook to include parent page context (e.g., parent/child tag constraints)
+  const facetFilter = useMemo(
+    () => (filterHook ? filterHook(filter.clone()) : filter),
+    [filter, filterHook]
+  );
+  const { counts: facetCounts, loading: facetLoading } = useTagFacetCounts(facetFilter, {
     isOpen: showSidebar ?? false,
     debounceMs: 300,
   });

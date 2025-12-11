@@ -1021,7 +1021,12 @@ export const MyFilteredPerformerList = (props: IFilteredPerformers) => {
   });
 
   // Fetch facet counts for sidebar filters
-  const { counts: facetCounts, loading: facetLoading } = usePerformerFacetCounts(filter, {
+  // Apply filterHook to include parent page context (e.g., studio constraints)
+  const facetFilter = useMemo(
+    () => (filterHook ? filterHook(filter.clone()) : filter),
+    [filter, filterHook]
+  );
+  const { counts: facetCounts, loading: facetLoading } = usePerformerFacetCounts(facetFilter, {
     isOpen: showSidebar ?? false,
     debounceMs: 300,
   });

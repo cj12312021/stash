@@ -1035,7 +1035,12 @@ export const FilteredSceneList = (props: IFilteredScenes) => {
   // Fetch facet counts for sidebar filters
   // Note: showSidebar can be undefined initially, so we default to false
   // All facets are computed in parallel on the backend - no lazy loading needed
-  const { counts: facetCounts, loading: facetLoading } = useSceneFacetCounts(filter, { 
+  // Apply filterHook to include parent page context (e.g., performer/studio constraints)
+  const facetFilter = useMemo(
+    () => (filterHook ? filterHook(filter.clone()) : filter),
+    [filter, filterHook]
+  );
+  const { counts: facetCounts, loading: facetLoading } = useSceneFacetCounts(facetFilter, { 
     isOpen: showSidebar ?? false,
     debounceMs: 300, // Faster response for filter changes
   });

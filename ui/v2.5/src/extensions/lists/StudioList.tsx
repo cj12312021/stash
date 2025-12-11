@@ -606,7 +606,12 @@ export const MyFilteredStudioList: React.FC<IFilteredStudios> = (props) => {
   });
 
   // Fetch facet counts for sidebar filters
-  const { counts: facetCounts, loading: facetLoading } = useStudioFacetCounts(filter, {
+  // Apply filterHook to include parent page context (e.g., parent studio constraints)
+  const facetFilter = useMemo(
+    () => (filterHook ? filterHook(filter.clone()) : filter),
+    [filter, filterHook]
+  );
+  const { counts: facetCounts, loading: facetLoading } = useStudioFacetCounts(facetFilter, {
     isOpen: showSidebar ?? false,
     debounceMs: 300,
   });

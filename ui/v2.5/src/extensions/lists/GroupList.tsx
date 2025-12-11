@@ -618,7 +618,12 @@ export const MyFilteredGroupList: React.FC<IFilteredGroups> = (props) => {
   });
 
   // Fetch facet counts for sidebar filters
-  const { counts: facetCounts, loading: facetLoading } = useGroupFacetCounts(filter, {
+  // Apply filterHook to include parent page context (e.g., containing group constraints)
+  const facetFilter = useMemo(
+    () => (filterHook ? filterHook(filter.clone()) : filter),
+    [filter, filterHook]
+  );
+  const { counts: facetCounts, loading: facetLoading } = useGroupFacetCounts(facetFilter, {
     isOpen: showSidebar ?? false,
     debounceMs: 300,
   });
