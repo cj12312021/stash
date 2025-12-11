@@ -83,6 +83,7 @@ type StudioReader interface {
 	AliasLoader
 	StashIDLoader
 	TagIDLoader
+	URLLoader
 
 	All(ctx context.Context) ([]*Studio, error)
 	GetImage(ctx context.Context, studioID int) ([]byte, error)

@@ -1,16 +1,14 @@
-import React, {
-  useCallback,
-  useState,
-  useMemo,
-  MouseEvent,
-  useContext,
-} from "react";
+import React, { useCallback, useState, useMemo, MouseEvent } from "react";
 import { FormattedNumber, useIntl } from "react-intl";
 import cloneDeep from "lodash-es/cloneDeep";
 import { useHistory } from "react-router-dom";
 import Mousetrap from "mousetrap";
 import * as GQL from "src/core/generated-graphql";
-import { queryFindImages, useFindImages } from "src/core/StashService";
+import {
+  queryFindImages,
+  useFindImages,
+  useFindImagesMetadata,
+} from "src/core/StashService";
 import { ItemList, ItemListContext, showWhenSelected } from "../List/ItemList";
 import { useLightbox } from "src/hooks/Lightbox/hooks";
 import { ListFilterModel } from "src/models/list-filter/filter";
@@ -23,7 +21,7 @@ import "flexbin/flexbin.css";
 import Gallery, { RenderImageProps } from "react-photo-gallery";
 import { ExportDialog } from "../Shared/ExportDialog";
 import { objectTitle } from "src/core/files";
-import { ConfigurationContext } from "src/hooks/Config";
+import { useConfigurationContext } from "src/hooks/Config";
 import { ImageGridCard } from "./ImageGridCard";
 import { View } from "../List/views";
 import { IItemListOperation } from "../List/FilteredListToolbar";
@@ -51,7 +49,7 @@ const ImageWall: React.FC<IImageWallProps> = ({
   zoomIndex,
   handleImageOpen,
 }) => {
-  const { configuration } = useContext(ConfigurationContext);
+  const { configuration } = useConfigurationContext();
   const uiConfig = configuration?.ui;
 
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -275,9 +273,17 @@ function getCount(result: GQL.FindImagesQueryResult) {
   return result?.data?.findImages?.count ?? 0;
 }
 
-function renderMetadataByline(result: GQL.FindImagesQueryResult) {
-  const megapixels = result?.data?.findImages?.megapixels;
-  const size = result?.data?.findImages?.filesize;
+function renderMetadataByline(
+  result: GQL.FindImagesQueryResult,
+  metadataInfo?: GQL.FindImagesMetadataQueryResult
+) {
+  const megapixels = metadataInfo?.data?.findImages?.megapixels;
+  const size = metadataInfo?.data?.findImages?.filesize;
+
+  if (metadataInfo?.loading) {
+    // return ellipsis
+    return <span className="images-stats">&nbsp;(...)</span>;
+  }
 
   if (!megapixels && !size) {
     return;
@@ -456,6 +462,7 @@ export const ImageList: React.FC<IImageList> = ({
     <ItemListContext
       filterMode={filterMode}
       useResult={useFindImages}
+      useMetadataInfo={useFindImagesMetadata}
       getItems={getItems}
       getCount={getCount}
       alterQuery={alterQuery}
@@ -464,7 +471,6 @@ export const ImageList: React.FC<IImageList> = ({
       selectable
     >
       <ItemList
-        zoomable
         view={view}
         otherOperations={otherOperations}
         addKeybinds={addKeybinds}

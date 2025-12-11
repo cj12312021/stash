@@ -31,7 +31,10 @@ import * as GQL from "./core/generated-graphql";
 import { makeTitleProps } from "./hooks/title";
 import { LoadingIndicator } from "./components/Shared/LoadingIndicator";
 
-import { ConfigurationProvider } from "./hooks/Config";
+import {
+  ConfigurationProvider,
+  useConfigurationContextOptional,
+} from "./hooks/Config";
 import { ManualProvider } from "./components/Help/context";
 import { InteractiveProvider } from "./hooks/Interactive/context";
 import { ReleaseNotesDialog } from "./components/Dialogs/ReleaseNotesDialog";
@@ -53,6 +56,7 @@ import { PatchFunction } from "./patch";
 
 import moment from "moment/min/moment-with-locales";
 import { ErrorMessage } from "./components/Shared/ErrorMessage";
+import cx from "classnames";
 
 const Performers = lazyComponent(
   () => import("./components/Performers/Performers")
@@ -107,8 +111,17 @@ const AppContainer: React.FC<React.PropsWithChildren<{}>> = PatchFunction(
 ) as React.FC;
 
 const MainContainer: React.FC = ({ children }) => {
+  // use optional here because the configuration may have be loading or errored
+  const { configuration } = useConfigurationContextOptional() || {};
+  const { sfwContentMode } = configuration?.interface || {};
+
   return (
-    <div className={`main container-fluid ${appleRendering ? "apple" : ""}`}>
+    <div
+      className={cx("main container-fluid", {
+        apple: appleRendering,
+        "sfw-content-mode": sfwContentMode,
+      })}
+    >
       {children}
     </div>
   );
@@ -303,25 +316,33 @@ export const App: React.FC = () => {
     return null;
   }
 
-  if (config.error) {
+  function renderSimple(content: React.ReactNode) {
     return (
       <IntlProvider
         locale={intlLanguage}
         messages={messages}
         formats={intlFormats}
       >
-        <MainContainer>
-          <ErrorMessage
-            message={
-              <FormattedMessage
-                id="errors.loading_type"
-                values={{ type: "configuration" }}
-              />
-            }
-            error={config.error.message}
-          />
-        </MainContainer>
+        <MainContainer>{content}</MainContainer>
       </IntlProvider>
+    );
+  }
+
+  if (config.loading) {
+    return renderSimple(<LoadingIndicator />);
+  }
+
+  if (config.error) {
+    return renderSimple(
+      <ErrorMessage
+        message={
+          <FormattedMessage
+            id="errors.loading_type"
+            values={{ type: "configuration" }}
+          />
+        }
+        error={config.error.message}
+      />
     );
   }
 
@@ -336,25 +357,22 @@ export const App: React.FC = () => {
           <ExtensionRegistryProvider>
             <PluginsLoader>
               <AppContainer>
-              <ConfigurationProvider
-                configuration={config.data?.configuration}
-                loading={config.loading}
-              >
-                {maybeRenderReleaseNotes()}
-                <ConnectionMonitor />
-                <Suspense fallback={<LoadingIndicator />}>
-                  <LightboxProvider>
-                    <ManualProvider>
-                      <InteractiveProvider>
-                        <Helmet {...titleProps} />
-                        {maybeRenderNavbar()}
-                        <MainContainer>{renderContent()}</MainContainer>
-                      </InteractiveProvider>
-                    </ManualProvider>
-                  </LightboxProvider>
-                </Suspense>
-              </ConfigurationProvider>
-            </AppContainer>
+                <ConfigurationProvider configuration={config.data!.configuration}>
+                  {maybeRenderReleaseNotes()}
+                  <ConnectionMonitor />
+                  <Suspense fallback={<LoadingIndicator />}>
+                    <LightboxProvider>
+                      <ManualProvider>
+                        <InteractiveProvider>
+                          <Helmet {...titleProps} />
+                          {maybeRenderNavbar()}
+                          <MainContainer>{renderContent()}</MainContainer>
+                        </InteractiveProvider>
+                      </ManualProvider>
+                    </LightboxProvider>
+                  </Suspense>
+                </ConfigurationProvider>
+              </AppContainer>
             </PluginsLoader>
           </ExtensionRegistryProvider>
         </ToastProvider>

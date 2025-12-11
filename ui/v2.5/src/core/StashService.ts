@@ -207,6 +207,15 @@ export const useFindImages = (filter?: ListFilterModel) =>
     },
   });
 
+export const useFindImagesMetadata = (filter?: ListFilterModel) =>
+  GQL.useFindImagesMetadataQuery({
+    skip: filter === undefined,
+    variables: {
+      filter: filter?.makeFindFilter(),
+      image_filter: filter?.makeFilter(),
+    },
+  });
+
 export const queryFindImages = (filter: ListFilterModel) =>
   client.query<GQL.FindImagesQuery>({
     query: GQL.FindImagesDocument,
@@ -426,9 +435,29 @@ export const useFindTags = (filter?: ListFilterModel) =>
     },
   });
 
+// Optimized query for tag list page - excludes expensive recursive *_count_all fields
+export const useFindTagsForList = (filter?: ListFilterModel) =>
+  GQL.useFindTagsForListQuery({
+    skip: filter === undefined,
+    variables: {
+      filter: filter?.makeFindFilter(),
+      tag_filter: filter?.makeFilter(),
+    },
+  });
+
 export const queryFindTags = (filter: ListFilterModel) =>
   client.query<GQL.FindTagsQuery>({
     query: GQL.FindTagsDocument,
+    variables: {
+      filter: filter.makeFindFilter(),
+      tag_filter: filter.makeFilter(),
+    },
+  });
+
+// Optimized query for tag list page
+export const queryFindTagsForList = (filter: ListFilterModel) =>
+  client.query<GQL.FindTagsForListQuery>({
+    query: GQL.FindTagsForListDocument,
     variables: {
       filter: filter.makeFindFilter(),
       tag_filter: filter.makeFilter(),
@@ -1492,6 +1521,16 @@ export const useSceneMarkerUpdate = () =>
     },
   });
 
+export const useBulkSceneMarkerUpdate = () =>
+  GQL.useBulkSceneMarkerUpdateMutation({
+    update(cache, result) {
+      if (!result.data?.bulkSceneMarkerUpdate) return;
+
+      evictTypeFields(cache, sceneMarkerMutationImpactedTypeFields);
+      evictQueries(cache, sceneMarkerMutationImpactedQueries);
+    },
+  });
+
 export const useSceneMarkerDestroy = () =>
   GQL.useSceneMarkerDestroyMutation({
     update(cache, result, { variables }) {
@@ -1620,7 +1659,7 @@ export const mutateAddGalleryImages = (input: GQL.GalleryAddInput) =>
   });
 
 function evictCover(cache: ApolloCache<GQL.Gallery>, gallery_id: string) {
-  const fields: Pick<Modifiers<GQL.Gallery>, "paths" | "cover"> = {};
+  const fields: Partial<Pick<Modifiers<GQL.Gallery>, "paths" | "cover">> = {};
   fields.paths = (paths) => {
     if (!("cover" in paths)) {
       return paths;
@@ -1909,6 +1948,16 @@ export const useStudioUpdate = () =>
         cache.identify(obj) // don't evict this studio
       );
 
+      evictQueries(cache, studioMutationImpactedQueries);
+    },
+  });
+
+export const useBulkStudioUpdate = () =>
+  GQL.useBulkStudioUpdateMutation({
+    update(cache, result) {
+      if (!result.data?.bulkStudioUpdate) return;
+
+      evictTypeFields(cache, studioMutationImpactedTypeFields);
       evictQueries(cache, studioMutationImpactedQueries);
     },
   });
@@ -2288,6 +2337,39 @@ export const stashBoxStudioQuery = (
     GQL.ScrapeSingleStudioQueryVariables
   >({
     query: GQL.ScrapeSingleStudioDocument,
+    variables: {
+      source: {
+        stash_box_endpoint: stashBoxEndpoint,
+      },
+      input: {
+        query: query,
+      },
+    },
+    fetchPolicy: "network-only",
+  });
+
+export const stashBoxSceneQuery = (query: string, stashBoxEndpoint: string) =>
+  client.query<GQL.ScrapeSingleSceneQuery, GQL.ScrapeSingleSceneQueryVariables>(
+    {
+      query: GQL.ScrapeSingleSceneDocument,
+      variables: {
+        source: {
+          stash_box_endpoint: stashBoxEndpoint,
+        },
+        input: {
+          query: query,
+        },
+      },
+      fetchPolicy: "network-only",
+    }
+  );
+
+export const stashBoxTagQuery = (
+  query: string | null,
+  stashBoxEndpoint: string
+) =>
+  client.query<GQL.ScrapeSingleTagQuery, GQL.ScrapeSingleTagQueryVariables>({
+    query: GQL.ScrapeSingleTagDocument,
     variables: {
       source: {
         stash_box_endpoint: stashBoxEndpoint,

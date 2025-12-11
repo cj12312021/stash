@@ -53,6 +53,7 @@ export interface IUIConfig {
 
   showChildTagContent?: boolean;
   showChildStudioContent?: boolean;
+  showLinksOnPerformerCard?: boolean;
   showTagCardOnHover?: boolean;
 
   abbreviateCounters?: boolean;
@@ -196,5 +197,6 @@ export function generatePremadeFrontPageContent(intl: IntlShape) {
     recentlyAdded(intl, FilterMode.Groups, "groups"),
     recentlyAdded(intl, FilterMode.Studios, "studios"),
     recentlyAdded(intl, FilterMode.Performers, "performers"),
+    recentlyAdded(intl, FilterMode.SceneMarkers, "markers"),
   ];
 }

@@ -38,6 +38,7 @@ export function maybeRenderShowMoreLess(
 
 interface IDetailItem {
   id?: string | null;
+  className?: string;
   label?: React.ReactNode;
   messageId?: string;
   heading?: React.ReactNode;
@@ -50,6 +51,7 @@ interface IDetailItem {
 
 export const DetailItem: React.FC<IDetailItem> = ({
   id,
+  className = "",
   label,
   messageId,
   heading,
@@ -70,7 +72,7 @@ export const DetailItem: React.FC<IDetailItem> = ({
 
   return (
     <div
-      className={cx(`detail-item ${sanitisedID}`, { "full-width": fullWidth })}
+      className={cx(`detail-item ${sanitisedID} ${className}`, { "full-width": fullWidth })}
     >
       <span className={`detail-item-title ${sanitisedID}`} title={labelTitle}>
         {heading ? (

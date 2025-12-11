@@ -25,6 +25,7 @@ type TagFinder interface {
 	FindByStudioID(ctx context.Context, studioID int) ([]*Tag, error)
 	FindByName(ctx context.Context, name string, nocase bool) (*Tag, error)
 	FindByNames(ctx context.Context, names []string, nocase bool) ([]*Tag, error)
+	FindByStashID(ctx context.Context, stashID StashID) ([]*Tag, error)
 	// FindFavoriteTagIDs returns IDs of all favorited tags
 	FindFavoriteTagIDs(ctx context.Context) ([]int, error)
 }
@@ -95,6 +96,7 @@ type TagReader interface {
 
 	AliasLoader
 	TagRelationLoader
+	StashIDLoader
 
 	All(ctx context.Context) ([]*Tag, error)
 	GetImage(ctx context.Context, tagID int) ([]byte, error)
