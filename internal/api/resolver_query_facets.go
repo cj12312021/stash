@@ -233,6 +233,7 @@ func convertGroupFacets(f *models.GroupFacets) *GroupFacetsResult {
 		Tags:       convertFacetCounts(f.Tags),
 		Performers: convertFacetCounts(f.Performers),
 		Studios:    convertFacetCounts(f.Studios),
+		Ratings:    convertRatingFacetCounts(f.Ratings),
 	}
 }
 
@@ -245,6 +246,7 @@ func convertStudioFacets(f *models.StudioFacets) *StudioFacetsResult {
 		Tags:     convertFacetCounts(f.Tags),
 		Parents:  convertFacetCounts(f.Parents),
 		Favorite: convertBooleanFacetCounts(f.Favorite),
+		Ratings:  convertRatingFacetCounts(f.Ratings),
 	}
 }
 

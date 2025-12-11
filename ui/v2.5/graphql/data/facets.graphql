@@ -137,6 +137,9 @@ query GroupFacets($group_filter: GroupFilterType, $limit: Int) {
     studios {
       ...FacetCountData
     }
+    ratings {
+      ...RatingFacetCountData
+    }
   }
 }
 
@@ -150,6 +153,9 @@ query StudioFacets($studio_filter: StudioFilterType, $limit: Int) {
     }
     favorite {
       ...BooleanFacetCountData
+    }
+    ratings {
+      ...RatingFacetCountData
     }
   }
 }

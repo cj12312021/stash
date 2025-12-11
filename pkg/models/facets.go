@@ -92,6 +92,7 @@ type GroupFacets struct {
 	Tags       []FacetCount
 	Performers []FacetCount
 	Studios    []FacetCount
+	Ratings    []RatingFacetCount
 }
 
 // StudioFacets contains all facet counts for studio filtering
@@ -99,6 +100,7 @@ type StudioFacets struct {
 	Tags     []FacetCount
 	Parents  []FacetCount
 	Favorite []BooleanFacetCount
+	Ratings  []RatingFacetCount
 }
 
 // TagFacets contains all facet counts for tag filtering

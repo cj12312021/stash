@@ -483,7 +483,7 @@ function buildGroupFacetCounts(facets: NonNullable<GQL.GroupFacetsQuery['groupFa
     genders: new Map(),
     countries: new Map(),
     circumcised: new Map(),
-    ratings: new Map(),
+    ratings: toRatingMap(facets.ratings),
     captions: new Map(),
     booleans: {
       organized: { true: 0, false: 0 },
@@ -508,7 +508,7 @@ function buildStudioFacetCounts(facets: NonNullable<GQL.StudioFacetsQuery['studi
     genders: new Map(),
     countries: new Map(),
     circumcised: new Map(),
-    ratings: new Map(),
+    ratings: toRatingMap(facets.ratings),
     captions: new Map(),
     booleans: {
       organized: { true: 0, false: 0 },
