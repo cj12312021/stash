@@ -1124,12 +1124,6 @@ input[type="range"].zoom-slider {
   justify-content: flex-start;
 }
 
-// modify margins for toolbar within sidebar pane to accommodate toggle button
-.sidebar-pane .filtered-list-toolbar {
-  margin-left: 40px;
-  margin-right: 40px;
-}
-
 // on very large screens, offset the margins to center the toolbar
 @media (min-width: 1800px) {
   .sidebar-pane:not(.hide-sidebar) {
