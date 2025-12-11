@@ -48,6 +48,7 @@ func (qb *GroupStore) GetFacets(ctx context.Context, groupFilter *models.GroupFi
 		Tags:       []models.FacetCount{},
 		Performers: []models.FacetCount{},
 		Studios:    []models.FacetCount{},
+		Ratings:    []models.RatingFacetCount{},
 	}
 
 	// Fast path: When no filter is applied, use optimized direct queries
@@ -66,7 +67,7 @@ func (qb *GroupStore) GetFacets(ctx context.Context, groupFilter *models.GroupFi
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	errChan := make(chan error, 3) // 3 parallel goroutines
+	errChan := make(chan error, 4) // 4 parallel goroutines
 
 	// All facets run in parallel - no lazy loading
 	// Wall-clock time = slowest query, not sum of queries
@@ -98,6 +99,15 @@ func (qb *GroupStore) GetFacets(ctx context.Context, groupFilter *models.GroupFi
 		}
 	}()
 
+	// Ratings facet
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := qb.getRatingsFacet(ctx, baseSQL, baseArgs, result, &mu); err != nil {
+			errChan <- fmt.Errorf("ratings facet: %w", err)
+		}
+	}()
+
 	wg.Wait()
 	close(errChan)
 
@@ -115,7 +125,7 @@ func (qb *GroupStore) GetFacets(ctx context.Context, groupFilter *models.GroupFi
 func (qb *GroupStore) getFacetsUnfiltered(ctx context.Context, limit int, result *models.GroupFacets) (*models.GroupFacets, error) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	errChan := make(chan error, 3)
+	errChan := make(chan error, 4)
 
 	// Tags - direct count on groups_tags
 	wg.Add(1)
@@ -218,6 +228,38 @@ func (qb *GroupStore) getFacetsUnfiltered(ctx context.Context, limit int, result
 		}
 		mu.Lock()
 		result.Studios = studios
+		mu.Unlock()
+	}()
+
+	// Ratings - direct count on groups
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		rows, err := dbWrapper.Queryx(ctx, `
+			SELECT rating, COUNT(*) as count
+			FROM groups
+			WHERE rating IS NOT NULL
+			GROUP BY rating
+			ORDER BY rating DESC
+		`)
+		if err != nil {
+			errChan <- fmt.Errorf("unfiltered ratings facet: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		var ratings []models.RatingFacetCount
+		for rows.Next() {
+			var rating int
+			var count int
+			if err := rows.Scan(&rating, &count); err != nil {
+				errChan <- fmt.Errorf("scanning unfiltered rating: %w", err)
+				return
+			}
+			ratings = append(ratings, models.RatingFacetCount{Rating: rating, Count: count})
+		}
+		mu.Lock()
+		result.Ratings = ratings
 		mu.Unlock()
 	}()
 
@@ -342,6 +384,39 @@ func (qb *GroupStore) getStudiosFacet(ctx context.Context, baseSQL string, baseA
 
 	mu.Lock()
 	result.Studios = studios
+	mu.Unlock()
+	return rows.Err()
+}
+
+func (qb *GroupStore) getRatingsFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, result *models.GroupFacets, mu *sync.Mutex) error {
+	sql := fmt.Sprintf(`
+		WITH filtered_groups AS (%s)
+		SELECT g.rating, COUNT(*) as count
+		FROM filtered_groups fg
+		INNER JOIN groups g ON fg.id = g.id
+		WHERE g.rating IS NOT NULL
+		GROUP BY g.rating
+		ORDER BY g.rating DESC
+	`, baseSQL)
+
+	rows, err := dbWrapper.Queryx(ctx, sql, baseArgs...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var ratings []models.RatingFacetCount
+	for rows.Next() {
+		var rating int
+		var count int
+		if err := rows.Scan(&rating, &count); err != nil {
+			return err
+		}
+		ratings = append(ratings, models.RatingFacetCount{Rating: rating, Count: count})
+	}
+
+	mu.Lock()
+	result.Ratings = ratings
 	mu.Unlock()
 	return rows.Err()
 }

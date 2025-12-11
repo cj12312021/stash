@@ -16,6 +16,7 @@ func (qb *StudioStore) GetFacets(ctx context.Context, studioFilter *models.Studi
 		Tags:     []models.FacetCount{},
 		Parents:  []models.FacetCount{},
 		Favorite: []models.BooleanFacetCount{},
+		Ratings:  []models.RatingFacetCount{},
 	}
 
 	query, err := qb.makeQuery(ctx, studioFilter, nil)
@@ -31,7 +32,7 @@ func (qb *StudioStore) GetFacets(ctx context.Context, studioFilter *models.Studi
 		WITH filtered_studios AS (%s)
 		
 		SELECT * FROM (
-			SELECT 'tag' as facet_type, t.id, t.name as label, NULL as enum_value, COUNT(DISTINCT st.studio_id) as count
+			SELECT 'tag' as facet_type, t.id, t.name as label, NULL as enum_value, NULL as rating_value, COUNT(DISTINCT st.studio_id) as count
 			FROM filtered_studios fs
 			INNER JOIN studios_tags st ON fs.id = st.studio_id
 			INNER JOIN tags t ON st.tag_id = t.id
@@ -43,7 +44,7 @@ func (qb *StudioStore) GetFacets(ctx context.Context, studioFilter *models.Studi
 		UNION ALL
 		
 		SELECT * FROM (
-			SELECT 'parent' as facet_type, parent.id, parent.name as label, NULL as enum_value, COUNT(DISTINCT child.id) as count
+			SELECT 'parent' as facet_type, parent.id, parent.name as label, NULL as enum_value, NULL as rating_value, COUNT(DISTINCT child.id) as count
 			FROM filtered_studios fs
 			INNER JOIN studios child ON fs.id = child.id
 			INNER JOIN studios parent ON child.parent_id = parent.id
@@ -58,10 +59,24 @@ func (qb *StudioStore) GetFacets(ctx context.Context, studioFilter *models.Studi
 		SELECT * FROM (
 			SELECT 'favorite' as facet_type, 0 as id, '' as label,
 				CASE WHEN s.favorite = 1 THEN 'true' ELSE 'false' END as enum_value,
+				NULL as rating_value,
 				COUNT(*) as count
 			FROM filtered_studios fs
 			INNER JOIN studios s ON fs.id = s.id
 			GROUP BY s.favorite
+		)
+		
+		UNION ALL
+		
+		SELECT * FROM (
+			SELECT 'rating' as facet_type, 0 as id, '' as label, NULL as enum_value,
+				s.rating as rating_value,
+				COUNT(*) as count
+			FROM filtered_studios fs
+			INNER JOIN studios s ON fs.id = s.id
+			WHERE s.rating IS NOT NULL
+			GROUP BY s.rating
+			ORDER BY s.rating DESC
 		)
 	`, baseSQL)
 
@@ -80,9 +95,10 @@ func (qb *StudioStore) GetFacets(ctx context.Context, studioFilter *models.Studi
 		var id int
 		var label stdsql.NullString
 		var enumValue stdsql.NullString
+		var ratingValue stdsql.NullInt64
 		var count int
 
-		if err := rows.Scan(&facetType, &id, &label, &enumValue, &count); err != nil {
+		if err := rows.Scan(&facetType, &id, &label, &enumValue, &ratingValue, &count); err != nil {
 			return nil, fmt.Errorf("error scanning facet row: %w", err)
 		}
 
@@ -104,6 +120,13 @@ func (qb *StudioStore) GetFacets(ctx context.Context, studioFilter *models.Studi
 				result.Favorite = append(result.Favorite, models.BooleanFacetCount{
 					Value: enumValue.String == "true",
 					Count: count,
+				})
+			}
+		case "rating":
+			if ratingValue.Valid {
+				result.Ratings = append(result.Ratings, models.RatingFacetCount{
+					Rating: int(ratingValue.Int64),
+					Count:  count,
 				})
 			}
 		}

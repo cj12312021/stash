@@ -143,6 +143,8 @@ type GroupFacetsResult {
   performers: [FacetCount!]!
   "Counts per studio (ordered by count descending)"
   studios: [FacetCount!]!
+  "Counts per rating (1-5 stars)"
+  ratings: [RatingFacetCount!]!
 }
 
 """
@@ -155,6 +157,8 @@ type StudioFacetsResult {
   parents: [FacetCount!]!
   "Counts for favorite true/false"
   favorite: [BooleanFacetCount!]!
+  "Counts per rating (1-5 stars)"
+  ratings: [RatingFacetCount!]!
 }
 
 """

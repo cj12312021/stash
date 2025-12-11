@@ -19,10 +19,17 @@ This document tracks what has been added/modified from the upstream Stash codeba
   - Counts shown match actual filter results (no more misleading counts)
   - 21 new tests for rating facet functionality
 
+- **Group & Studio Ratings Facets (Phase 7.2)**: Added ratings facet to Groups and Studios
+  - Groups now return rating counts in facets (parallel execution)
+  - Studios now return rating counts in facets (UNION ALL query)
+  - Frontend hooks updated to process ratings for both entity types
+  - 4 new backend tests for Group/Studio ratings
+
 ### Changed
 - `RatingFilter.tsx` - Complete rewrite with bucket-based UX, added `totalCount` prop
 - All list pages now pass `totalCount` to rating filter
-- Test count: 88 → 109 tests
+- `useFacetCounts.ts` - `buildGroupFacetCounts` and `buildStudioFacetCounts` now include ratings
+- Test count: 88 → 109 tests (frontend)
 
 ---
 

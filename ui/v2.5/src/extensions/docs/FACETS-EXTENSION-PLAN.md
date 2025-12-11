@@ -117,31 +117,50 @@ const ratingCandidates = useMemo(() => {
 
 ---
 
-### Phase 7.2: Add Group & Studio Ratings Facets
+### Phase 7.2: Add Group & Studio Ratings Facets ✅ COMPLETE
 
 **Goal**: Add `ratings` facet to groups and studios (consistent with other entities)
 
-**Backend Changes**:
+**Status**: ✅ Completed - Groups and Studios now have ratings facets
 
-#### 1. Update `graphql/schema/types/facets.graphql`
+**Changes Made**:
+
+#### Backend
+- **`graphql/schema/types/facets.graphql`**: Added `ratings: [RatingFacetCount!]!` to GroupFacetsResult and StudioFacetsResult
+- **`pkg/models/facets.go`**: Added `Ratings []RatingFacetCount` to GroupFacets and StudioFacets structs
+- **`pkg/sqlite/group_facets.go`**: Added `getRatingsFacet` function and parallel execution for ratings
+- **`pkg/sqlite/studio_facets.go`**: Added ratings to UNION ALL query
+- **`internal/api/resolver_query_facets.go`**: Added `Ratings: convertRatingFacetCounts(f.Ratings)` to converters
+
+#### Frontend
+- **`ui/v2.5/graphql/data/facets.graphql`**: Added `ratings { ...RatingFacetCountData }` to GroupFacets and StudioFacets queries
+- **`ui/v2.5/src/extensions/hooks/useFacetCounts.ts`**: Updated `buildGroupFacetCounts` and `buildStudioFacetCounts` to use `toRatingMap(facets.ratings)`
+
+#### Tests
+- **`pkg/sqlite/group_facets_test.go`**: Added `TestGroupFacets_ReturnsRatings` and `TestGroupFacets_RatingsWithFilter`
+- **`pkg/sqlite/studio_facets_test.go`**: Added `TestStudioFacets_ReturnsRatings` and `TestStudioFacets_RatingsWithFilter`
+
+**Implementation Details**:
+
+#### 1. GraphQL Schema Update
 
 ```graphql
 type GroupFacetsResult {
   tags: [FacetCount!]!
   performers: [FacetCount!]!
   studios: [FacetCount!]!
-  ratings: [RatingFacetCount!]!  # ADD
+  ratings: [RatingFacetCount!]!
 }
 
 type StudioFacetsResult {
   tags: [FacetCount!]!
   parents: [FacetCount!]!
   favorite: [BooleanFacetCount!]!
-  ratings: [RatingFacetCount!]!  # ADD
+  ratings: [RatingFacetCount!]!
 }
 ```
 
-#### 2. Update `pkg/models/facets.go`
+#### 2. Go Models Update
 
 ```go
 type GroupFacets struct {
