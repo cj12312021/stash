@@ -19,7 +19,7 @@ import { Button, ButtonToolbar } from "react-bootstrap";
 import { FilterButton } from "src/components/List/Filters/FilterButton";
 import { Icon } from "src/components/Shared/Icon";
 import { Criterion } from "src/models/list-filter/criteria/criterion";
-import { SidebarToggleButton } from "src/components/Shared/Sidebar";
+import { SidebarToggleButton } from "./Sidebar";
 import { PatchComponent } from "src/patch";
 
 export const ToolbarFilterSection: React.FC<{

@@ -22,3 +22,17 @@ export {
   FilteredSidebarHeader,
   useFilteredSidebarKeybinds,
 } from "./FilterSidebar";
+
+// Sidebar - fork-specific sidebar components
+export {
+  Sidebar,
+  SidebarPane,
+  SidebarPaneContent,
+  SidebarSection,
+  SidebarStateContext,
+  SidebarToggleButton,
+  defaultShowSidebar,
+  useSidebarState,
+} from "./Sidebar";
+
+export type { SidebarSectionStates } from "./Sidebar";

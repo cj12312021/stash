@@ -32,7 +32,7 @@ import {
   SidebarPaneContent,
   SidebarStateContext,
   useSidebarState,
-} from "src/components/Shared/Sidebar";
+} from "src/extensions/ui";
 import {
   SidebarStudiosFilter,
   SidebarTagsFilter,
