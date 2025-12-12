@@ -175,7 +175,7 @@ export const SidebarBooleanFilter: React.FC<ISidebarFilter> = ({
 
   const trueOption = useMemo(() => {
     const count = facetBooleanKey
-      ? facetCounts.booleans[facetBooleanKey].true
+      ? facetCounts.booleans[facetBooleanKey]?.true
       : undefined;
     return {
       id: "true",
@@ -187,7 +187,7 @@ export const SidebarBooleanFilter: React.FC<ISidebarFilter> = ({
 
   const falseOption = useMemo(() => {
     const count = facetBooleanKey
-      ? facetCounts.booleans[facetBooleanKey].false
+      ? facetCounts.booleans[facetBooleanKey]?.false
       : undefined;
     return {
       id: "false",

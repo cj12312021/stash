@@ -589,7 +589,7 @@ export const MyFilteredGroupList: React.FC<IFilteredGroups> = (props) => {
       },
     });
 
-  const { filter, setFilter, loading: filterLoading } = filterState;
+  const { filter, setFilter } = filterState;
 
   const { effectiveFilter, result, cachedResult, items, totalCount } =
     queryResult;
@@ -728,7 +728,7 @@ export const MyFilteredGroupList: React.FC<IFilteredGroups> = (props) => {
   ];
 
   // render
-  if (filterLoading || sidebarStateLoading) return null;
+  if (sidebarStateLoading) return null;
 
   const operations = (
     <GroupListOperations

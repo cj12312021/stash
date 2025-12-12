@@ -179,17 +179,19 @@ func convertSceneFacets(f *models.SceneFacets) *SceneFacetsResult {
 	}
 
 	return &SceneFacetsResult{
-		Tags:          convertFacetCounts(f.Tags),
-		Performers:    convertFacetCounts(f.Performers),
-		Studios:       convertFacetCounts(f.Studios),
-		Groups:        convertFacetCounts(f.Groups),
-		PerformerTags: convertFacetCounts(f.PerformerTags),
-		Resolutions:   convertResolutionFacetCounts(f.Resolutions),
-		Orientations:  convertOrientationFacetCounts(f.Orientations),
-		Organized:     convertBooleanFacetCounts(f.Organized),
-		Interactive:   convertBooleanFacetCounts(f.Interactive),
-		Ratings:       convertRatingFacetCounts(f.Ratings),
-		Captions:      convertCaptionFacetCounts(f.Captions),
+		Tags:              convertFacetCounts(f.Tags),
+		Performers:        convertFacetCounts(f.Performers),
+		Studios:           convertFacetCounts(f.Studios),
+		Groups:            convertFacetCounts(f.Groups),
+		PerformerTags:     convertFacetCounts(f.PerformerTags),
+		Resolutions:       convertResolutionFacetCounts(f.Resolutions),
+		Orientations:      convertOrientationFacetCounts(f.Orientations),
+		Organized:         convertBooleanFacetCounts(f.Organized),
+		Interactive:       convertBooleanFacetCounts(f.Interactive),
+		HasMarkers:        convertBooleanFacetCounts(f.HasMarkers),
+		PerformerFavorite: convertBooleanFacetCounts(f.PerformerFavorite),
+		Ratings:           convertRatingFacetCounts(f.Ratings),
+		Captions:          convertCaptionFacetCounts(f.Captions),
 	}
 }
 
@@ -215,12 +217,14 @@ func convertGalleryFacets(f *models.GalleryFacets) *GalleryFacetsResult {
 	}
 
 	return &GalleryFacetsResult{
-		Tags:          convertFacetCounts(f.Tags),
-		Performers:    convertFacetCounts(f.Performers),
-		Studios:       convertFacetCounts(f.Studios),
-		PerformerTags: convertFacetCounts(f.PerformerTags),
-		Organized:     convertBooleanFacetCounts(f.Organized),
-		Ratings:       convertRatingFacetCounts(f.Ratings),
+		Tags:              convertFacetCounts(f.Tags),
+		Performers:        convertFacetCounts(f.Performers),
+		Studios:           convertFacetCounts(f.Studios),
+		PerformerTags:     convertFacetCounts(f.PerformerTags),
+		Organized:         convertBooleanFacetCounts(f.Organized),
+		HasChapters:       convertBooleanFacetCounts(f.HasChapters),
+		PerformerFavorite: convertBooleanFacetCounts(f.PerformerFavorite),
+		Ratings:           convertRatingFacetCounts(f.Ratings),
 	}
 }
 

@@ -18,7 +18,7 @@ import { ExportDialog } from "src/components/Shared/ExportDialog";
 import { SceneCardsGrid } from "src/components/Scenes/SceneCardsGrid";
 import { TaggerContext } from "src/components/Tagger/context";
 import { IdentifyDialog } from "src/components/Dialogs/IdentifyDialog/IdentifyDialog";
-import { ConfigurationContext } from "src/hooks/Config";
+import { useConfigurationContext } from "src/hooks/Config";
 import {
   faFilter,
   faPencil,
@@ -153,7 +153,7 @@ function renderMetadataByline(result: GQL.FindScenesQueryResult) {
 function usePlayScene() {
   const history = useHistory();
 
-  const { configuration: config } = useContext(ConfigurationContext);
+  const { configuration: config } = useConfigurationContext();
   const cont = config?.interface.continuePlaylistDefault ?? false;
   const autoPlay = config?.interface.autostartVideoOnPlaySelected ?? false;
 
@@ -1030,7 +1030,7 @@ export const FilteredSceneList = (props: IFilteredScenes) => {
       },
     });
 
-  const { filter, setFilter, loading: filterLoading } = filterState;
+  const { filter, setFilter } = filterState;
 
   // Fetch facet counts for sidebar filters
   // Note: showSidebar can be undefined initially, so we default to false
@@ -1250,7 +1250,7 @@ export const FilteredSceneList = (props: IFilteredScenes) => {
   ];
 
   // render
-  if (filterLoading || sidebarStateLoading) return null;
+  if (sidebarStateLoading) return null;
 
   const operations = (
     <SceneListOperations

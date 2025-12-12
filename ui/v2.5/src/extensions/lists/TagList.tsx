@@ -753,7 +753,7 @@ export const MyFilteredTagList: React.FC<IFilteredTags> = (props) => {
       },
     });
 
-  const { filter, setFilter, loading: filterLoading } = filterState;
+  const { filter, setFilter } = filterState;
 
   const { effectiveFilter, result, cachedResult, items, totalCount } =
     queryResult;
@@ -939,7 +939,7 @@ export const MyFilteredTagList: React.FC<IFilteredTags> = (props) => {
   ];
 
   // render
-  if (filterLoading || sidebarStateLoading) return null;
+  if (sidebarStateLoading) return null;
 
   const operations = (
     <TagListOperations

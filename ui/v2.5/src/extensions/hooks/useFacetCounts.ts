@@ -180,6 +180,16 @@ function serializeCounts(counts: FacetCounts): SerializedFacetCounts {
 
 /** Deserialize FacetCounts from storage */
 function deserializeCounts(data: SerializedFacetCounts): FacetCounts {
+  // Merge with default booleans to handle old cached data missing new keys
+  const defaultBooleans = {
+    organized: { true: 0, false: 0 },
+    interactive: { true: 0, false: 0 },
+    hasMarkers: { true: 0, false: 0 },
+    performerFavorite: { true: 0, false: 0 },
+    hasChapters: { true: 0, false: 0 },
+    favorite: { true: 0, false: 0 },
+  };
+  
   return {
     tags: new Map(data.tags),
     performers: new Map(data.performers),
@@ -193,7 +203,7 @@ function deserializeCounts(data: SerializedFacetCounts): FacetCounts {
     circumcised: new Map(data.circumcised.map(([k, v]) => [k as GQL.CircumisedEnum, v])),
     ratings: new Map(data.ratings),
     captions: new Map(data.captions),
-    booleans: data.booleans,
+    booleans: { ...defaultBooleans, ...data.booleans },
     parents: new Map(data.parents),
     children: new Map(data.children),
   };

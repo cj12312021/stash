@@ -67,17 +67,19 @@ func isEmptyFilter(filter *models.SceneFilterType) bool {
 // When no filter is applied, uses optimized "fast path" queries that skip the CTE.
 func (qb *SceneStore) GetFacets(ctx context.Context, sceneFilter *models.SceneFilterType, limit int) (*models.SceneFacets, error) {
 	result := &models.SceneFacets{
-		Tags:          []models.FacetCount{},
-		Performers:    []models.FacetCount{},
-		Studios:       []models.FacetCount{},
-		Groups:        []models.FacetCount{},
-		PerformerTags: []models.FacetCount{},
-		Resolutions:   []models.ResolutionFacetCount{},
-		Orientations:  []models.OrientationFacetCount{},
-		Organized:     []models.BooleanFacetCount{},
-		Interactive:   []models.BooleanFacetCount{},
-		Ratings:       []models.RatingFacetCount{},
-		Captions:      []models.CaptionFacetCount{},
+		Tags:              []models.FacetCount{},
+		Performers:        []models.FacetCount{},
+		Studios:           []models.FacetCount{},
+		Groups:            []models.FacetCount{},
+		PerformerTags:     []models.FacetCount{},
+		Resolutions:       []models.ResolutionFacetCount{},
+		Orientations:      []models.OrientationFacetCount{},
+		Organized:         []models.BooleanFacetCount{},
+		Interactive:       []models.BooleanFacetCount{},
+		HasMarkers:        []models.BooleanFacetCount{},
+		PerformerFavorite: []models.BooleanFacetCount{},
+		Ratings:           []models.RatingFacetCount{},
+		Captions:          []models.CaptionFacetCount{},
 	}
 
 	// Fast path: When no filter is applied, use optimized direct queries
@@ -96,7 +98,7 @@ func (qb *SceneStore) GetFacets(ctx context.Context, sceneFilter *models.SceneFi
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	errChan := make(chan error, 8) // 8 parallel goroutines
+	errChan := make(chan error, 10) // 10 parallel goroutines
 
 	// All facets run in parallel - no lazy loading
 	// Wall-clock time = slowest query, not sum of queries
@@ -170,6 +172,24 @@ func (qb *SceneStore) GetFacets(ctx context.Context, sceneFilter *models.SceneFi
 		}
 	}()
 
+	// Has markers facet
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := qb.getHasMarkersFacet(ctx, baseSQL, baseArgs, result, &mu); err != nil {
+			errChan <- fmt.Errorf("has_markers facet: %w", err)
+		}
+	}()
+
+	// Performer favorite facet
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := qb.getPerformerFavoriteFacet(ctx, baseSQL, baseArgs, result, &mu); err != nil {
+			errChan <- fmt.Errorf("performer_favorite facet: %w", err)
+		}
+	}()
+
 	wg.Wait()
 	close(errChan)
 
@@ -191,7 +211,7 @@ func (qb *SceneStore) GetFacets(ctx context.Context, sceneFilter *models.SceneFi
 func (qb *SceneStore) getFacetsUnfiltered(ctx context.Context, limit int, result *models.SceneFacets) (*models.SceneFacets, error) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	errChan := make(chan error, 8)
+	errChan := make(chan error, 10)
 
 	// Tags - direct count on scenes_tags
 	wg.Add(1)
@@ -564,6 +584,75 @@ func (qb *SceneStore) getFacetsUnfiltered(ctx context.Context, limit int, result
 		}
 		mu.Lock()
 		result.Captions = captions
+		mu.Unlock()
+	}()
+
+	// Has Markers - count scenes with/without markers
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		rows, err := dbWrapper.Queryx(ctx, `
+			SELECT 
+				CASE WHEN EXISTS (SELECT 1 FROM scene_markers sm WHERE sm.scene_id = s.id) 
+					THEN 'true' ELSE 'false' END as has_markers,
+				COUNT(*) as count
+			FROM scenes s
+			GROUP BY has_markers
+		`)
+		if err != nil {
+			errChan <- fmt.Errorf("unfiltered has_markers facet: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		var hasMarkers []models.BooleanFacetCount
+		for rows.Next() {
+			var value string
+			var count int
+			if err := rows.Scan(&value, &count); err != nil {
+				errChan <- fmt.Errorf("scanning unfiltered has_markers: %w", err)
+				return
+			}
+			hasMarkers = append(hasMarkers, models.BooleanFacetCount{Value: value == "true", Count: count})
+		}
+		mu.Lock()
+		result.HasMarkers = hasMarkers
+		mu.Unlock()
+	}()
+
+	// Performer Favorite - count scenes with/without favorite performers
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		rows, err := dbWrapper.Queryx(ctx, `
+			SELECT 
+				CASE WHEN EXISTS (
+					SELECT 1 FROM performers_scenes ps 
+					INNER JOIN performers p ON ps.performer_id = p.id
+					WHERE ps.scene_id = s.id AND p.favorite = 1
+				) THEN 'true' ELSE 'false' END as performer_favorite,
+				COUNT(*) as count
+			FROM scenes s
+			GROUP BY performer_favorite
+		`)
+		if err != nil {
+			errChan <- fmt.Errorf("unfiltered performer_favorite facet: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		var performerFavorite []models.BooleanFacetCount
+		for rows.Next() {
+			var value string
+			var count int
+			if err := rows.Scan(&value, &count); err != nil {
+				errChan <- fmt.Errorf("scanning unfiltered performer_favorite: %w", err)
+				return
+			}
+			performerFavorite = append(performerFavorite, models.BooleanFacetCount{Value: value == "true", Count: count})
+		}
+		mu.Lock()
+		result.PerformerFavorite = performerFavorite
 		mu.Unlock()
 	}()
 
@@ -1045,6 +1134,94 @@ func (qb *SceneStore) getCaptionsFacet(ctx context.Context, baseSQL string, base
 
 	mu.Lock()
 	result.Captions = captions
+	mu.Unlock()
+
+	return rows.Err()
+}
+
+// getHasMarkersFacet fetches has_markers boolean facet
+func (qb *SceneStore) getHasMarkersFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, result *models.SceneFacets, mu *sync.Mutex) error {
+	args := append([]interface{}{}, baseArgs...)
+
+	sql := fmt.Sprintf(`
+		WITH filtered_scenes AS (%s)
+		SELECT 
+			CASE WHEN EXISTS (
+				SELECT 1 FROM scene_markers sm WHERE sm.scene_id = fs.id
+			) THEN 'true' ELSE 'false' END as has_markers,
+			COUNT(*) as count
+		FROM filtered_scenes fs
+		GROUP BY has_markers
+	`, baseSQL)
+
+	rows, err := dbWrapper.Queryx(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("error executing has_markers facet query: %w", err)
+	}
+	defer rows.Close()
+
+	var hasMarkers []models.BooleanFacetCount
+	for rows.Next() {
+		var value string
+		var count int
+
+		if err := rows.Scan(&value, &count); err != nil {
+			return fmt.Errorf("error scanning has_markers row: %w", err)
+		}
+
+		hasMarkers = append(hasMarkers, models.BooleanFacetCount{
+			Value: value == "true",
+			Count: count,
+		})
+	}
+
+	mu.Lock()
+	result.HasMarkers = hasMarkers
+	mu.Unlock()
+
+	return rows.Err()
+}
+
+// getPerformerFavoriteFacet fetches performer_favorite boolean facet
+func (qb *SceneStore) getPerformerFavoriteFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, result *models.SceneFacets, mu *sync.Mutex) error {
+	args := append([]interface{}{}, baseArgs...)
+
+	sql := fmt.Sprintf(`
+		WITH filtered_scenes AS (%s)
+		SELECT 
+			CASE WHEN EXISTS (
+				SELECT 1 FROM performers_scenes ps 
+				INNER JOIN performers p ON ps.performer_id = p.id
+				WHERE ps.scene_id = fs.id AND p.favorite = 1
+			) THEN 'true' ELSE 'false' END as performer_favorite,
+			COUNT(*) as count
+		FROM filtered_scenes fs
+		GROUP BY performer_favorite
+	`, baseSQL)
+
+	rows, err := dbWrapper.Queryx(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("error executing performer_favorite facet query: %w", err)
+	}
+	defer rows.Close()
+
+	var performerFavorite []models.BooleanFacetCount
+	for rows.Next() {
+		var value string
+		var count int
+
+		if err := rows.Scan(&value, &count); err != nil {
+			return fmt.Errorf("error scanning performer_favorite row: %w", err)
+		}
+
+		performerFavorite = append(performerFavorite, models.BooleanFacetCount{
+			Value: value == "true",
+			Count: count,
+		})
+	}
+
+	mu.Lock()
+	result.PerformerFavorite = performerFavorite
 	mu.Unlock()
 
 	return rows.Err()

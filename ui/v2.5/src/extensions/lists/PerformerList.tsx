@@ -992,7 +992,7 @@ export const MyFilteredPerformerList = (props: IFilteredPerformers) => {
       },
     });
 
-  const { filter, setFilter, loading: filterLoading } = filterState;
+  const { filter, setFilter } = filterState;
 
   const { effectiveFilter, result, cachedResult, items, totalCount } =
     queryResult;
@@ -1134,7 +1134,7 @@ export const MyFilteredPerformerList = (props: IFilteredPerformers) => {
   ];
 
   // render
-  if (filterLoading || sidebarStateLoading) return null;
+  if (sidebarStateLoading) return null;
 
   const operations = (
     <PerformerListOperations

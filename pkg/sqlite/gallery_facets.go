@@ -52,12 +52,14 @@ func isEmptyGalleryFilter(filter *models.GalleryFilterType) bool {
 // When no filter is applied, uses optimized "fast path" queries that skip the CTE.
 func (qb *GalleryStore) GetFacets(ctx context.Context, galleryFilter *models.GalleryFilterType, limit int) (*models.GalleryFacets, error) {
 	result := &models.GalleryFacets{
-		Tags:          []models.FacetCount{},
-		Performers:    []models.FacetCount{},
-		Studios:       []models.FacetCount{},
-		PerformerTags: []models.FacetCount{},
-		Organized:     []models.BooleanFacetCount{},
-		Ratings:       []models.RatingFacetCount{},
+		Tags:              []models.FacetCount{},
+		Performers:        []models.FacetCount{},
+		Studios:           []models.FacetCount{},
+		PerformerTags:     []models.FacetCount{},
+		Organized:         []models.BooleanFacetCount{},
+		HasChapters:       []models.BooleanFacetCount{},
+		PerformerFavorite: []models.BooleanFacetCount{},
+		Ratings:           []models.RatingFacetCount{},
 	}
 
 	// Fast path: When no filter is applied, use optimized direct queries
@@ -76,7 +78,7 @@ func (qb *GalleryStore) GetFacets(ctx context.Context, galleryFilter *models.Gal
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	errChan := make(chan error, 6) // 6 parallel goroutines
+	errChan := make(chan error, 8) // 8 parallel goroutines
 
 	// All facets run in parallel - no lazy loading
 	// Wall-clock time = slowest query, not sum of queries
@@ -126,6 +128,24 @@ func (qb *GalleryStore) GetFacets(ctx context.Context, galleryFilter *models.Gal
 		}
 	}()
 
+	// Has chapters facet
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := qb.getHasChaptersFacet(ctx, baseSQL, baseArgs, result, &mu); err != nil {
+			errChan <- fmt.Errorf("has_chapters facet: %w", err)
+		}
+	}()
+
+	// Performer favorite facet
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := qb.getPerformerFavoriteFacet(ctx, baseSQL, baseArgs, result, &mu); err != nil {
+			errChan <- fmt.Errorf("performer_favorite facet: %w", err)
+		}
+	}()
+
 	wg.Wait()
 	close(errChan)
 
@@ -147,7 +167,7 @@ func (qb *GalleryStore) GetFacets(ctx context.Context, galleryFilter *models.Gal
 func (qb *GalleryStore) getFacetsUnfiltered(ctx context.Context, limit int, result *models.GalleryFacets) (*models.GalleryFacets, error) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	errChan := make(chan error, 6)
+	errChan := make(chan error, 8)
 
 	// Tags - direct count on galleries_tags
 	wg.Add(1)
@@ -342,6 +362,75 @@ func (qb *GalleryStore) getFacetsUnfiltered(ctx context.Context, limit int, resu
 		mu.Lock()
 		result.Organized = organized
 		result.Ratings = ratings
+		mu.Unlock()
+	}()
+
+	// Has Chapters - count galleries with/without chapters
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		rows, err := dbWrapper.Queryx(ctx, `
+			SELECT 
+				CASE WHEN EXISTS (SELECT 1 FROM galleries_chapters gc WHERE gc.gallery_id = g.id) 
+					THEN 'true' ELSE 'false' END as has_chapters,
+				COUNT(*) as count
+			FROM galleries g
+			GROUP BY has_chapters
+		`)
+		if err != nil {
+			errChan <- fmt.Errorf("unfiltered has_chapters facet: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		var hasChapters []models.BooleanFacetCount
+		for rows.Next() {
+			var value string
+			var count int
+			if err := rows.Scan(&value, &count); err != nil {
+				errChan <- fmt.Errorf("scanning unfiltered has_chapters: %w", err)
+				return
+			}
+			hasChapters = append(hasChapters, models.BooleanFacetCount{Value: value == "true", Count: count})
+		}
+		mu.Lock()
+		result.HasChapters = hasChapters
+		mu.Unlock()
+	}()
+
+	// Performer Favorite - count galleries with/without favorite performers
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		rows, err := dbWrapper.Queryx(ctx, `
+			SELECT 
+				CASE WHEN EXISTS (
+					SELECT 1 FROM performers_galleries pg 
+					INNER JOIN performers p ON pg.performer_id = p.id
+					WHERE pg.gallery_id = g.id AND p.favorite = 1
+				) THEN 'true' ELSE 'false' END as performer_favorite,
+				COUNT(*) as count
+			FROM galleries g
+			GROUP BY performer_favorite
+		`)
+		if err != nil {
+			errChan <- fmt.Errorf("unfiltered performer_favorite facet: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		var performerFavorite []models.BooleanFacetCount
+		for rows.Next() {
+			var value string
+			var count int
+			if err := rows.Scan(&value, &count); err != nil {
+				errChan <- fmt.Errorf("scanning unfiltered performer_favorite: %w", err)
+				return
+			}
+			performerFavorite = append(performerFavorite, models.BooleanFacetCount{Value: value == "true", Count: count})
+		}
+		mu.Lock()
+		result.PerformerFavorite = performerFavorite
 		mu.Unlock()
 	}()
 
@@ -571,4 +660,92 @@ func (qb *GalleryStore) getSimpleFacets(ctx context.Context, baseSQL string, bas
 	result.Ratings = ratings
 	mu.Unlock()
 	return nil
+}
+
+// getHasChaptersFacet fetches has_chapters boolean facet
+func (qb *GalleryStore) getHasChaptersFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, result *models.GalleryFacets, mu *sync.Mutex) error {
+	args := append([]interface{}{}, baseArgs...)
+
+	sql := fmt.Sprintf(`
+		WITH filtered_galleries AS (%s)
+		SELECT 
+			CASE WHEN EXISTS (
+				SELECT 1 FROM galleries_chapters gc WHERE gc.gallery_id = fg.id
+			) THEN 'true' ELSE 'false' END as has_chapters,
+			COUNT(*) as count
+		FROM filtered_galleries fg
+		GROUP BY has_chapters
+	`, baseSQL)
+
+	rows, err := dbWrapper.Queryx(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("error executing has_chapters facet query: %w", err)
+	}
+	defer rows.Close()
+
+	var hasChapters []models.BooleanFacetCount
+	for rows.Next() {
+		var value string
+		var count int
+
+		if err := rows.Scan(&value, &count); err != nil {
+			return fmt.Errorf("error scanning has_chapters row: %w", err)
+		}
+
+		hasChapters = append(hasChapters, models.BooleanFacetCount{
+			Value: value == "true",
+			Count: count,
+		})
+	}
+
+	mu.Lock()
+	result.HasChapters = hasChapters
+	mu.Unlock()
+
+	return rows.Err()
+}
+
+// getPerformerFavoriteFacet fetches performer_favorite boolean facet
+func (qb *GalleryStore) getPerformerFavoriteFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, result *models.GalleryFacets, mu *sync.Mutex) error {
+	args := append([]interface{}{}, baseArgs...)
+
+	sql := fmt.Sprintf(`
+		WITH filtered_galleries AS (%s)
+		SELECT 
+			CASE WHEN EXISTS (
+				SELECT 1 FROM performers_galleries pg 
+				INNER JOIN performers p ON pg.performer_id = p.id
+				WHERE pg.gallery_id = fg.id AND p.favorite = 1
+			) THEN 'true' ELSE 'false' END as performer_favorite,
+			COUNT(*) as count
+		FROM filtered_galleries fg
+		GROUP BY performer_favorite
+	`, baseSQL)
+
+	rows, err := dbWrapper.Queryx(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("error executing performer_favorite facet query: %w", err)
+	}
+	defer rows.Close()
+
+	var performerFavorite []models.BooleanFacetCount
+	for rows.Next() {
+		var value string
+		var count int
+
+		if err := rows.Scan(&value, &count); err != nil {
+			return fmt.Errorf("error scanning performer_favorite row: %w", err)
+		}
+
+		performerFavorite = append(performerFavorite, models.BooleanFacetCount{
+			Value: value == "true",
+			Count: count,
+		})
+	}
+
+	mu.Lock()
+	result.PerformerFavorite = performerFavorite
+	mu.Unlock()
+
+	return rows.Err()
 }

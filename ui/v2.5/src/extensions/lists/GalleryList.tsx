@@ -695,7 +695,7 @@ export const MyFilteredGalleryList = (props: IFilteredGalleries) => {
       },
     });
 
-  const { filter, setFilter, loading: filterLoading } = filterState;
+  const { filter, setFilter } = filterState;
 
   const { effectiveFilter, result, cachedResult, items, totalCount } =
     queryResult;
@@ -834,7 +834,7 @@ export const MyFilteredGalleryList = (props: IFilteredGalleries) => {
   ];
 
   // render
-  if (filterLoading || sidebarStateLoading) return null;
+  if (sidebarStateLoading) return null;
 
   const operations = (
     <GalleryListOperations

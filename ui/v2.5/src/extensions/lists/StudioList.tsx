@@ -577,7 +577,7 @@ export const MyFilteredStudioList: React.FC<IFilteredStudios> = (props) => {
       },
     });
 
-  const { filter, setFilter, loading: filterLoading } = filterState;
+  const { filter, setFilter } = filterState;
 
   const { effectiveFilter, result, cachedResult, items, totalCount } =
     queryResult;
@@ -703,7 +703,7 @@ export const MyFilteredStudioList: React.FC<IFilteredStudios> = (props) => {
   ];
 
   // render
-  if (filterLoading || sidebarStateLoading) return null;
+  if (sidebarStateLoading) return null;
 
   const operations = (
     <StudioListOperations
