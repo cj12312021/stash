@@ -657,11 +657,23 @@ func (qb *FileStore) FindAllByPath(ctx context.Context, p string, caseSensitive 
 	// like uses case-insensitive matching. Only use like if wildcards are used
 	q := qb.selectDataset().Prepared(true)
 
-	if strings.Contains(basename, "%") || strings.Contains(dirName, "%") || !caseSensitive {
-		q = q.Where(
-			folderTable.Col("path").Like(dirName),
-			table.Col("basename").Like(basename),
-		)
+	// Optimize: only use LIKE on columns that actually have wildcards
+	basenameHasWildcard := strings.Contains(basename, "%")
+	dirHasWildcard := strings.Contains(dirName, "%")
+
+	if basenameHasWildcard || dirHasWildcard || !caseSensitive {
+		// Use appropriate comparison for each column based on whether it has wildcards
+		if dirHasWildcard || !caseSensitive {
+			q = q.Where(folderTable.Col("path").Like(dirName))
+		} else {
+			q = q.Where(folderTable.Col("path").Eq(dirName))
+		}
+
+		if basenameHasWildcard || !caseSensitive {
+			q = q.Where(table.Col("basename").Like(basename))
+		} else {
+			q = q.Where(table.Col("basename").Eq(basename))
+		}
 	} else {
 		q = q.Where(
 			folderTable.Col("path").Eq(dirName),
@@ -672,6 +684,129 @@ func (qb *FileStore) FindAllByPath(ctx context.Context, p string, caseSensitive 
 	ret, err := qb.getMany(ctx, q)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("getting file by path %s: %w", p, err)
+	}
+
+	return ret, nil
+}
+
+// captionVideoFileRow is a lightweight row structure for video file caption lookups.
+// It avoids the overhead of fingerprints and other unnecessary fields.
+type captionVideoFileRow struct {
+	FileID           null.Int      `db:"file_id"`
+	Basename         null.String   `db:"basename"`
+	ZipFileID        null.Int      `db:"zip_file_id"`
+	ParentFolderID   null.Int      `db:"parent_folder_id"`
+	Size             null.Int      `db:"size"`
+	ModTime          NullTimestamp `db:"mod_time"`
+	CreatedAt        NullTimestamp `db:"file_created_at"`
+	UpdatedAt        NullTimestamp `db:"file_updated_at"`
+	ParentFolderPath null.String   `db:"parent_folder_path"`
+	// Video file columns
+	Duration         null.Float  `db:"duration"`
+	VideoCodec       null.String `db:"video_codec"`
+	Format           null.String `db:"video_format"`
+	AudioCodec       null.String `db:"audio_codec"`
+	Width            null.Int    `db:"width"`
+	Height           null.Int    `db:"height"`
+	FrameRate        null.Float  `db:"frame_rate"`
+	BitRate          null.Int    `db:"bit_rate"`
+	Interactive      null.Bool   `db:"interactive"`
+	InteractiveSpeed null.Int    `db:"interactive_speed"`
+}
+
+// FindVideoFilesByBasenamePattern finds video files in a specific folder matching a basename pattern.
+// This is an optimized query for caption association that avoids expensive JOINs.
+// The basenamePattern should use SQL LIKE wildcards (%).
+func (qb *FileStore) FindVideoFilesByBasenamePattern(ctx context.Context, folderPath string, basenamePattern string) ([]*models.VideoFile, error) {
+	table := qb.table()
+	folderTable := folderTableMgr.table
+	videoFileTable := videoFileTableMgr.table
+
+	// Build a lightweight query with only necessary JOINs (no fingerprints, no image files, no zip info)
+	cols := []interface{}{
+		table.Col("id").As("file_id"),
+		table.Col("basename"),
+		table.Col("zip_file_id"),
+		table.Col("parent_folder_id"),
+		table.Col("size"),
+		table.Col("mod_time"),
+		table.Col("created_at").As("file_created_at"),
+		table.Col("updated_at").As("file_updated_at"),
+		folderTable.Col("path").As("parent_folder_path"),
+		// Video file columns
+		videoFileTable.Col("duration"),
+		videoFileTable.Col("video_codec"),
+		videoFileTable.Col("format").As("video_format"),
+		videoFileTable.Col("audio_codec"),
+		videoFileTable.Col("width"),
+		videoFileTable.Col("height"),
+		videoFileTable.Col("frame_rate"),
+		videoFileTable.Col("bit_rate"),
+		videoFileTable.Col("interactive"),
+		videoFileTable.Col("interactive_speed"),
+	}
+
+	q := dialect.From(table).Prepared(true).Select(cols...).
+		InnerJoin(
+			folderTable,
+			goqu.On(table.Col("parent_folder_id").Eq(folderTable.Col(idColumn))),
+		).
+		InnerJoin(
+			videoFileTable,
+			goqu.On(table.Col(idColumn).Eq(videoFileTable.Col(fileIDColumn))),
+		).
+		Where(
+			folderTable.Col("path").Eq(folderPath),
+			table.Col("basename").Like(basenamePattern),
+		)
+
+	const single = false
+	var rows []*captionVideoFileRow
+	if err := queryFunc(ctx, q, single, func(r *sqlx.Rows) error {
+		var row captionVideoFileRow
+		if err := r.StructScan(&row); err != nil {
+			return err
+		}
+		rows = append(rows, &row)
+		return nil
+	}); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("finding video files by pattern %s/%s: %w", folderPath, basenamePattern, err)
+	}
+
+	// Convert rows to VideoFile models
+	var ret []*models.VideoFile
+	for _, row := range rows {
+		vf := &models.VideoFile{
+			BaseFile: &models.BaseFile{
+				ID:             models.FileID(row.FileID.Int64),
+				Basename:       row.Basename.String,
+				ParentFolderID: models.FolderID(row.ParentFolderID.Int64),
+				Path:           filepath.Join(row.ParentFolderPath.String, row.Basename.String),
+				Size:           row.Size.Int64,
+				DirEntry: models.DirEntry{
+					ZipFileID: nullIntFileIDPtr(row.ZipFileID),
+					ModTime:   row.ModTime.Timestamp,
+				},
+				CreatedAt: row.CreatedAt.Timestamp,
+				UpdatedAt: row.UpdatedAt.Timestamp,
+			},
+			Duration:   row.Duration.Float64,
+			VideoCodec: row.VideoCodec.String,
+			Format:     row.Format.String,
+			AudioCodec: row.AudioCodec.String,
+			Width:      int(row.Width.Int64),
+			Height:     int(row.Height.Int64),
+			FrameRate:  row.FrameRate.Float64,
+			BitRate:    row.BitRate.Int64,
+		}
+		if row.Interactive.Valid {
+			vf.Interactive = row.Interactive.Bool
+		}
+		if row.InteractiveSpeed.Valid {
+			speed := int(row.InteractiveSpeed.Int64)
+			vf.InteractiveSpeed = &speed
+		}
+		ret = append(ret, vf)
 	}
 
 	return ret, nil

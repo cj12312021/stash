@@ -90,55 +90,57 @@ type CaptionUpdater interface {
 	UpdateCaptions(ctx context.Context, fileID models.FileID, captions []*models.VideoCaption) error
 }
 
-// associates captions to scene/s with the same basename
+// AssociateCaptions associates caption to scene/s with the same basename.
+// This wraps AssociateCaptionInTxn in its own transaction.
 func AssociateCaptions(ctx context.Context, captionPath string, txnMgr txn.Manager, fqb models.FileFinder, w CaptionUpdater) {
-	captionLang := getCaptionsLangFromPath(captionPath)
+	folderPath := filepath.Dir(captionPath)
 
-	captionPrefix := getCaptionPrefix(captionPath)
 	if err := txn.WithTxn(ctx, txnMgr, func(ctx context.Context) error {
-		var err error
-		files, er := fqb.FindAllByPath(ctx, captionPrefix+"*", true)
-
-		if er != nil {
-			return fmt.Errorf("searching for scene %s: %w", captionPrefix, er)
-		}
-
-		for _, f := range files {
-			// found some files
-			// filter out non video files
-			switch f.(type) {
-			case *models.VideoFile:
-				break
-			default:
-				continue
-			}
-
-			fileID := f.Base().ID
-			path := f.Base().Path
-
-			logger.Debugf("Matched captions to file %s", path)
-			captions, er := w.GetCaptions(ctx, fileID)
-			if er == nil {
-				fileExt := filepath.Ext(captionPath)
-				ext := fileExt[1:]
-				if !IsLangInCaptions(captionLang, ext, captions) { // only update captions if language code is not present
-					newCaption := &models.VideoCaption{
-						LanguageCode: captionLang,
-						Filename:     filepath.Base(captionPath),
-						CaptionType:  ext,
-					}
-					captions = append(captions, newCaption)
-					er = w.UpdateCaptions(ctx, fileID, captions)
-					if er == nil {
-						logger.Debugf("Updated captions for file %s. Added %s", path, captionLang)
-					}
-				}
-			}
-		}
-		return err
+		return AssociateCaptionInTxn(ctx, captionPath, folderPath, fqb, w)
 	}); err != nil {
 		logger.Error(err.Error())
 	}
+}
+
+// AssociateCaptionInTxn associates a caption file with video files in the given folder.
+// This should be called within an existing transaction for batch processing.
+func AssociateCaptionInTxn(ctx context.Context, captionPath string, folderPath string, fqb models.FileFinder, w CaptionUpdater) error {
+	captionLang := getCaptionsLangFromPath(captionPath)
+	captionPrefix := getCaptionPrefix(captionPath)
+
+	basenamePrefix := filepath.Base(captionPrefix)
+	basenamePattern := basenamePrefix + "%"
+
+	// Use optimized query that only fetches video files (avoids expensive JOINs)
+	videoFiles, err := fqb.FindVideoFilesByBasenamePattern(ctx, folderPath, basenamePattern)
+	if err != nil {
+		return fmt.Errorf("searching for video files for caption %s: %w", captionPath, err)
+	}
+
+	for _, vf := range videoFiles {
+		fileID := vf.Base().ID
+		path := vf.Base().Path
+
+		logger.Debugf("Matched captions to file %s", path)
+		captions, er := w.GetCaptions(ctx, fileID)
+		if er == nil {
+			fileExt := filepath.Ext(captionPath)
+			ext := fileExt[1:]
+			if !IsLangInCaptions(captionLang, ext, captions) { // only update captions if language code is not present
+				newCaption := &models.VideoCaption{
+					LanguageCode: captionLang,
+					Filename:     filepath.Base(captionPath),
+					CaptionType:  ext,
+				}
+				captions = append(captions, newCaption)
+				er = w.UpdateCaptions(ctx, fileID, captions)
+				if er == nil {
+					logger.Debugf("Updated captions for file %s. Added %s", path, captionLang)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // CleanCaptions removes non existent/accessible language codes from captions

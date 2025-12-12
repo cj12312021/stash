@@ -199,6 +199,29 @@ func (_m *FileReaderWriter) FindByFileInfo(ctx context.Context, info fs.FileInfo
 	return r0, r1
 }
 
+// FindVideoFilesByBasenamePattern provides a mock function with given fields: ctx, folderPath, basenamePattern
+func (_m *FileReaderWriter) FindVideoFilesByBasenamePattern(ctx context.Context, folderPath string, basenamePattern string) ([]*models.VideoFile, error) {
+	ret := _m.Called(ctx, folderPath, basenamePattern)
+
+	var r0 []*models.VideoFile
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []*models.VideoFile); ok {
+		r0 = rf(ctx, folderPath, basenamePattern)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*models.VideoFile)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, folderPath, basenamePattern)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // FindByFingerprint provides a mock function with given fields: ctx, fp
 func (_m *FileReaderWriter) FindByFingerprint(ctx context.Context, fp models.Fingerprint) ([]models.File, error) {
 	ret := _m.Called(ctx, fp)
