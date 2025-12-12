@@ -67,6 +67,14 @@ type CaptionFacetCount {
 }
 
 """
+A count for a string value (ethnicity, hair color, eye color) within the current filter context
+"""
+type StringFacetCount {
+  value: String!
+  count: Int!
+}
+
+"""
 Facet counts for scene filtering.
 Returns counts for various dimensions to enable efficient faceted search.
 """
@@ -89,6 +97,10 @@ type SceneFacetsResult {
   organized: [BooleanFacetCount!]!
   "Counts for interactive true/false"
   interactive: [BooleanFacetCount!]!
+  "Counts for has_markers true/false"
+  has_markers: [BooleanFacetCount!]!
+  "Counts for scenes with at least one favorite performer"
+  performer_favorite: [BooleanFacetCount!]!
   "Counts per rating (1-5 stars)"
   ratings: [RatingFacetCount!]!
   "Counts per caption language"
@@ -103,10 +115,18 @@ type PerformerFacetsResult {
   tags: [FacetCount!]!
   "Counts per studio (ordered by count descending)"
   studios: [FacetCount!]!
+  "Counts per group (via scenes, ordered by count descending)"
+  groups: [FacetCount!]!
   "Counts per gender"
   genders: [GenderFacetCount!]!
   "Counts per country"
   countries: [FacetCount!]!
+  "Counts per ethnicity"
+  ethnicities: [StringFacetCount!]!
+  "Counts per hair color"
+  hair_colors: [StringFacetCount!]!
+  "Counts per eye color"
+  eye_colors: [StringFacetCount!]!
   "Counts per circumcised value"
   circumcised: [CircumcisedFacetCount!]!
   "Counts for favorite true/false"
@@ -129,6 +149,10 @@ type GalleryFacetsResult {
   performer_tags: [FacetCount!]!
   "Counts for organized true/false"
   organized: [BooleanFacetCount!]!
+  "Counts for has_chapters true/false"
+  has_chapters: [BooleanFacetCount!]!
+  "Counts for galleries with at least one favorite performer"
+  performer_favorite: [BooleanFacetCount!]!
   "Counts per rating (1-5 stars)"
   ratings: [RatingFacetCount!]!
 }
@@ -143,6 +167,8 @@ type GroupFacetsResult {
   performers: [FacetCount!]!
   "Counts per studio (ordered by count descending)"
   studios: [FacetCount!]!
+  "Counts per rating (1-5 stars)"
+  ratings: [RatingFacetCount!]!
 }
 
 """
@@ -155,6 +181,8 @@ type StudioFacetsResult {
   parents: [FacetCount!]!
   "Counts for favorite true/false"
   favorite: [BooleanFacetCount!]!
+  "Counts per rating (1-5 stars)"
+  ratings: [RatingFacetCount!]!
 }
 
 """

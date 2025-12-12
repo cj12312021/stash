@@ -75,8 +75,12 @@ func (qb *PerformerStore) GetFacets(ctx context.Context, performerFilter *models
 	result := &models.PerformerFacets{
 		Tags:        []models.FacetCount{},
 		Studios:     []models.FacetCount{},
+		Groups:      []models.FacetCount{},
 		Genders:     []models.GenderFacetCount{},
 		Countries:   []models.FacetCount{},
+		Ethnicities: []models.StringFacetCount{},
+		HairColors:  []models.StringFacetCount{},
+		EyeColors:   []models.StringFacetCount{},
 		Circumcised: []models.CircumcisedFacetCount{},
 		Favorite:    []models.BooleanFacetCount{},
 		Ratings:     []models.RatingFacetCount{},
@@ -98,7 +102,7 @@ func (qb *PerformerStore) GetFacets(ctx context.Context, performerFilter *models
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	errChan := make(chan error, 5) // 5 parallel goroutines
+	errChan := make(chan error, 7) // 7 parallel goroutines
 
 	// All facets run in parallel - no lazy loading
 	// Wall-clock time = slowest query, not sum of queries
@@ -121,6 +125,15 @@ func (qb *PerformerStore) GetFacets(ctx context.Context, performerFilter *models
 		}
 	}()
 
+	// Groups facet (via performers_scenes -> groups_scenes -> groups)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := qb.getGroupsFacet(ctx, baseSQL, baseArgs, limit, result, &mu); err != nil {
+			errChan <- fmt.Errorf("groups facet: %w", err)
+		}
+	}()
+
 	// Countries facet
 	wg.Add(1)
 	go func() {
@@ -136,6 +149,15 @@ func (qb *PerformerStore) GetFacets(ctx context.Context, performerFilter *models
 		defer wg.Done()
 		if err := qb.getSimpleFacets(ctx, baseSQL, baseArgs, result, &mu); err != nil {
 			errChan <- fmt.Errorf("simple facets: %w", err)
+		}
+	}()
+
+	// Attribute facets (ethnicity, hair_color, eye_color)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := qb.getAttributeFacets(ctx, baseSQL, baseArgs, limit, result, &mu); err != nil {
+			errChan <- fmt.Errorf("attribute facets: %w", err)
 		}
 	}()
 
@@ -156,7 +178,7 @@ func (qb *PerformerStore) GetFacets(ctx context.Context, performerFilter *models
 func (qb *PerformerStore) getFacetsUnfiltered(ctx context.Context, limit int, result *models.PerformerFacets) (*models.PerformerFacets, error) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	errChan := make(chan error, 5)
+	errChan := make(chan error, 7)
 
 	// Tags - direct count on performers_tags
 	wg.Add(1)
@@ -225,6 +247,41 @@ func (qb *PerformerStore) getFacetsUnfiltered(ctx context.Context, limit int, re
 		}
 		mu.Lock()
 		result.Studios = studios
+		mu.Unlock()
+	}()
+
+	// Groups - via performers_scenes -> groups_scenes -> groups
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		rows, err := dbWrapper.Queryx(ctx, `
+			SELECT g.id, g.name as label, COUNT(DISTINCT ps.performer_id) as count
+			FROM performers_scenes ps
+			INNER JOIN groups_scenes gs ON ps.scene_id = gs.scene_id
+			INNER JOIN groups g ON gs.group_id = g.id
+			GROUP BY g.id
+			ORDER BY count DESC
+			LIMIT ?
+		`, limit)
+		if err != nil {
+			errChan <- fmt.Errorf("unfiltered groups facet: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		var groups []models.FacetCount
+		for rows.Next() {
+			var id int
+			var label string
+			var count int
+			if err := rows.Scan(&id, &label, &count); err != nil {
+				errChan <- fmt.Errorf("scanning unfiltered group: %w", err)
+				return
+			}
+			groups = append(groups, models.FacetCount{ID: strconv.Itoa(id), Label: label, Count: count})
+		}
+		mu.Lock()
+		result.Groups = groups
 		mu.Unlock()
 	}()
 
@@ -377,6 +434,95 @@ func (qb *PerformerStore) getFacetsUnfiltered(ctx context.Context, limit int, re
 		mu.Unlock()
 	}()
 
+	// Attribute facets (ethnicity, hair_color, eye_color)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		// Ethnicity
+		ethnicityRows, err := dbWrapper.Queryx(ctx, `
+			SELECT ethnicity as value, COUNT(*) as count
+			FROM performers
+			WHERE ethnicity IS NOT NULL AND ethnicity != ''
+			GROUP BY ethnicity
+			ORDER BY count DESC
+			LIMIT ?
+		`, limit)
+		if err != nil {
+			errChan <- fmt.Errorf("unfiltered ethnicity facet: %w", err)
+			return
+		}
+		defer ethnicityRows.Close()
+
+		var ethnicities []models.StringFacetCount
+		for ethnicityRows.Next() {
+			var value string
+			var count int
+			if err := ethnicityRows.Scan(&value, &count); err != nil {
+				errChan <- fmt.Errorf("scanning unfiltered ethnicity: %w", err)
+				return
+			}
+			ethnicities = append(ethnicities, models.StringFacetCount{Value: value, Count: count})
+		}
+
+		// Hair Color
+		hairRows, err := dbWrapper.Queryx(ctx, `
+			SELECT hair_color as value, COUNT(*) as count
+			FROM performers
+			WHERE hair_color IS NOT NULL AND hair_color != ''
+			GROUP BY hair_color
+			ORDER BY count DESC
+			LIMIT ?
+		`, limit)
+		if err != nil {
+			errChan <- fmt.Errorf("unfiltered hair_color facet: %w", err)
+			return
+		}
+		defer hairRows.Close()
+
+		var hairColors []models.StringFacetCount
+		for hairRows.Next() {
+			var value string
+			var count int
+			if err := hairRows.Scan(&value, &count); err != nil {
+				errChan <- fmt.Errorf("scanning unfiltered hair_color: %w", err)
+				return
+			}
+			hairColors = append(hairColors, models.StringFacetCount{Value: value, Count: count})
+		}
+
+		// Eye Color
+		eyeRows, err := dbWrapper.Queryx(ctx, `
+			SELECT eye_color as value, COUNT(*) as count
+			FROM performers
+			WHERE eye_color IS NOT NULL AND eye_color != ''
+			GROUP BY eye_color
+			ORDER BY count DESC
+			LIMIT ?
+		`, limit)
+		if err != nil {
+			errChan <- fmt.Errorf("unfiltered eye_color facet: %w", err)
+			return
+		}
+		defer eyeRows.Close()
+
+		var eyeColors []models.StringFacetCount
+		for eyeRows.Next() {
+			var value string
+			var count int
+			if err := eyeRows.Scan(&value, &count); err != nil {
+				errChan <- fmt.Errorf("scanning unfiltered eye_color: %w", err)
+				return
+			}
+			eyeColors = append(eyeColors, models.StringFacetCount{Value: value, Count: count})
+		}
+
+		mu.Lock()
+		result.Ethnicities = ethnicities
+		result.HairColors = hairColors
+		result.EyeColors = eyeColors
+		mu.Unlock()
+	}()
+
 	wg.Wait()
 	close(errChan)
 
@@ -462,6 +608,43 @@ func (qb *PerformerStore) getStudiosFacet(ctx context.Context, baseSQL string, b
 
 	mu.Lock()
 	result.Studios = studios
+	mu.Unlock()
+	return rows.Err()
+}
+
+func (qb *PerformerStore) getGroupsFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, limit int, result *models.PerformerFacets, mu *sync.Mutex) error {
+	sql := fmt.Sprintf(`
+		WITH filtered_performers AS (%s)
+		SELECT g.id, g.name as label, COUNT(DISTINCT ps.performer_id) as count
+		FROM filtered_performers fp
+		INNER JOIN performers_scenes ps ON fp.id = ps.performer_id
+		INNER JOIN groups_scenes gs ON ps.scene_id = gs.scene_id
+		INNER JOIN groups g ON gs.group_id = g.id
+		GROUP BY g.id
+		ORDER BY count DESC
+		LIMIT ?
+	`, baseSQL)
+
+	args := append(append([]interface{}{}, baseArgs...), limit)
+	rows, err := dbWrapper.Queryx(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var groups []models.FacetCount
+	for rows.Next() {
+		var id int
+		var label string
+		var count int
+		if err := rows.Scan(&id, &label, &count); err != nil {
+			return err
+		}
+		groups = append(groups, models.FacetCount{ID: strconv.Itoa(id), Label: label, Count: count})
+	}
+
+	mu.Lock()
+	result.Groups = groups
 	mu.Unlock()
 	return rows.Err()
 }
@@ -630,6 +813,106 @@ func (qb *PerformerStore) getSimpleFacets(ctx context.Context, baseSQL string, b
 	result.Favorite = favorite
 	result.Circumcised = circumcised
 	result.Ratings = ratings
+	mu.Unlock()
+	return nil
+}
+
+func (qb *PerformerStore) getAttributeFacets(ctx context.Context, baseSQL string, baseArgs []interface{}, limit int, result *models.PerformerFacets, mu *sync.Mutex) error {
+	// Ethnicity facet
+	ethnicitySQL := fmt.Sprintf(`
+		WITH filtered_performers AS (%s)
+		SELECT p.ethnicity as value, COUNT(*) as count
+		FROM filtered_performers fp
+		INNER JOIN performers p ON fp.id = p.id
+		WHERE p.ethnicity IS NOT NULL AND p.ethnicity != ''
+		GROUP BY p.ethnicity
+		ORDER BY count DESC
+		LIMIT ?
+	`, baseSQL)
+
+	args := append(append([]interface{}{}, baseArgs...), limit)
+	ethnicityRows, err := dbWrapper.Queryx(ctx, ethnicitySQL, args...)
+	if err != nil {
+		return fmt.Errorf("ethnicity facet: %w", err)
+	}
+	defer ethnicityRows.Close()
+
+	var ethnicities []models.StringFacetCount
+	for ethnicityRows.Next() {
+		var value stdsql.NullString
+		var count int
+		if err := ethnicityRows.Scan(&value, &count); err != nil {
+			return fmt.Errorf("scanning ethnicity: %w", err)
+		}
+		if value.Valid {
+			ethnicities = append(ethnicities, models.StringFacetCount{Value: value.String, Count: count})
+		}
+	}
+
+	// Hair color facet
+	hairSQL := fmt.Sprintf(`
+		WITH filtered_performers AS (%s)
+		SELECT p.hair_color as value, COUNT(*) as count
+		FROM filtered_performers fp
+		INNER JOIN performers p ON fp.id = p.id
+		WHERE p.hair_color IS NOT NULL AND p.hair_color != ''
+		GROUP BY p.hair_color
+		ORDER BY count DESC
+		LIMIT ?
+	`, baseSQL)
+
+	hairRows, err := dbWrapper.Queryx(ctx, hairSQL, args...)
+	if err != nil {
+		return fmt.Errorf("hair_color facet: %w", err)
+	}
+	defer hairRows.Close()
+
+	var hairColors []models.StringFacetCount
+	for hairRows.Next() {
+		var value stdsql.NullString
+		var count int
+		if err := hairRows.Scan(&value, &count); err != nil {
+			return fmt.Errorf("scanning hair_color: %w", err)
+		}
+		if value.Valid {
+			hairColors = append(hairColors, models.StringFacetCount{Value: value.String, Count: count})
+		}
+	}
+
+	// Eye color facet
+	eyeSQL := fmt.Sprintf(`
+		WITH filtered_performers AS (%s)
+		SELECT p.eye_color as value, COUNT(*) as count
+		FROM filtered_performers fp
+		INNER JOIN performers p ON fp.id = p.id
+		WHERE p.eye_color IS NOT NULL AND p.eye_color != ''
+		GROUP BY p.eye_color
+		ORDER BY count DESC
+		LIMIT ?
+	`, baseSQL)
+
+	eyeRows, err := dbWrapper.Queryx(ctx, eyeSQL, args...)
+	if err != nil {
+		return fmt.Errorf("eye_color facet: %w", err)
+	}
+	defer eyeRows.Close()
+
+	var eyeColors []models.StringFacetCount
+	for eyeRows.Next() {
+		var value stdsql.NullString
+		var count int
+		if err := eyeRows.Scan(&value, &count); err != nil {
+			return fmt.Errorf("scanning eye_color: %w", err)
+		}
+		if value.Valid {
+			eyeColors = append(eyeColors, models.StringFacetCount{Value: value.String, Count: count})
+		}
+	}
+
+	mu.Lock()
+	result.Ethnicities = ethnicities
+	result.HairColors = hairColors
+	result.EyeColors = eyeColors
 	mu.Unlock()
 	return nil
 }

@@ -49,28 +49,40 @@ type CaptionFacetCount struct {
 	Count    int
 }
 
+// StringFacetCount represents a count for a string value (ethnicity, hair color, etc.)
+type StringFacetCount struct {
+	Value string
+	Count int
+}
+
 // SceneFacets contains all facet counts for scene filtering
 // All facets are always computed (no lazy loading) - they run in parallel goroutines
 type SceneFacets struct {
-	Tags          []FacetCount
-	Performers    []FacetCount
-	Studios       []FacetCount
-	Groups        []FacetCount
-	PerformerTags []FacetCount
-	Resolutions   []ResolutionFacetCount
-	Orientations  []OrientationFacetCount
-	Organized     []BooleanFacetCount
-	Interactive   []BooleanFacetCount
-	Ratings       []RatingFacetCount
-	Captions      []CaptionFacetCount
+	Tags            []FacetCount
+	Performers      []FacetCount
+	Studios         []FacetCount
+	Groups          []FacetCount
+	PerformerTags   []FacetCount
+	Resolutions     []ResolutionFacetCount
+	Orientations    []OrientationFacetCount
+	Organized       []BooleanFacetCount
+	Interactive     []BooleanFacetCount
+	HasMarkers      []BooleanFacetCount
+	PerformerFavorite []BooleanFacetCount
+	Ratings         []RatingFacetCount
+	Captions        []CaptionFacetCount
 }
 
 // PerformerFacets contains all facet counts for performer filtering
 type PerformerFacets struct {
 	Tags        []FacetCount
 	Studios     []FacetCount
+	Groups      []FacetCount
 	Genders     []GenderFacetCount
 	Countries   []FacetCount
+	Ethnicities []StringFacetCount
+	HairColors  []StringFacetCount
+	EyeColors   []StringFacetCount
 	Circumcised []CircumcisedFacetCount
 	Favorite    []BooleanFacetCount
 	Ratings     []RatingFacetCount
@@ -79,12 +91,14 @@ type PerformerFacets struct {
 // GalleryFacets contains all facet counts for gallery filtering
 // All facets are always computed (no lazy loading) - they run in parallel goroutines
 type GalleryFacets struct {
-	Tags          []FacetCount
-	Performers    []FacetCount
-	Studios       []FacetCount
-	PerformerTags []FacetCount
-	Organized     []BooleanFacetCount
-	Ratings       []RatingFacetCount
+	Tags              []FacetCount
+	Performers        []FacetCount
+	Studios           []FacetCount
+	PerformerTags     []FacetCount
+	Organized         []BooleanFacetCount
+	HasChapters       []BooleanFacetCount
+	PerformerFavorite []BooleanFacetCount
+	Ratings           []RatingFacetCount
 }
 
 // GroupFacets contains all facet counts for group filtering
@@ -92,6 +106,7 @@ type GroupFacets struct {
 	Tags       []FacetCount
 	Performers []FacetCount
 	Studios    []FacetCount
+	Ratings    []RatingFacetCount
 }
 
 // StudioFacets contains all facet counts for studio filtering
@@ -99,6 +114,7 @@ type StudioFacets struct {
 	Tags     []FacetCount
 	Parents  []FacetCount
 	Favorite []BooleanFacetCount
+	Ratings  []RatingFacetCount
 }
 
 // TagFacets contains all facet counts for tag filtering

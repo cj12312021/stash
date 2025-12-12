@@ -53,6 +53,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import * as GQL from "src/core/generated-graphql";
 import { LabeledFacetCount, FacetCounts } from "src/extensions/hooks/useFacetCounts";
 
 describe("LabeledFacetCount interface", () => {
@@ -91,12 +92,18 @@ describe("FacetCounts interface", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map<string, LabeledFacetCount>(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map(),
       captions: new Map(),
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map<string, LabeledFacetCount>(),
@@ -131,12 +138,18 @@ describe("FacetCounts interface", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map(),
       captions: new Map(),
       booleans: {
         organized: { true: 10, false: 90 },
         interactive: { true: 5, false: 95 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 20, false: 80 },
       },
       parents: new Map(),
@@ -482,12 +495,18 @@ describe("State update patterns", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map([[100, 20]]),
       captions: new Map(),
       booleans: {
         organized: { true: 10, false: 90 },
         interactive: { true: 5, false: 95 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -534,12 +553,18 @@ describe("State update patterns", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map(),
       captions: new Map(), // Empty before update
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -590,12 +615,18 @@ describe("State update patterns", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map(),
       captions: new Map(),
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -625,12 +656,18 @@ describe("State update patterns", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map(),
       captions: new Map(), // Empty
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -768,12 +805,18 @@ describe("Cache serialization", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map([[100, 10], [80, 20]]),
       captions: new Map([["en", 500]]),
       booleans: {
         organized: { true: 100, false: 900 },
         interactive: { true: 10, false: 990 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -975,12 +1018,18 @@ describe("Entity-specific FacetCounts builders", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map(),
       captions: new Map(),
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -1010,7 +1059,7 @@ describe("Entity-specific FacetCounts builders", () => {
       counts.performers = new Map([["2", { count: 20, label: "Performer" }]]);
       counts.studios = new Map([["3", { count: 30, label: "Studio" }]]);
       counts.booleans.organized = { true: 5, false: 10 };
-      counts.ratings = new Map([["100", { count: 3, label: "100" }]]);
+      counts.ratings = new Map([[100, 3]]);
       
       expect(counts.tags.size).toBe(1);
       expect(counts.performers.size).toBe(1);
@@ -1037,11 +1086,11 @@ describe("Entity-specific FacetCounts builders", () => {
       
       counts.tags = new Map([["1", { count: 10, label: "Tag" }]]);
       counts.studios = new Map([["2", { count: 20, label: "Studio" }]]);
-      counts.genders = new Map([["FEMALE", { count: 30, label: "Female" }]]);
+      counts.genders = new Map([[GQL.GenderEnum.Female, 30]]);
       counts.countries = new Map([["US", { count: 40, label: "US" }]]);
-      counts.circumcised = new Map([["CUT", { count: 5, label: "Cut" }]]);
+      counts.circumcised = new Map([[GQL.CircumisedEnum.Cut, 5]]);
       counts.booleans.favorite = { true: 15, false: 85 };
-      counts.ratings = new Map([["80", { count: 10, label: "80" }]]);
+      counts.ratings = new Map([[80, 10]]);
       
       expect(counts.tags.size).toBe(1);
       expect(counts.studios.size).toBe(1);
@@ -1057,10 +1106,46 @@ describe("Entity-specific FacetCounts builders", () => {
       
       // These should remain empty for performer facets
       expect(counts.performers.size).toBe(0);  // Performers don't have performer facets
-      expect(counts.groups.size).toBe(0);
       expect(counts.performerTags.size).toBe(0);
       expect(counts.resolutions.size).toBe(0);
       expect(counts.booleans.organized).toEqual({ true: 0, false: 0 });
+    });
+
+    it("should populate groups facet (Phase 7.3)", () => {
+      const counts = createEmptyFacetCounts();
+      
+      counts.groups = new Map([
+        ["1", { count: 25, label: "Group A" }],
+        ["2", { count: 15, label: "Group B" }],
+      ]);
+      
+      expect(counts.groups.size).toBe(2);
+      expect(counts.groups.get("1")?.count).toBe(25);
+      expect(counts.groups.get("1")?.label).toBe("Group A");
+    });
+
+    it("should populate ethnicity, hair color, eye color facets (Phase 7.5)", () => {
+      const counts = createEmptyFacetCounts();
+      
+      counts.ethnicities = new Map([
+        ["Caucasian", 100],
+        ["Asian", 50],
+      ]);
+      counts.hairColors = new Map([
+        ["Blonde", 80],
+        ["Brunette", 120],
+      ]);
+      counts.eyeColors = new Map([
+        ["Blue", 60],
+        ["Brown", 90],
+      ]);
+      
+      expect(counts.ethnicities.size).toBe(2);
+      expect(counts.ethnicities.get("Caucasian")).toBe(100);
+      expect(counts.hairColors.size).toBe(2);
+      expect(counts.hairColors.get("Blonde")).toBe(80);
+      expect(counts.eyeColors.size).toBe(2);
+      expect(counts.eyeColors.get("Blue")).toBe(60);
     });
   });
 

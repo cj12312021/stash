@@ -179,17 +179,19 @@ func convertSceneFacets(f *models.SceneFacets) *SceneFacetsResult {
 	}
 
 	return &SceneFacetsResult{
-		Tags:          convertFacetCounts(f.Tags),
-		Performers:    convertFacetCounts(f.Performers),
-		Studios:       convertFacetCounts(f.Studios),
-		Groups:        convertFacetCounts(f.Groups),
-		PerformerTags: convertFacetCounts(f.PerformerTags),
-		Resolutions:   convertResolutionFacetCounts(f.Resolutions),
-		Orientations:  convertOrientationFacetCounts(f.Orientations),
-		Organized:     convertBooleanFacetCounts(f.Organized),
-		Interactive:   convertBooleanFacetCounts(f.Interactive),
-		Ratings:       convertRatingFacetCounts(f.Ratings),
-		Captions:      convertCaptionFacetCounts(f.Captions),
+		Tags:              convertFacetCounts(f.Tags),
+		Performers:        convertFacetCounts(f.Performers),
+		Studios:           convertFacetCounts(f.Studios),
+		Groups:            convertFacetCounts(f.Groups),
+		PerformerTags:     convertFacetCounts(f.PerformerTags),
+		Resolutions:       convertResolutionFacetCounts(f.Resolutions),
+		Orientations:      convertOrientationFacetCounts(f.Orientations),
+		Organized:         convertBooleanFacetCounts(f.Organized),
+		Interactive:       convertBooleanFacetCounts(f.Interactive),
+		HasMarkers:        convertBooleanFacetCounts(f.HasMarkers),
+		PerformerFavorite: convertBooleanFacetCounts(f.PerformerFavorite),
+		Ratings:           convertRatingFacetCounts(f.Ratings),
+		Captions:          convertCaptionFacetCounts(f.Captions),
 	}
 }
 
@@ -201,8 +203,12 @@ func convertPerformerFacets(f *models.PerformerFacets) *PerformerFacetsResult {
 	return &PerformerFacetsResult{
 		Tags:        convertFacetCounts(f.Tags),
 		Studios:     convertFacetCounts(f.Studios),
+		Groups:      convertFacetCounts(f.Groups),
 		Genders:     convertGenderFacetCounts(f.Genders),
 		Countries:   convertFacetCounts(f.Countries),
+		Ethnicities: convertStringFacetCounts(f.Ethnicities),
+		HairColors:  convertStringFacetCounts(f.HairColors),
+		EyeColors:   convertStringFacetCounts(f.EyeColors),
 		Circumcised: convertCircumcisedFacetCounts(f.Circumcised),
 		Favorite:    convertBooleanFacetCounts(f.Favorite),
 		Ratings:     convertRatingFacetCounts(f.Ratings),
@@ -215,12 +221,14 @@ func convertGalleryFacets(f *models.GalleryFacets) *GalleryFacetsResult {
 	}
 
 	return &GalleryFacetsResult{
-		Tags:          convertFacetCounts(f.Tags),
-		Performers:    convertFacetCounts(f.Performers),
-		Studios:       convertFacetCounts(f.Studios),
-		PerformerTags: convertFacetCounts(f.PerformerTags),
-		Organized:     convertBooleanFacetCounts(f.Organized),
-		Ratings:       convertRatingFacetCounts(f.Ratings),
+		Tags:              convertFacetCounts(f.Tags),
+		Performers:        convertFacetCounts(f.Performers),
+		Studios:           convertFacetCounts(f.Studios),
+		PerformerTags:     convertFacetCounts(f.PerformerTags),
+		Organized:         convertBooleanFacetCounts(f.Organized),
+		HasChapters:       convertBooleanFacetCounts(f.HasChapters),
+		PerformerFavorite: convertBooleanFacetCounts(f.PerformerFavorite),
+		Ratings:           convertRatingFacetCounts(f.Ratings),
 	}
 }
 
@@ -233,6 +241,7 @@ func convertGroupFacets(f *models.GroupFacets) *GroupFacetsResult {
 		Tags:       convertFacetCounts(f.Tags),
 		Performers: convertFacetCounts(f.Performers),
 		Studios:    convertFacetCounts(f.Studios),
+		Ratings:    convertRatingFacetCounts(f.Ratings),
 	}
 }
 
@@ -245,6 +254,7 @@ func convertStudioFacets(f *models.StudioFacets) *StudioFacetsResult {
 		Tags:     convertFacetCounts(f.Tags),
 		Parents:  convertFacetCounts(f.Parents),
 		Favorite: convertBooleanFacetCounts(f.Favorite),
+		Ratings:  convertRatingFacetCounts(f.Ratings),
 	}
 }
 
@@ -331,6 +341,17 @@ func convertCircumcisedFacetCounts(counts []models.CircumcisedFacetCount) []*Cir
 	result := make([]*CircumcisedFacetCount, len(counts))
 	for i, c := range counts {
 		result[i] = &CircumcisedFacetCount{
+			Value: c.Value,
+			Count: c.Count,
+		}
+	}
+	return result
+}
+
+func convertStringFacetCounts(counts []models.StringFacetCount) []*StringFacetCount {
+	result := make([]*StringFacetCount, len(counts))
+	for i, c := range counts {
+		result[i] = &StringFacetCount{
 			Value: c.Value,
 			Count: c.Count,
 		}

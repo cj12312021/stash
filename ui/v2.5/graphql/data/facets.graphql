@@ -39,6 +39,11 @@ fragment CaptionFacetCountData on CaptionFacetCount {
   count
 }
 
+fragment StringFacetCountData on StringFacetCount {
+  value
+  count
+}
+
 query SceneFacets($scene_filter: SceneFilterType, $limit: Int) {
   sceneFacets(scene_filter: $scene_filter, limit: $limit) {
     tags {
@@ -68,6 +73,12 @@ query SceneFacets($scene_filter: SceneFilterType, $limit: Int) {
     interactive {
       ...BooleanFacetCountData
     }
+    has_markers {
+      ...BooleanFacetCountData
+    }
+    performer_favorite {
+      ...BooleanFacetCountData
+    }
     ratings {
       ...RatingFacetCountData
     }
@@ -85,11 +96,23 @@ query PerformerFacets($performer_filter: PerformerFilterType, $limit: Int) {
     studios {
       ...FacetCountData
     }
+    groups {
+      ...FacetCountData
+    }
     genders {
       ...GenderFacetCountData
     }
     countries {
       ...FacetCountData
+    }
+    ethnicities {
+      ...StringFacetCountData
+    }
+    hair_colors {
+      ...StringFacetCountData
+    }
+    eye_colors {
+      ...StringFacetCountData
     }
     circumcised {
       ...CircumcisedFacetCountData
@@ -120,6 +143,12 @@ query GalleryFacets($gallery_filter: GalleryFilterType, $limit: Int) {
     organized {
       ...BooleanFacetCountData
     }
+    has_chapters {
+      ...BooleanFacetCountData
+    }
+    performer_favorite {
+      ...BooleanFacetCountData
+    }
     ratings {
       ...RatingFacetCountData
     }
@@ -137,6 +166,9 @@ query GroupFacets($group_filter: GroupFilterType, $limit: Int) {
     studios {
       ...FacetCountData
     }
+    ratings {
+      ...RatingFacetCountData
+    }
   }
 }
 
@@ -150,6 +182,9 @@ query StudioFacets($studio_filter: StudioFilterType, $limit: Int) {
     }
     favorite {
       ...BooleanFacetCountData
+    }
+    ratings {
+      ...RatingFacetCountData
     }
   }
 }

@@ -206,6 +206,149 @@ func TestPerformerFacets_ReturnsCountries(t *testing.T) {
 	})
 }
 
+func TestPerformerFacets_ReturnsGroups(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		pqb := db.Performer
+
+		facets, err := pqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// Groups are derived from performer appearances in scenes that belong to groups,
+		// so may or may not have entries depending on test data
+		for _, g := range facets.Groups {
+			assert.Greater(t, g.Count, 0, "Group count should be positive")
+			assert.NotEmpty(t, g.ID, "Group ID should not be empty")
+			assert.NotEmpty(t, g.Label, "Group label should not be empty")
+		}
+
+		return nil
+	})
+}
+
+func TestPerformerFacets_GroupsWithFilter(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		pqb := db.Performer
+
+		// Filter to performers with a specific tag
+		tagFilter := &models.PerformerFilterType{
+			Tags: &models.HierarchicalMultiCriterionInput{
+				Value:    []string{strconv.Itoa(tagIDs[tagIdxWithPerformer])},
+				Modifier: models.CriterionModifierIncludes,
+			},
+		}
+
+		facets, err := pqb.GetFacets(ctx, tagFilter, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// Groups should still be populated (even if empty)
+		assert.NotNil(t, facets.Groups, "Groups should not be nil with filter")
+
+		// All returned groups should have positive counts
+		for _, g := range facets.Groups {
+			assert.Greater(t, g.Count, 0, "Group count should be positive in filtered results")
+		}
+
+		return nil
+	})
+}
+
+// Phase 7.5: Test ethnicity facets
+func TestPerformerFacets_ReturnsEthnicities(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		pqb := db.Performer
+
+		facets, err := pqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// Ethnicities may or may not have entries depending on test data
+		for _, e := range facets.Ethnicities {
+			assert.Greater(t, e.Count, 0, "Ethnicity count should be positive")
+			assert.NotEmpty(t, e.Value, "Ethnicity value should not be empty")
+		}
+
+		return nil
+	})
+}
+
+// Phase 7.5: Test hair color facets
+func TestPerformerFacets_ReturnsHairColors(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		pqb := db.Performer
+
+		facets, err := pqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// Hair colors may or may not have entries depending on test data
+		for _, h := range facets.HairColors {
+			assert.Greater(t, h.Count, 0, "Hair color count should be positive")
+			assert.NotEmpty(t, h.Value, "Hair color value should not be empty")
+		}
+
+		return nil
+	})
+}
+
+// Phase 7.5: Test eye color facets
+func TestPerformerFacets_ReturnsEyeColors(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		pqb := db.Performer
+
+		facets, err := pqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// Eye colors may or may not have entries depending on test data
+		for _, e := range facets.EyeColors {
+			assert.Greater(t, e.Count, 0, "Eye color count should be positive")
+			assert.NotEmpty(t, e.Value, "Eye color value should not be empty")
+		}
+
+		return nil
+	})
+}
+
+// Phase 7.5: Test attribute facets with filter
+func TestPerformerFacets_AttributesWithFilter(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		pqb := db.Performer
+
+		// Filter to performers with specific tag
+		tagFilter := &models.PerformerFilterType{
+			Tags: &models.HierarchicalMultiCriterionInput{
+				Value:    []string{strconv.Itoa(tagIDs[tagIdxWithPerformer])},
+				Modifier: models.CriterionModifierIncludes,
+			},
+		}
+
+		facets, err := pqb.GetFacets(ctx, tagFilter, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// All attribute facets should be populated (even if empty)
+		assert.NotNil(t, facets.Ethnicities, "Ethnicities should not be nil with filter")
+		assert.NotNil(t, facets.HairColors, "HairColors should not be nil with filter")
+		assert.NotNil(t, facets.EyeColors, "EyeColors should not be nil with filter")
+
+		return nil
+	})
+}
+
 // Phase 6: Test parallel execution (indirectly - verify all facets return together)
 func TestPerformerFacets_ReturnsAllFacetsInParallel(t *testing.T) {
 	withRollbackTxn(func(ctx context.Context) error {
@@ -220,8 +363,12 @@ func TestPerformerFacets_ReturnsAllFacetsInParallel(t *testing.T) {
 		// All facet types should be populated (not nil)
 		assert.NotNil(t, facets.Tags, "Tags should not be nil")
 		assert.NotNil(t, facets.Studios, "Studios should not be nil")
+		assert.NotNil(t, facets.Groups, "Groups should not be nil")
 		assert.NotNil(t, facets.Genders, "Genders should not be nil")
 		assert.NotNil(t, facets.Countries, "Countries should not be nil")
+		assert.NotNil(t, facets.Ethnicities, "Ethnicities should not be nil")
+		assert.NotNil(t, facets.HairColors, "HairColors should not be nil")
+		assert.NotNil(t, facets.EyeColors, "EyeColors should not be nil")
 		assert.NotNil(t, facets.Circumcised, "Circumcised should not be nil")
 		assert.NotNil(t, facets.Favorite, "Favorite should not be nil")
 		assert.NotNil(t, facets.Ratings, "Ratings should not be nil")

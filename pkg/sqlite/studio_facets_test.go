@@ -150,3 +150,60 @@ func TestStudioFacets_WithParentFilter(t *testing.T) {
 		return nil
 	})
 }
+
+// Phase 7.2: Test ratings facet
+func TestStudioFacets_ReturnsRatings(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		sqb := db.Studio
+
+		facets, err := sqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// Ratings should not be nil
+		assert.NotNil(t, facets.Ratings, "Ratings should not be nil")
+
+		// All rating counts should be positive
+		for _, r := range facets.Ratings {
+			assert.Greater(t, r.Count, 0, "Rating count should be positive")
+			assert.Greater(t, r.Rating, 0, "Rating value should be positive")
+			assert.LessOrEqual(t, r.Rating, 100, "Rating value should be <= 100")
+		}
+
+		// Verify ratings are sorted by rating descending
+		for i := 1; i < len(facets.Ratings); i++ {
+			assert.GreaterOrEqual(t, facets.Ratings[i-1].Rating, facets.Ratings[i].Rating,
+				"Ratings should be sorted by rating descending")
+		}
+
+		return nil
+	})
+}
+
+// Phase 7.2: Test ratings with filter
+func TestStudioFacets_RatingsWithFilter(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		sqb := db.Studio
+
+		// Filter to studios with specific tag
+		tagFilter := &models.StudioFilterType{
+			Tags: &models.HierarchicalMultiCriterionInput{
+				Value:    []string{strconv.Itoa(tagIDs[tagIdxWithStudio])},
+				Modifier: models.CriterionModifierIncludes,
+			},
+		}
+
+		facets, err := sqb.GetFacets(ctx, tagFilter, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// Ratings should not be nil even with filter
+		assert.NotNil(t, facets.Ratings, "Ratings should not be nil with filter")
+
+		return nil
+	})
+}

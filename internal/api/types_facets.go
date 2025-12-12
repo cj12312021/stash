@@ -51,27 +51,39 @@ type CaptionFacetCount struct {
 	Count    int    `json:"count"`
 }
 
+// StringFacetCount represents a count for a string value (ethnicity, hair color, etc.)
+type StringFacetCount struct {
+	Value string `json:"value"`
+	Count int    `json:"count"`
+}
+
 // SceneFacetsResult contains all facet counts for scene filtering
 type SceneFacetsResult struct {
-	Tags          []*FacetCount            `json:"tags"`
-	Performers    []*FacetCount            `json:"performers"`
-	Studios       []*FacetCount            `json:"studios"`
-	Groups        []*FacetCount            `json:"groups"`
-	PerformerTags []*FacetCount            `json:"performer_tags"`
-	Resolutions   []*ResolutionFacetCount  `json:"resolutions"`
-	Orientations  []*OrientationFacetCount `json:"orientations"`
-	Organized     []*BooleanFacetCount     `json:"organized"`
-	Interactive   []*BooleanFacetCount     `json:"interactive"`
-	Ratings       []*RatingFacetCount      `json:"ratings"`
-	Captions      []*CaptionFacetCount     `json:"captions"`
+	Tags              []*FacetCount            `json:"tags"`
+	Performers        []*FacetCount            `json:"performers"`
+	Studios           []*FacetCount            `json:"studios"`
+	Groups            []*FacetCount            `json:"groups"`
+	PerformerTags     []*FacetCount            `json:"performer_tags"`
+	Resolutions       []*ResolutionFacetCount  `json:"resolutions"`
+	Orientations      []*OrientationFacetCount `json:"orientations"`
+	Organized         []*BooleanFacetCount     `json:"organized"`
+	Interactive       []*BooleanFacetCount     `json:"interactive"`
+	HasMarkers        []*BooleanFacetCount     `json:"has_markers"`
+	PerformerFavorite []*BooleanFacetCount     `json:"performer_favorite"`
+	Ratings           []*RatingFacetCount      `json:"ratings"`
+	Captions          []*CaptionFacetCount     `json:"captions"`
 }
 
 // PerformerFacetsResult contains all facet counts for performer filtering
 type PerformerFacetsResult struct {
 	Tags        []*FacetCount            `json:"tags"`
 	Studios     []*FacetCount            `json:"studios"`
+	Groups      []*FacetCount            `json:"groups"`
 	Genders     []*GenderFacetCount      `json:"genders"`
 	Countries   []*FacetCount            `json:"countries"`
+	Ethnicities []*StringFacetCount      `json:"ethnicities"`
+	HairColors  []*StringFacetCount      `json:"hair_colors"`
+	EyeColors   []*StringFacetCount      `json:"eye_colors"`
 	Circumcised []*CircumcisedFacetCount `json:"circumcised"`
 	Favorite    []*BooleanFacetCount     `json:"favorite"`
 	Ratings     []*RatingFacetCount      `json:"ratings"`
@@ -79,12 +91,14 @@ type PerformerFacetsResult struct {
 
 // GalleryFacetsResult contains all facet counts for gallery filtering
 type GalleryFacetsResult struct {
-	Tags          []*FacetCount        `json:"tags"`
-	Performers    []*FacetCount        `json:"performers"`
-	Studios       []*FacetCount        `json:"studios"`
-	PerformerTags []*FacetCount        `json:"performer_tags"`
-	Organized     []*BooleanFacetCount `json:"organized"`
-	Ratings       []*RatingFacetCount  `json:"ratings"`
+	Tags              []*FacetCount        `json:"tags"`
+	Performers        []*FacetCount        `json:"performers"`
+	Studios           []*FacetCount        `json:"studios"`
+	PerformerTags     []*FacetCount        `json:"performer_tags"`
+	Organized         []*BooleanFacetCount `json:"organized"`
+	HasChapters       []*BooleanFacetCount `json:"has_chapters"`
+	PerformerFavorite []*BooleanFacetCount `json:"performer_favorite"`
+	Ratings           []*RatingFacetCount  `json:"ratings"`
 }
 
 // GroupFacetsResult contains all facet counts for group filtering

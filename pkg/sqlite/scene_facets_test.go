@@ -335,7 +335,7 @@ func TestSceneFacets_AllFacetsReturnedInParallel(t *testing.T) {
 	withRollbackTxn(func(ctx context.Context) error {
 		sqb := db.Scene
 
-		// Test that all 11 facets are returned in a single call
+		// Test that all 13 facets are returned in a single call
 		facets, err := sqb.GetFacets(ctx, nil, 100)
 		if err != nil {
 			t.Errorf("Error getting facets: %s", err.Error())
@@ -352,8 +352,54 @@ func TestSceneFacets_AllFacetsReturnedInParallel(t *testing.T) {
 		assert.NotNil(t, facets.Orientations, "Orientations should not be nil")
 		assert.NotNil(t, facets.Organized, "Organized should not be nil")
 		assert.NotNil(t, facets.Interactive, "Interactive should not be nil")
+		assert.NotNil(t, facets.HasMarkers, "HasMarkers should not be nil")
+		assert.NotNil(t, facets.PerformerFavorite, "PerformerFavorite should not be nil")
 		assert.NotNil(t, facets.Ratings, "Ratings should not be nil")
 		assert.NotNil(t, facets.Captions, "Captions should not be nil")
+
+		return nil
+	})
+}
+
+// Phase 7.4: Test has_markers facet
+func TestSceneFacets_ReturnsHasMarkers(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		sqb := db.Scene
+
+		facets, err := sqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// HasMarkers should be returned (may have true and false counts)
+		assert.NotNil(t, facets.HasMarkers, "HasMarkers should not be nil")
+
+		for _, hm := range facets.HasMarkers {
+			assert.GreaterOrEqual(t, hm.Count, 0, "HasMarkers count should be non-negative")
+		}
+
+		return nil
+	})
+}
+
+// Phase 7.4: Test performer_favorite facet
+func TestSceneFacets_ReturnsPerformerFavorite(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		sqb := db.Scene
+
+		facets, err := sqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// PerformerFavorite should be returned (may have true and false counts)
+		assert.NotNil(t, facets.PerformerFavorite, "PerformerFavorite should not be nil")
+
+		for _, pf := range facets.PerformerFavorite {
+			assert.GreaterOrEqual(t, pf.Count, 0, "PerformerFavorite count should be non-negative")
+		}
 
 		return nil
 	})
