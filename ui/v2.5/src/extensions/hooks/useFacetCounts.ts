@@ -36,6 +36,9 @@ export interface FacetCounts {
   booleans: {
     organized: { true: number; false: number };
     interactive: { true: number; false: number };
+    hasMarkers: { true: number; false: number };
+    performerFavorite: { true: number; false: number };
+    hasChapters: { true: number; false: number };
     favorite: { true: number; false: number };
   };
   parents: Map<string, LabeledFacetCount>;
@@ -64,6 +67,9 @@ function createEmptyCounts(): FacetCounts {
     booleans: {
       organized: { true: 0, false: 0 },
       interactive: { true: 0, false: 0 },
+      hasMarkers: { true: 0, false: 0 },
+      performerFavorite: { true: 0, false: 0 },
+      hasChapters: { true: 0, false: 0 },
       favorite: { true: 0, false: 0 },
     },
     parents: new Map<string, LabeledFacetCount>(),
@@ -118,6 +124,9 @@ interface SerializedFacetCounts {
   booleans: {
     organized: { true: number; false: number };
     interactive: { true: number; false: number };
+    hasMarkers: { true: number; false: number };
+    performerFavorite: { true: number; false: number };
+    hasChapters: { true: number; false: number };
     favorite: { true: number; false: number };
   };
   parents: [string, LabeledFacetCount][];
@@ -413,6 +422,9 @@ function buildSceneFacetCounts(facets: NonNullable<GQL.SceneFacetsQuery['sceneFa
     booleans: {
       organized: toBooleanCounts(facets.organized),
       interactive: toBooleanCounts(facets.interactive),
+      hasMarkers: toBooleanCounts(facets.has_markers ?? []),
+      performerFavorite: toBooleanCounts(facets.performer_favorite ?? []),
+      hasChapters: { true: 0, false: 0 },
       favorite: { true: 0, false: 0 },
     },
     parents: new Map(),
@@ -438,6 +450,9 @@ function buildGalleryFacetCounts(facets: NonNullable<GQL.GalleryFacetsQuery['gal
     booleans: {
       organized: toBooleanCounts(facets.organized),
       interactive: { true: 0, false: 0 },
+      hasMarkers: { true: 0, false: 0 },
+      performerFavorite: toBooleanCounts(facets.performer_favorite ?? []),
+      hasChapters: toBooleanCounts(facets.has_chapters ?? []),
       favorite: { true: 0, false: 0 },
     },
     parents: new Map(),
@@ -463,6 +478,9 @@ function buildPerformerFacetCounts(facets: NonNullable<GQL.PerformerFacetsQuery[
     booleans: {
       organized: { true: 0, false: 0 },
       interactive: { true: 0, false: 0 },
+      hasMarkers: { true: 0, false: 0 },
+      performerFavorite: { true: 0, false: 0 },
+      hasChapters: { true: 0, false: 0 },
       favorite: toBooleanCounts(facets.favorite),
     },
     parents: new Map(),
@@ -488,6 +506,9 @@ function buildGroupFacetCounts(facets: NonNullable<GQL.GroupFacetsQuery['groupFa
     booleans: {
       organized: { true: 0, false: 0 },
       interactive: { true: 0, false: 0 },
+      hasMarkers: { true: 0, false: 0 },
+      performerFavorite: { true: 0, false: 0 },
+      hasChapters: { true: 0, false: 0 },
       favorite: { true: 0, false: 0 },
     },
     parents: new Map(),
@@ -513,6 +534,9 @@ function buildStudioFacetCounts(facets: NonNullable<GQL.StudioFacetsQuery['studi
     booleans: {
       organized: { true: 0, false: 0 },
       interactive: { true: 0, false: 0 },
+      hasMarkers: { true: 0, false: 0 },
+      performerFavorite: { true: 0, false: 0 },
+      hasChapters: { true: 0, false: 0 },
       favorite: toBooleanCounts(facets.favorite),
     },
     parents: toMap(facets.parents),
@@ -538,6 +562,9 @@ function buildTagFacetCounts(facets: NonNullable<GQL.TagFacetsQuery['tagFacets']
     booleans: {
       organized: { true: 0, false: 0 },
       interactive: { true: 0, false: 0 },
+      hasMarkers: { true: 0, false: 0 },
+      performerFavorite: { true: 0, false: 0 },
+      hasChapters: { true: 0, false: 0 },
       favorite: toBooleanCounts(facets.favorite),
     },
     parents: toMap(facets.parents),

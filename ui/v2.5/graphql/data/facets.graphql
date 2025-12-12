@@ -68,6 +68,12 @@ query SceneFacets($scene_filter: SceneFilterType, $limit: Int) {
     interactive {
       ...BooleanFacetCountData
     }
+    has_markers {
+      ...BooleanFacetCountData
+    }
+    performer_favorite {
+      ...BooleanFacetCountData
+    }
     ratings {
       ...RatingFacetCountData
     }
@@ -118,6 +124,12 @@ query GalleryFacets($gallery_filter: GalleryFilterType, $limit: Int) {
       ...FacetCountData
     }
     organized {
+      ...BooleanFacetCountData
+    }
+    has_chapters {
+      ...BooleanFacetCountData
+    }
+    performer_favorite {
       ...BooleanFacetCountData
     }
     ratings {

@@ -116,7 +116,7 @@ export const SidebarBooleanFilter: React.FC<ISidebarFilter> = ({
         };
       case "has_markers":
         return {
-          facetBooleanKey: null, // No facet support for has_markers
+          facetBooleanKey: "hasMarkers" as const,
           trueLabel: intl.formatMessage({ id: "has_markers_true", defaultMessage: "Has Markers" }),
           falseLabel: intl.formatMessage({ id: "has_markers_false", defaultMessage: "No Markers" }),
           trueIcon: <FontAwesomeIcon icon={faMapMarkerAlt} style={{ color: "#f93" }} fixedWidth />,
@@ -140,7 +140,7 @@ export const SidebarBooleanFilter: React.FC<ISidebarFilter> = ({
         };
       case "performer_favorite":
         return {
-          facetBooleanKey: null, // No facet support
+          facetBooleanKey: "performerFavorite" as const,
           trueLabel: intl.formatMessage({ id: "performer_favorite_true", defaultMessage: "Performer Favourite" }),
           falseLabel: intl.formatMessage({ id: "performer_favorite_false", defaultMessage: "Performer Not Favourite" }),
           trueIcon: <FontAwesomeIcon icon={faStar} style={{ color: "#fc6" }} fixedWidth />,
@@ -148,7 +148,7 @@ export const SidebarBooleanFilter: React.FC<ISidebarFilter> = ({
         };
       case "has_chapters":
         return {
-          facetBooleanKey: null, // No facet support
+          facetBooleanKey: "hasChapters" as const,
           trueLabel: intl.formatMessage({ id: "has_chapters_true", defaultMessage: "Has Chapters" }),
           falseLabel: intl.formatMessage({ id: "has_chapters_false", defaultMessage: "No Chapters" }),
           trueIcon: <FontAwesomeIcon icon={faBookmark} style={{ color: "#6c9" }} fixedWidth />,
