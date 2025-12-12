@@ -240,7 +240,53 @@ func TestGalleryFacets_ReturnsAllFacetsInParallel(t *testing.T) {
 		assert.NotNil(t, facets.Studios, "Studios should not be nil")
 		assert.NotNil(t, facets.PerformerTags, "PerformerTags should not be nil")
 		assert.NotNil(t, facets.Organized, "Organized should not be nil")
+		assert.NotNil(t, facets.HasChapters, "HasChapters should not be nil")
+		assert.NotNil(t, facets.PerformerFavorite, "PerformerFavorite should not be nil")
 		assert.NotNil(t, facets.Ratings, "Ratings should not be nil")
+
+		return nil
+	})
+}
+
+// Phase 7.4: Test has_chapters facet
+func TestGalleryFacets_ReturnsHasChapters(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		gqb := db.Gallery
+
+		facets, err := gqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// HasChapters should be returned (may have true and false counts)
+		assert.NotNil(t, facets.HasChapters, "HasChapters should not be nil")
+
+		for _, hc := range facets.HasChapters {
+			assert.GreaterOrEqual(t, hc.Count, 0, "HasChapters count should be non-negative")
+		}
+
+		return nil
+	})
+}
+
+// Phase 7.4: Test performer_favorite facet for galleries
+func TestGalleryFacets_ReturnsPerformerFavorite(t *testing.T) {
+	withRollbackTxn(func(ctx context.Context) error {
+		gqb := db.Gallery
+
+		facets, err := gqb.GetFacets(ctx, nil, 100)
+		if err != nil {
+			t.Errorf("Error getting facets: %s", err.Error())
+			return nil
+		}
+
+		// PerformerFavorite should be returned (may have true and false counts)
+		assert.NotNil(t, facets.PerformerFavorite, "PerformerFavorite should not be nil")
+
+		for _, pf := range facets.PerformerFavorite {
+			assert.GreaterOrEqual(t, pf.Count, 0, "PerformerFavorite count should be non-negative")
+		}
 
 		return nil
 	})

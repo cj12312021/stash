@@ -97,6 +97,10 @@ type SceneFacetsResult {
   organized: [BooleanFacetCount!]!
   "Counts for interactive true/false"
   interactive: [BooleanFacetCount!]!
+  "Counts for has_markers true/false"
+  has_markers: [BooleanFacetCount!]!
+  "Counts for scenes with at least one favorite performer"
+  performer_favorite: [BooleanFacetCount!]!
   "Counts per rating (1-5 stars)"
   ratings: [RatingFacetCount!]!
   "Counts per caption language"
@@ -145,6 +149,10 @@ type GalleryFacetsResult {
   performer_tags: [FacetCount!]!
   "Counts for organized true/false"
   organized: [BooleanFacetCount!]!
+  "Counts for has_chapters true/false"
+  has_chapters: [BooleanFacetCount!]!
+  "Counts for galleries with at least one favorite performer"
+  performer_favorite: [BooleanFacetCount!]!
   "Counts per rating (1-5 stars)"
   ratings: [RatingFacetCount!]!
 }

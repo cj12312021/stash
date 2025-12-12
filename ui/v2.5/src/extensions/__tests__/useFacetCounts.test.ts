@@ -101,6 +101,9 @@ describe("FacetCounts interface", () => {
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map<string, LabeledFacetCount>(),
@@ -144,6 +147,9 @@ describe("FacetCounts interface", () => {
       booleans: {
         organized: { true: 10, false: 90 },
         interactive: { true: 5, false: 95 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 20, false: 80 },
       },
       parents: new Map(),
@@ -498,6 +504,9 @@ describe("State update patterns", () => {
       booleans: {
         organized: { true: 10, false: 90 },
         interactive: { true: 5, false: 95 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -553,6 +562,9 @@ describe("State update patterns", () => {
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -612,6 +624,9 @@ describe("State update patterns", () => {
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -650,6 +665,9 @@ describe("State update patterns", () => {
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -796,6 +814,9 @@ describe("Cache serialization", () => {
       booleans: {
         organized: { true: 100, false: 900 },
         interactive: { true: 10, false: 990 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -1006,6 +1027,9 @@ describe("Entity-specific FacetCounts builders", () => {
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
