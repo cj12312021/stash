@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler/lru"
@@ -63,9 +64,11 @@ func (j *ScanJob) Execute(ctx context.Context, progress *job.Progress) error {
 		minModTime = *j.input.Filter.MinModTime
 	}
 
+	scanFilter := newScanFilter(c, repo, minModTime)
+
 	j.scanner.Scan(ctx, getScanHandlers(j.input, taskQueue, progress), file.ScanOptions{
 		Paths:                  paths,
-		ScanFilters:            []file.PathFilter{newScanFilter(c, repo, minModTime)},
+		ScanFilters:            []file.PathFilter{scanFilter},
 		ZipFileExtensions:      cfg.GetGalleryExtensions(),
 		ParallelTasks:          cfg.GetParallelTasksWithAutoDetection(),
 		HandlerRequiredFilters: []file.Filter{newHandlerRequiredFilter(cfg, repo)},
@@ -78,6 +81,9 @@ func (j *ScanJob) Execute(ctx context.Context, progress *job.Progress) error {
 		logger.Info("Stopping due to user request")
 		return nil
 	}
+
+	// Process all collected captions in batches - much faster than individual processing
+	scanFilter.captionBatcher.ProcessAll(ctx)
 
 	elapsed := time.Since(start)
 	logger.Info(fmt.Sprintf("Scan finished (%s)", elapsed))
@@ -243,6 +249,78 @@ func (f *handlerRequiredFilter) Accept(ctx context.Context, ff models.File) bool
 	return false
 }
 
+// captionBatcher collects caption files and processes them in batches for better performance.
+// This reduces transaction overhead when many captions are present.
+type captionBatcher struct {
+	txnManager     txn.Manager
+	FileFinder     models.FileFinder
+	CaptionUpdater video.CaptionUpdater
+
+	// captionPaths is accessed concurrently during the scan walk
+	mu           sync.Mutex
+	captionPaths []string
+}
+
+func newCaptionBatcher(txnMgr txn.Manager, fileFinder models.FileFinder, captionUpdater video.CaptionUpdater) *captionBatcher {
+	return &captionBatcher{
+		txnManager:     txnMgr,
+		FileFinder:     fileFinder,
+		CaptionUpdater: captionUpdater,
+		captionPaths:   make([]string, 0, 1000),
+	}
+}
+
+// Add collects a caption path for later processing
+func (b *captionBatcher) Add(path string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.captionPaths = append(b.captionPaths, path)
+}
+
+// ProcessAll processes all collected captions in a single transaction.
+// This is much more efficient than processing each caption individually.
+func (b *captionBatcher) ProcessAll(ctx context.Context) {
+	b.mu.Lock()
+	paths := b.captionPaths
+	b.captionPaths = nil
+	b.mu.Unlock()
+
+	if len(paths) == 0 {
+		return
+	}
+
+	logger.Infof("Processing %d caption files...", len(paths))
+
+	// Group captions by folder for more efficient querying
+	captionsByFolder := make(map[string][]string)
+	for _, captionPath := range paths {
+		folderPath := filepath.Dir(captionPath)
+		captionsByFolder[folderPath] = append(captionsByFolder[folderPath], captionPath)
+	}
+
+	// Process all captions in a single transaction per folder
+	for folderPath, folderCaptions := range captionsByFolder {
+		if job.IsCancelled(ctx) {
+			return
+		}
+		b.processFolderCaptions(ctx, folderPath, folderCaptions)
+	}
+
+	logger.Infof("Finished processing caption files")
+}
+
+func (b *captionBatcher) processFolderCaptions(ctx context.Context, folderPath string, captionPaths []string) {
+	// Single transaction for all captions in this folder
+	if err := txn.WithTxn(ctx, b.txnManager, func(ctx context.Context) error {
+		for _, captionPath := range captionPaths {
+			video.AssociateCaptionInTxn(ctx, captionPath, folderPath, b.FileFinder, b.CaptionUpdater)
+		}
+		return nil
+	}); err != nil {
+		logger.Errorf("Error processing captions in %s: %v", folderPath, err)
+	}
+}
+
 type scanFilter struct {
 	extensionConfig
 	txnManager     txn.Manager
@@ -254,9 +332,13 @@ type scanFilter struct {
 	videoExcludeRegex []*regexp.Regexp
 	imageExcludeRegex []*regexp.Regexp
 	minModTime        time.Time
+
+	// captionBatcher collects captions for batch processing
+	captionBatcher *captionBatcher
 }
 
 func newScanFilter(c *config.Config, repo models.Repository, minModTime time.Time) *scanFilter {
+	captionBatcher := newCaptionBatcher(repo.TxnManager, repo.File, repo.File)
 	return &scanFilter{
 		extensionConfig:   newExtensionConfig(c),
 		txnManager:        repo.TxnManager,
@@ -267,6 +349,7 @@ func newScanFilter(c *config.Config, repo models.Repository, minModTime time.Tim
 		videoExcludeRegex: generateRegexps(c.GetExcludes()),
 		imageExcludeRegex: generateRegexps(c.GetImageExcludes()),
 		minModTime:        minModTime,
+		captionBatcher:    captionBatcher,
 	}
 }
 
@@ -291,12 +374,10 @@ func (f *scanFilter) Accept(ctx context.Context, path string, info fs.FileInfo) 
 	isImageFile := useAsImage(path)
 	isZipFile := fsutil.MatchExtension(path, f.zipExt)
 
-	// handle caption files
+	// handle caption files - collect them for batch processing later
 	if fsutil.MatchExtension(path, video.CaptionExts) {
-		// we don't include caption files in the file scan, but we do need
-		// to handle them
-		video.AssociateCaptions(ctx, path, f.txnManager, f.FileFinder, f.CaptionUpdater)
-
+		// Collect captions for batch processing instead of processing each immediately
+		f.captionBatcher.Add(path)
 		return false
 	}
 

@@ -19,6 +19,9 @@ type FileFinder interface {
 	FindByFingerprint(ctx context.Context, fp Fingerprint) ([]File, error)
 	FindByZipFileID(ctx context.Context, zipFileID FileID) ([]File, error)
 	FindByFileInfo(ctx context.Context, info fs.FileInfo, size int64) ([]File, error)
+	// FindVideoFilesByBasenamePattern finds video files in a folder matching a basename pattern.
+	// This is optimized for caption association - avoids expensive JOINs.
+	FindVideoFilesByBasenamePattern(ctx context.Context, folderPath string, basenamePattern string) ([]*VideoFile, error)
 }
 
 // FileQueryer provides methods to query files.
