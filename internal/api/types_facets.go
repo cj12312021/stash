@@ -70,6 +70,7 @@ type SceneFacetsResult struct {
 type PerformerFacetsResult struct {
 	Tags        []*FacetCount            `json:"tags"`
 	Studios     []*FacetCount            `json:"studios"`
+	Groups      []*FacetCount            `json:"groups"`
 	Genders     []*GenderFacetCount      `json:"genders"`
 	Countries   []*FacetCount            `json:"countries"`
 	Circumcised []*CircumcisedFacetCount `json:"circumcised"`

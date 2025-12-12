@@ -451,7 +451,7 @@ function buildPerformerFacetCounts(facets: NonNullable<GQL.PerformerFacetsQuery[
     tags: toMap(facets.tags),
     performers: new Map(),
     studios: toMap(facets.studios),
-    groups: new Map(),
+    groups: toMap(facets.groups ?? []),
     performerTags: new Map(),
     resolutions: new Map(),
     orientations: new Map(),

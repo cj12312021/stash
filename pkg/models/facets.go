@@ -69,6 +69,7 @@ type SceneFacets struct {
 type PerformerFacets struct {
 	Tags        []FacetCount
 	Studios     []FacetCount
+	Groups      []FacetCount
 	Genders     []GenderFacetCount
 	Countries   []FacetCount
 	Circumcised []CircumcisedFacetCount

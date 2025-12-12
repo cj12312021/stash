@@ -85,6 +85,9 @@ query PerformerFacets($performer_filter: PerformerFilterType, $limit: Int) {
     studios {
       ...FacetCountData
     }
+    groups {
+      ...FacetCountData
+    }
     genders {
       ...GenderFacetCountData
     }

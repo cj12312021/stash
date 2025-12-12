@@ -103,6 +103,8 @@ type PerformerFacetsResult {
   tags: [FacetCount!]!
   "Counts per studio (ordered by count descending)"
   studios: [FacetCount!]!
+  "Counts per group (via scenes, ordered by count descending)"
+  groups: [FacetCount!]!
   "Counts per gender"
   genders: [GenderFacetCount!]!
   "Counts per country"

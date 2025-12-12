@@ -75,6 +75,7 @@ func (qb *PerformerStore) GetFacets(ctx context.Context, performerFilter *models
 	result := &models.PerformerFacets{
 		Tags:        []models.FacetCount{},
 		Studios:     []models.FacetCount{},
+		Groups:      []models.FacetCount{},
 		Genders:     []models.GenderFacetCount{},
 		Countries:   []models.FacetCount{},
 		Circumcised: []models.CircumcisedFacetCount{},
@@ -98,7 +99,7 @@ func (qb *PerformerStore) GetFacets(ctx context.Context, performerFilter *models
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	errChan := make(chan error, 5) // 5 parallel goroutines
+	errChan := make(chan error, 6) // 6 parallel goroutines
 
 	// All facets run in parallel - no lazy loading
 	// Wall-clock time = slowest query, not sum of queries
@@ -118,6 +119,15 @@ func (qb *PerformerStore) GetFacets(ctx context.Context, performerFilter *models
 		defer wg.Done()
 		if err := qb.getStudiosFacet(ctx, baseSQL, baseArgs, limit, result, &mu); err != nil {
 			errChan <- fmt.Errorf("studios facet: %w", err)
+		}
+	}()
+
+	// Groups facet (via performers_scenes -> groups_scenes -> groups)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := qb.getGroupsFacet(ctx, baseSQL, baseArgs, limit, result, &mu); err != nil {
+			errChan <- fmt.Errorf("groups facet: %w", err)
 		}
 	}()
 
@@ -156,7 +166,7 @@ func (qb *PerformerStore) GetFacets(ctx context.Context, performerFilter *models
 func (qb *PerformerStore) getFacetsUnfiltered(ctx context.Context, limit int, result *models.PerformerFacets) (*models.PerformerFacets, error) {
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	errChan := make(chan error, 5)
+	errChan := make(chan error, 6)
 
 	// Tags - direct count on performers_tags
 	wg.Add(1)
@@ -225,6 +235,41 @@ func (qb *PerformerStore) getFacetsUnfiltered(ctx context.Context, limit int, re
 		}
 		mu.Lock()
 		result.Studios = studios
+		mu.Unlock()
+	}()
+
+	// Groups - via performers_scenes -> groups_scenes -> groups
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		rows, err := dbWrapper.Queryx(ctx, `
+			SELECT g.id, g.name as label, COUNT(DISTINCT ps.performer_id) as count
+			FROM performers_scenes ps
+			INNER JOIN groups_scenes gs ON ps.scene_id = gs.scene_id
+			INNER JOIN groups g ON gs.group_id = g.id
+			GROUP BY g.id
+			ORDER BY count DESC
+			LIMIT ?
+		`, limit)
+		if err != nil {
+			errChan <- fmt.Errorf("unfiltered groups facet: %w", err)
+			return
+		}
+		defer rows.Close()
+
+		var groups []models.FacetCount
+		for rows.Next() {
+			var id int
+			var label string
+			var count int
+			if err := rows.Scan(&id, &label, &count); err != nil {
+				errChan <- fmt.Errorf("scanning unfiltered group: %w", err)
+				return
+			}
+			groups = append(groups, models.FacetCount{ID: strconv.Itoa(id), Label: label, Count: count})
+		}
+		mu.Lock()
+		result.Groups = groups
 		mu.Unlock()
 	}()
 
@@ -462,6 +507,43 @@ func (qb *PerformerStore) getStudiosFacet(ctx context.Context, baseSQL string, b
 
 	mu.Lock()
 	result.Studios = studios
+	mu.Unlock()
+	return rows.Err()
+}
+
+func (qb *PerformerStore) getGroupsFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, limit int, result *models.PerformerFacets, mu *sync.Mutex) error {
+	sql := fmt.Sprintf(`
+		WITH filtered_performers AS (%s)
+		SELECT g.id, g.name as label, COUNT(DISTINCT ps.performer_id) as count
+		FROM filtered_performers fp
+		INNER JOIN performers_scenes ps ON fp.id = ps.performer_id
+		INNER JOIN groups_scenes gs ON ps.scene_id = gs.scene_id
+		INNER JOIN groups g ON gs.group_id = g.id
+		GROUP BY g.id
+		ORDER BY count DESC
+		LIMIT ?
+	`, baseSQL)
+
+	args := append(append([]interface{}{}, baseArgs...), limit)
+	rows, err := dbWrapper.Queryx(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var groups []models.FacetCount
+	for rows.Next() {
+		var id int
+		var label string
+		var count int
+		if err := rows.Scan(&id, &label, &count); err != nil {
+			return err
+		}
+		groups = append(groups, models.FacetCount{ID: strconv.Itoa(id), Label: label, Count: count})
+	}
+
+	mu.Lock()
+	result.Groups = groups
 	mu.Unlock()
 	return rows.Err()
 }

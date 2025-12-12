@@ -201,6 +201,7 @@ func convertPerformerFacets(f *models.PerformerFacets) *PerformerFacetsResult {
 	return &PerformerFacetsResult{
 		Tags:        convertFacetCounts(f.Tags),
 		Studios:     convertFacetCounts(f.Studios),
+		Groups:      convertFacetCounts(f.Groups),
 		Genders:     convertGenderFacetCounts(f.Genders),
 		Countries:   convertFacetCounts(f.Countries),
 		Circumcised: convertCircumcisedFacetCounts(f.Circumcised),
