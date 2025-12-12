@@ -92,6 +92,9 @@ describe("FacetCounts interface", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map<string, LabeledFacetCount>(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map(),
       captions: new Map(),
@@ -132,6 +135,9 @@ describe("FacetCounts interface", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map(),
       captions: new Map(),
@@ -483,6 +489,9 @@ describe("State update patterns", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map([[100, 20]]),
       captions: new Map(),
@@ -535,6 +544,9 @@ describe("State update patterns", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map(),
       captions: new Map(), // Empty before update
@@ -591,6 +603,9 @@ describe("State update patterns", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map(),
       captions: new Map(),
@@ -626,6 +641,9 @@ describe("State update patterns", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map(),
       captions: new Map(), // Empty
@@ -769,6 +787,9 @@ describe("Cache serialization", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map([[100, 10], [80, 20]]),
       captions: new Map([["en", 500]]),
@@ -976,6 +997,9 @@ describe("Entity-specific FacetCounts builders", () => {
       orientations: new Map(),
       genders: new Map(),
       countries: new Map(),
+      ethnicities: new Map(),
+      hairColors: new Map(),
+      eyeColors: new Map(),
       circumcised: new Map(),
       ratings: new Map(),
       captions: new Map(),
@@ -1058,10 +1082,46 @@ describe("Entity-specific FacetCounts builders", () => {
       
       // These should remain empty for performer facets
       expect(counts.performers.size).toBe(0);  // Performers don't have performer facets
-      expect(counts.groups.size).toBe(0);
       expect(counts.performerTags.size).toBe(0);
       expect(counts.resolutions.size).toBe(0);
       expect(counts.booleans.organized).toEqual({ true: 0, false: 0 });
+    });
+
+    it("should populate groups facet (Phase 7.3)", () => {
+      const counts = createEmptyFacetCounts();
+      
+      counts.groups = new Map([
+        ["1", { count: 25, label: "Group A" }],
+        ["2", { count: 15, label: "Group B" }],
+      ]);
+      
+      expect(counts.groups.size).toBe(2);
+      expect(counts.groups.get("1")?.count).toBe(25);
+      expect(counts.groups.get("1")?.label).toBe("Group A");
+    });
+
+    it("should populate ethnicity, hair color, eye color facets (Phase 7.5)", () => {
+      const counts = createEmptyFacetCounts();
+      
+      counts.ethnicities = new Map([
+        ["Caucasian", 100],
+        ["Asian", 50],
+      ]);
+      counts.hairColors = new Map([
+        ["Blonde", 80],
+        ["Brunette", 120],
+      ]);
+      counts.eyeColors = new Map([
+        ["Blue", 60],
+        ["Brown", 90],
+      ]);
+      
+      expect(counts.ethnicities.size).toBe(2);
+      expect(counts.ethnicities.get("Caucasian")).toBe(100);
+      expect(counts.hairColors.size).toBe(2);
+      expect(counts.hairColors.get("Blonde")).toBe(80);
+      expect(counts.eyeColors.size).toBe(2);
+      expect(counts.eyeColors.get("Blue")).toBe(60);
     });
   });
 

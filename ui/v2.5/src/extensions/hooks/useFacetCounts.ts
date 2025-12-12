@@ -30,6 +30,9 @@ export interface FacetCounts {
   orientations: Map<GQL.OrientationEnum, number>;
   genders: Map<GQL.GenderEnum, number>;
   countries: Map<string, LabeledFacetCount>;
+  ethnicities: Map<string, number>;
+  hairColors: Map<string, number>;
+  eyeColors: Map<string, number>;
   circumcised: Map<GQL.CircumisedEnum, number>;
   ratings: Map<number, number>;
   captions: Map<string, number>;
@@ -58,6 +61,9 @@ function createEmptyCounts(): FacetCounts {
     orientations: new Map<GQL.OrientationEnum, number>(),
     genders: new Map<GQL.GenderEnum, number>(),
     countries: new Map<string, LabeledFacetCount>(),
+    ethnicities: new Map<string, number>(),
+    hairColors: new Map<string, number>(),
+    eyeColors: new Map<string, number>(),
     circumcised: new Map<GQL.CircumisedEnum, number>(),
     ratings: new Map<number, number>(),
     captions: new Map<string, number>(),
@@ -112,6 +118,9 @@ interface SerializedFacetCounts {
   orientations: [string, number][];
   genders: [string, number][];
   countries: [string, LabeledFacetCount][];
+  ethnicities?: [string, number][];
+  hairColors?: [string, number][];
+  eyeColors?: [string, number][];
   circumcised: [string, number][];
   ratings: [number, number][];
   captions: [string, number][];
@@ -160,6 +169,9 @@ function serializeCounts(counts: FacetCounts): SerializedFacetCounts {
     orientations: Array.from(counts.orientations.entries()).map(([k, v]) => [k as string, v]),
     genders: Array.from(counts.genders.entries()).map(([k, v]) => [k as string, v]),
     countries: Array.from(counts.countries.entries()),
+    ethnicities: Array.from(counts.ethnicities.entries()),
+    hairColors: Array.from(counts.hairColors.entries()),
+    eyeColors: Array.from(counts.eyeColors.entries()),
     circumcised: Array.from(counts.circumcised.entries()).map(([k, v]) => [k as string, v]),
     ratings: Array.from(counts.ratings.entries()),
     captions: Array.from(counts.captions.entries()),
@@ -181,6 +193,9 @@ function deserializeCounts(data: SerializedFacetCounts): FacetCounts {
     orientations: new Map(data.orientations.map(([k, v]) => [k as GQL.OrientationEnum, v])),
     genders: new Map(data.genders.map(([k, v]) => [k as GQL.GenderEnum, v])),
     countries: new Map(data.countries),
+    ethnicities: new Map(data.ethnicities ?? []),
+    hairColors: new Map(data.hairColors ?? []),
+    eyeColors: new Map(data.eyeColors ?? []),
     circumcised: new Map(data.circumcised.map(([k, v]) => [k as GQL.CircumisedEnum, v])),
     ratings: new Map(data.ratings),
     captions: new Map(data.captions),
@@ -316,6 +331,13 @@ function toMap(counts: { id: string; label: string; count: number }[]): Map<stri
 }
 
 /**
+ * Convert string facet counts to Map (for ethnicity, hair color, eye color)
+ */
+function toStringMap(counts: { value: string; count: number }[]): Map<string, number> {
+  return new Map(counts.map((c) => [c.value, c.count]));
+}
+
+/**
  * Convert resolution facet counts to Map
  */
 function toResolutionMap(
@@ -407,6 +429,9 @@ function buildSceneFacetCounts(facets: NonNullable<GQL.SceneFacetsQuery['sceneFa
     orientations: toOrientationMap(facets.orientations),
     genders: new Map(),
     countries: new Map(),
+    ethnicities: new Map(),
+    hairColors: new Map(),
+    eyeColors: new Map(),
     circumcised: new Map(),
     ratings: toRatingMap(facets.ratings),
     captions: toCaptionMap(facets.captions ?? []),
@@ -432,6 +457,9 @@ function buildGalleryFacetCounts(facets: NonNullable<GQL.GalleryFacetsQuery['gal
     orientations: new Map(),
     genders: new Map(),
     countries: new Map(),
+    ethnicities: new Map(),
+    hairColors: new Map(),
+    eyeColors: new Map(),
     circumcised: new Map(),
     ratings: toRatingMap(facets.ratings),
     captions: new Map(),
@@ -457,6 +485,9 @@ function buildPerformerFacetCounts(facets: NonNullable<GQL.PerformerFacetsQuery[
     orientations: new Map(),
     genders: toGenderMap(facets.genders),
     countries: toMap(facets.countries),
+    ethnicities: toStringMap(facets.ethnicities ?? []),
+    hairColors: toStringMap(facets.hair_colors ?? []),
+    eyeColors: toStringMap(facets.eye_colors ?? []),
     circumcised: toCircumcisedMap(facets.circumcised),
     ratings: toRatingMap(facets.ratings),
     captions: new Map(),
@@ -482,6 +513,9 @@ function buildGroupFacetCounts(facets: NonNullable<GQL.GroupFacetsQuery['groupFa
     orientations: new Map(),
     genders: new Map(),
     countries: new Map(),
+    ethnicities: new Map(),
+    hairColors: new Map(),
+    eyeColors: new Map(),
     circumcised: new Map(),
     ratings: toRatingMap(facets.ratings),
     captions: new Map(),
@@ -507,6 +541,9 @@ function buildStudioFacetCounts(facets: NonNullable<GQL.StudioFacetsQuery['studi
     orientations: new Map(),
     genders: new Map(),
     countries: new Map(),
+    ethnicities: new Map(),
+    hairColors: new Map(),
+    eyeColors: new Map(),
     circumcised: new Map(),
     ratings: toRatingMap(facets.ratings),
     captions: new Map(),
@@ -532,6 +569,9 @@ function buildTagFacetCounts(facets: NonNullable<GQL.TagFacetsQuery['tagFacets']
     orientations: new Map(),
     genders: new Map(),
     countries: new Map(),
+    ethnicities: new Map(),
+    hairColors: new Map(),
+    eyeColors: new Map(),
     circumcised: new Map(),
     ratings: new Map(),
     captions: new Map(),

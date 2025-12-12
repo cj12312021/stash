@@ -49,6 +49,12 @@ type CaptionFacetCount struct {
 	Count    int
 }
 
+// StringFacetCount represents a count for a string value (ethnicity, hair color, etc.)
+type StringFacetCount struct {
+	Value string
+	Count int
+}
+
 // SceneFacets contains all facet counts for scene filtering
 // All facets are always computed (no lazy loading) - they run in parallel goroutines
 type SceneFacets struct {
@@ -72,6 +78,9 @@ type PerformerFacets struct {
 	Groups      []FacetCount
 	Genders     []GenderFacetCount
 	Countries   []FacetCount
+	Ethnicities []StringFacetCount
+	HairColors  []StringFacetCount
+	EyeColors   []StringFacetCount
 	Circumcised []CircumcisedFacetCount
 	Favorite    []BooleanFacetCount
 	Ratings     []RatingFacetCount

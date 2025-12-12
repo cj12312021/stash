@@ -39,6 +39,11 @@ fragment CaptionFacetCountData on CaptionFacetCount {
   count
 }
 
+fragment StringFacetCountData on StringFacetCount {
+  value
+  count
+}
+
 query SceneFacets($scene_filter: SceneFilterType, $limit: Int) {
   sceneFacets(scene_filter: $scene_filter, limit: $limit) {
     tags {
@@ -93,6 +98,15 @@ query PerformerFacets($performer_filter: PerformerFilterType, $limit: Int) {
     }
     countries {
       ...FacetCountData
+    }
+    ethnicities {
+      ...StringFacetCountData
+    }
+    hair_colors {
+      ...StringFacetCountData
+    }
+    eye_colors {
+      ...StringFacetCountData
     }
     circumcised {
       ...CircumcisedFacetCountData

@@ -67,6 +67,14 @@ type CaptionFacetCount {
 }
 
 """
+A count for a string value (ethnicity, hair color, eye color) within the current filter context
+"""
+type StringFacetCount {
+  value: String!
+  count: Int!
+}
+
+"""
 Facet counts for scene filtering.
 Returns counts for various dimensions to enable efficient faceted search.
 """
@@ -109,6 +117,12 @@ type PerformerFacetsResult {
   genders: [GenderFacetCount!]!
   "Counts per country"
   countries: [FacetCount!]!
+  "Counts per ethnicity"
+  ethnicities: [StringFacetCount!]!
+  "Counts per hair color"
+  hair_colors: [StringFacetCount!]!
+  "Counts per eye color"
+  eye_colors: [StringFacetCount!]!
   "Counts per circumcised value"
   circumcised: [CircumcisedFacetCount!]!
   "Counts for favorite true/false"

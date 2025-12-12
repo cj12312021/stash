@@ -51,6 +51,12 @@ type CaptionFacetCount struct {
 	Count    int    `json:"count"`
 }
 
+// StringFacetCount represents a count for a string value (ethnicity, hair color, etc.)
+type StringFacetCount struct {
+	Value string `json:"value"`
+	Count int    `json:"count"`
+}
+
 // SceneFacetsResult contains all facet counts for scene filtering
 type SceneFacetsResult struct {
 	Tags          []*FacetCount            `json:"tags"`
@@ -73,6 +79,9 @@ type PerformerFacetsResult struct {
 	Groups      []*FacetCount            `json:"groups"`
 	Genders     []*GenderFacetCount      `json:"genders"`
 	Countries   []*FacetCount            `json:"countries"`
+	Ethnicities []*StringFacetCount      `json:"ethnicities"`
+	HairColors  []*StringFacetCount      `json:"hair_colors"`
+	EyeColors   []*StringFacetCount      `json:"eye_colors"`
 	Circumcised []*CircumcisedFacetCount `json:"circumcised"`
 	Favorite    []*BooleanFacetCount     `json:"favorite"`
 	Ratings     []*RatingFacetCount      `json:"ratings"`

@@ -204,6 +204,9 @@ func convertPerformerFacets(f *models.PerformerFacets) *PerformerFacetsResult {
 		Groups:      convertFacetCounts(f.Groups),
 		Genders:     convertGenderFacetCounts(f.Genders),
 		Countries:   convertFacetCounts(f.Countries),
+		Ethnicities: convertStringFacetCounts(f.Ethnicities),
+		HairColors:  convertStringFacetCounts(f.HairColors),
+		EyeColors:   convertStringFacetCounts(f.EyeColors),
 		Circumcised: convertCircumcisedFacetCounts(f.Circumcised),
 		Favorite:    convertBooleanFacetCounts(f.Favorite),
 		Ratings:     convertRatingFacetCounts(f.Ratings),
@@ -334,6 +337,17 @@ func convertCircumcisedFacetCounts(counts []models.CircumcisedFacetCount) []*Cir
 	result := make([]*CircumcisedFacetCount, len(counts))
 	for i, c := range counts {
 		result[i] = &CircumcisedFacetCount{
+			Value: c.Value,
+			Count: c.Count,
+		}
+	}
+	return result
+}
+
+func convertStringFacetCounts(counts []models.StringFacetCount) []*StringFacetCount {
+	result := make([]*StringFacetCount, len(counts))
+	for i, c := range counts {
+		result[i] = &StringFacetCount{
 			Value: c.Value,
 			Count: c.Count,
 		}
