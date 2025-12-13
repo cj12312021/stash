@@ -267,6 +267,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
 
     const [fullscreen, setFullscreen] = useState(false);
     const [showScrubber, setShowScrubber] = useState(false);
+    const [scrubberUserEnabled, setScrubberUserEnabled] = useState(true);
 
     const started = useRef(false);
     const auto = useRef(false);
@@ -302,7 +303,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     }, [_player]);
 
     useEffect(() => {
-      if (hideScrubberOverride || fullscreen) {
+      if (hideScrubberOverride || fullscreen || !scrubberUserEnabled) {
         setShowScrubber(false);
         return;
       }
@@ -316,7 +317,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       window.addEventListener("resize", onResize);
 
       return () => window.removeEventListener("resize", onResize);
-    }, [hideScrubberOverride, fullscreen]);
+    }, [hideScrubberOverride, fullscreen, scrubberUserEnabled]);
 
     useEffect(() => {
       sendSetTimestamp((value: number) => {
@@ -384,6 +385,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           },
           markers: {},
           settingsMenu: {},
+          playerIcons: {},
           persistVolume: {},
           bigButtons: {},
           seekButtons: {
@@ -547,7 +549,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           interactiveClient.play(this.currentTime());
           // trigger a second script play event to adjust for video player issues
           clearTimeout(playingTimer.current);
-          playingTimer.current = setTimeout(() => {
+          playingTimer.current = window.setTimeout(() => {
             if (this.paused()) return;
             interactiveClient.play(this.currentTime());
           }, DELAY_FOR_SECOND_PLAY_MS);
@@ -621,6 +623,10 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
 
       const { duration } = file;
       const settingsMenu = player.settingsMenu();
+      
+      // Reset video filters/transforms on new scene
+      settingsMenu.resetAll();
+      
       settingsMenu.setSources(
         scene.sceneStreams
           .filter((stream) => {
@@ -855,7 +861,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       sceneSaveActivity,
     ]);
 
-    // Sync autostart button with config changes
+    // Sync autostart button and settings menu with config changes
     useEffect(() => {
       const player = getPlayer();
       if (!player) return;
@@ -877,7 +883,43 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         );
         autostartButton.updateAutoStart = updateAutoStart;
       }
+
+      // Sync settings menu autoplay toggle with config
+      const settingsMenu = player.settingsMenu();
+      if (settingsMenu) {
+        settingsMenu.setAutoplayEnabled(interfaceConfig?.autostartVideo ?? false);
+        settingsMenu.setOnAutoplayChange(updateAutoStart);
+      }
     }, [getPlayer, updateInterfaceConfig, interfaceConfig?.autostartVideo]);
+
+    // Sync settings menu marker strip toggle with config and local state
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player) return;
+
+      async function updateShowScrubber(enabled: boolean) {
+        await updateInterfaceConfig({
+          variables: {
+            input: {
+              showScrubber: enabled,
+            },
+          },
+        });
+      }
+
+      // Initialize from config
+      const configValue = interfaceConfig?.showScrubber ?? true;
+      setScrubberUserEnabled(configValue);
+
+      const settingsMenu = player.settingsMenu();
+      if (settingsMenu) {
+        settingsMenu.setMarkerStripEnabled(configValue);
+        settingsMenu.setOnMarkerStripChange((enabled: boolean) => {
+          setScrubberUserEnabled(enabled);
+          updateShowScrubber(enabled);
+        });
+      }
+    }, [getPlayer, updateInterfaceConfig, interfaceConfig?.showScrubber]);
 
     useEffect(() => {
       const player = getPlayer();

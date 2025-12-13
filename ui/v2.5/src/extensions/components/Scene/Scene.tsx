@@ -48,7 +48,7 @@ import SceneQueue, { QueuedScene } from "src/models/sceneQueue";
 import { ListFilterModel } from "src/models/list-filter/filter";
 import Mousetrap from "mousetrap";
 import { OrganizedButton } from "src/components/Scenes/SceneDetails/OrganizedButton";
-import { ConfigurationContext } from "src/hooks/Config";
+import { ConfigurationContext, useConfigurationContext } from "src/hooks/Config";
 import { getPlayerPosition } from "src/components/ScenePlayer/util";
 import {
   faEllipsisV,
@@ -90,9 +90,7 @@ const DeleteScenesDialog = lazyComponent(() => import("src/components/Scenes/Del
 const GenerateDialog = lazyComponent(
   () => import("src/components/Dialogs/GenerateDialog")
 );
-const SceneVideoFilterPanel = lazyComponent(
-  () => import("src/components/Scenes/SceneDetails/SceneVideoFilterPanel")
-);
+// Video filters removed - now available in player settings menu
 
 const VideoFrameRateResolution: React.FC<{
   width?: number;
@@ -196,7 +194,7 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
   const intl = useIntl();
   const [updateScene] = useSceneUpdate();
   const [generateScreenshot] = useSceneGenerateScreenshot();
-  const { configuration } = useContext(ConfigurationContext);
+  const { configuration } = useConfigurationContext();
   const uiConfig = configuration?.ui;
   const enableBackgroundImage = uiConfig?.enableSceneBackgroundImage ?? false;
 
@@ -646,11 +644,6 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
               </Nav.Link>
             </Nav.Item>
             <Nav.Item>
-              <Nav.Link eventKey="scene-video-filter-panel">
-                <FormattedMessage id="effect_filters.name" />
-              </Nav.Link>
-            </Nav.Item>
-            <Nav.Item>
               <Nav.Link eventKey="scene-file-info-panel">
                 <FormattedMessage id="file_info" />
                 <Counter count={scene.files.length} hideZero hideOne />
@@ -715,9 +708,6 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
               isVisible={activeTabKey === "scene-markers-panel"}
             />
           </Tab.Pane>
-          <Tab.Pane eventKey="scene-video-filter-panel">
-            <SceneVideoFilterPanel scene={scene} />
-          </Tab.Pane>
           <Tab.Pane
             className="file-info-panel"
             eventKey="scene-file-info-panel"
@@ -781,7 +771,7 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
   match,
 }) => {
   const { id } = match.params;
-  const { configuration } = useContext(ConfigurationContext);
+  const { configuration } = useConfigurationContext();
   const { data, loading, error } = useFindScene(id);
 
   const [scene, setScene] = useState<GQL.SceneDataFragment>();

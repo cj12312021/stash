@@ -1,62 +1,94 @@
-# Scene Player Modifications
+# Scene Player Patches
 
-## Overview
+## Settings Menu Enhancement (Archivr Design)
 
-The scene player has been enhanced with a custom settings menu plugin that provides:
-- Quality/source selection with automatic fallback on errors
-- Playback speed control
-- Subtitle/CC track selection
+**File**: `ui/v2.5/src/extensions/player/settings-menu.ts`
 
-## Files
+The video player settings menu has been enhanced based on the Archivr design spec to consolidate player controls.
 
-| File | Status | Details |
-|------|--------|---------|
-| `settings-menu.ts` | ✅ Moved | Now in `extensions/player/settings-menu.ts` |
-| `ScenePlayer.tsx` | 📝 Minor patch | 2 small changes |
-| `styles.scss` | ✅ Extracted | Now in `extensions/styles/_player-components.scss` |
+### Changes
 
-## Changes to ScenePlayer.tsx
+The settings menu now includes:
 
-After merging from upstream, apply these changes:
+1. **Quality Selection** - Existing functionality
+2. **Playback Speed** - Existing functionality  
+3. **Subtitle/CC** - Existing functionality
+4. **Loop Video Toggle** - Controls `player.loop()` directly
+5. **Auto-play Next Toggle** - Syncs with `autostartVideo` config setting
+6. **Show Scrubber Toggle** - Syncs with `showScrubber` config setting
+6. **Video Filters** (expandable section):
+   - Brightness (0-200%)
+   - Contrast (0-200%)
+   - Saturation (0-200%)
+   - Hue (0-360°)
+   - Blur (0-10px)
+   - Reset Filters button
+7. **Video Transforms** (expandable section):
+   - Rotate (-180° to +180°)
+   - Scale (50-200%)
+   - Quick rotate buttons (-90°/+90°)
+   - Reset Transforms button
 
-### 1. Import the settings menu plugin
+### Integration with ScenePlayer.tsx
 
-Add this import after the other plugin imports:
-
-```typescript
-import "./live";
-import "./PlaylistButtons";
-import "./source-selector";
-import "src/extensions/player/settings-menu";  // ADD THIS LINE
-import "./persist-volume";
-```
-
-### 2. Volume panel inline mode
-
-Change the volume panel configuration from `inline: false` to `inline: true`:
+The following hooks were added in `ScenePlayer.tsx`:
 
 ```typescript
-controlBar: {
-  pictureInPictureToggle: false,
-  volumePanel: {
-    inline: true,  // Changed from false
-  },
-  chaptersButton: false,
-},
+// Sync settings menu autoplay toggle with config
+const settingsMenu = player.settingsMenu();
+if (settingsMenu) {
+  settingsMenu.setAutoplayEnabled(interfaceConfig?.autostartVideo ?? false);
+  settingsMenu.setOnAutoplayChange(updateAutoStart);
+}
+
+// Reset video filters/transforms on new scene
+settingsMenu.resetAll();
 ```
 
-## Why These Changes?
+### CSS Styles
 
-1. **Settings Menu Plugin**: Provides a unified settings menu instead of scattered controls. The plugin auto-registers when imported.
+New styles added to `ui/v2.5/src/extensions/styles/_player-components.scss`:
 
-2. **Volume Panel Inline**: Makes the volume slider appear inline with the control bar instead of as a popup, providing better UX.
+- `.vjs-settings-menu-divider` - Separator between menu sections
+- `.vjs-settings-menu-toggle` - Toggle switch container
+- `.vjs-settings-toggle-switch` - iOS-style toggle switch
+- `.vjs-settings-slider-group` - Container for filter/transform sliders
+- `.vjs-settings-slider-item` - Individual slider with label and value
+- `.vjs-settings-quick-actions` - Quick action buttons row
+- `.vjs-settings-quick-btn` - Quick action button
+- `.vjs-settings-action-buttons` - Reset button container
+- `.vjs-settings-reset-btn` - Reset button styling
 
-## Related Styles
+### Design Reference
 
-Player styling is in `extensions/styles/_player-components.scss` which includes:
-- Scrubber styling
-- Volume panel styling
-- Settings menu styling
-- Video.js customizations
+Based on Archivr design spec from `private/ARCHIVR-FRONTEND-DESIGN-SPEC.md` and visual mockup from `private/design/component-player.svg`.
 
+Menu structure matches the Archivr design:
+```
+┌─────────────────────────────────────┐
+│ [4K (2160p)                    ▼]  │ ← Quality dropdown
+├─────────────────────────────────────┤
+│ [0.5] [1.0] [1.5] [2.0] [3.0] [...] │ ← Speed (submenu)
+├─────────────────────────────────────┤
+│ Loop video                 [  OFF  ]│
+│ Auto-play next             [  ON   ]│
+│ Show scrubber strip          [  ON   ]│
+├─────────────────────────────────────┤
+│ ▶ Video Filters                     │ ← Expandable
+│ ▶ Video Transforms                  │ ← Expandable
+└─────────────────────────────────────┘
+```
 
+## Filter Tab Removal (Extension Component)
+
+**File**: `ui/v2.5/src/extensions/components/Scene/Scene.tsx`
+
+Since video filters are now accessible from the player settings menu, the standalone "Effect Filters" tab has been removed from the scene details page in the extension component.
+
+### Changes
+
+1. Removed `SceneVideoFilterPanel` lazy import
+2. Removed `Nav.Item` for `scene-video-filter-panel`
+3. Removed `Tab.Pane` for `SceneVideoFilterPanel`
+
+**Note**: The upstream `ui/v2.5/src/components/Scenes/SceneDetails/Scene.tsx` is unchanged. The filter tab removal is only in the extension component, following the fork extension strategy.
