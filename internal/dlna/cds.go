@@ -174,7 +174,10 @@ func childPath(paths []string) []string {
 
 func (me *contentDirectoryService) Handle(action string, argsXML []byte, r *http.Request) (map[string]string, error) {
 	host := r.Host
-	// userAgent := r.UserAgent()
+	userAgent := r.UserAgent()
+
+	logger.Debugf("[DLNA CDS] Action: %s, User-Agent: %s, RemoteAddr: %s", action, userAgent, r.RemoteAddr)
+
 	switch action {
 	case "GetSystemUpdateID":
 		return map[string]string{
@@ -187,17 +190,24 @@ func (me *contentDirectoryService) Handle(action string, argsXML []byte, r *http
 	case "Browse":
 		var browse browse
 		if err := xml.Unmarshal([]byte(argsXML), &browse); err != nil {
+			logger.Warnf("[DLNA CDS] Failed to unmarshal Browse request: %v", err)
 			return nil, upnp.Errorf(upnp.ArgumentValueInvalidErrorCode, "cannot unmarshal browse argument: %s", err.Error())
 		}
 
+		logger.Debugf("[DLNA CDS] Browse request: ObjectID=%q, BrowseFlag=%s, Filter=%q, StartingIndex=%d, RequestedCount=%d",
+			browse.ObjectID, browse.BrowseFlag, browse.Filter, browse.StartingIndex, browse.RequestedCount)
+
 		obj, err := me.objectFromID(browse.ObjectID)
 		if err != nil {
+			logger.Warnf("[DLNA CDS] Failed to find object: ObjectID=%q, error=%v", browse.ObjectID, err)
 			return nil, upnp.Errorf(upnpav.NoSuchObjectErrorCode, "cannot find object with id %q: %v", browse.ObjectID, err.Error())
 		}
 
+		logger.Debugf("[DLNA CDS] Resolved object: Path=%q, IsRoot=%v", obj.Path, obj.IsRoot())
+
 		switch browse.BrowseFlag {
 		case "BrowseDirectChildren":
-			return me.handleBrowseDirectChildren(obj, host)
+			return me.handleBrowseDirectChildren(obj, host, browse)
 		case "BrowseMetadata":
 			return me.handleBrowseMetadata(obj, host)
 		default:
@@ -226,118 +236,164 @@ func (me *contentDirectoryService) Handle(action string, argsXML []byte, r *http
 	}
 }
 
-func (me *contentDirectoryService) handleBrowseDirectChildren(obj object, host string) (map[string]string, error) {
-	// Read folder and return children
-	// TODO: check if obj == 0 and return root objects
-	// TODO: check if special path and return files
+// browseResult holds the result of browsing a directory with pagination support
+type browseResult struct {
+	Objects     []interface{}
+	TotalCount  int
+	IsPaginated bool // true if pagination was applied at the database level
+}
 
-	var objs []interface{}
+// Maximum items to return per DLNA browse request for large collections (scenes, etc.)
+// Large values cause massive XML responses that overwhelm clients
+const maxDLNABrowseCount = 100
 
-	if obj.IsRoot() {
-		objs = getRootObjects()
+// Maximum items for letter-filtered folders (performers/A, studios/B, etc.)
+// Higher limit since these are already filtered to a single letter
+const maxDLNALetterFolderCount = 10000
+
+func (me *contentDirectoryService) handleBrowseDirectChildren(obj object, host string, browse browse) (map[string]string, error) {
+	logger.Debugf("[DLNA CDS] BrowseDirectChildren: Path=%q", obj.Path)
+
+	startIndex := browse.StartingIndex
+
+	// Default count with standard limit for large collections
+	count := browse.RequestedCount
+	if count == 0 || count > maxDLNABrowseCount {
+		count = maxDLNABrowseCount
 	}
+
+	// Higher limit for letter-filtered folders
+	letterFolderCount := browse.RequestedCount
+	if letterFolderCount == 0 || letterFolderCount > maxDLNALetterFolderCount {
+		letterFolderCount = maxDLNALetterFolderCount
+	}
+
+	var result browseResult
 
 	paths := strings.Split(obj.Path, "/")
 
-	// All videos
-	if obj.Path == "all" {
-		objs = me.getAllScenes(host)
-	}
+	switch {
+	case obj.IsRoot():
+		objs := getRootObjects()
+		result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
 
-	if strings.HasPrefix(obj.Path, "all/") {
+	case obj.Path == "all":
+		result = me.getAllScenesPaginated(host, startIndex, count)
+
+	case strings.HasPrefix(obj.Path, "all/"):
 		page := getPageFromID(paths)
 		if page != nil {
-			objs = me.getPageVideos(&models.SceneFilterType{}, "all", *page, host)
+			objs := me.getPageVideos(&models.SceneFilterType{}, "all", *page, host)
+			result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
 		}
+
+	case obj.Path == "studios":
+		// Show A-Z letter folders for studios
+		objs := getAlphabetFolders("studios")
+		result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+
+	case strings.HasPrefix(obj.Path, "studios/"):
+		// Check if this is a letter folder (e.g., "studios/A") or a studio ID (e.g., "studios/A/123")
+		subPaths := childPath(paths)
+		if len(subPaths) == 1 && isLetterFolder(subPaths[0]) {
+			// Letter folder - show studios starting with this letter (higher limit)
+			result = me.getStudiosByLetter(subPaths[0], startIndex, letterFolderCount)
+		} else if len(subPaths) >= 2 && isLetterFolder(subPaths[0]) {
+			// Studio ID under letter folder - show scenes
+			objs := me.getStudioScenes(subPaths[1:], host)
+			result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+		} else {
+			// Legacy path without letter - show scenes directly
+			objs := me.getStudioScenes(subPaths, host)
+			result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+		}
+
+	case obj.Path == "tags":
+		// Show A-Z letter folders for tags
+		objs := getAlphabetFolders("tags")
+		result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+
+	case strings.HasPrefix(obj.Path, "tags/"):
+		// Check if this is a letter folder (e.g., "tags/A") or a tag ID (e.g., "tags/A/123")
+		subPaths := childPath(paths)
+		if len(subPaths) == 1 && isLetterFolder(subPaths[0]) {
+			// Letter folder - show tags starting with this letter (higher limit)
+			result = me.getTagsByLetter(subPaths[0], startIndex, letterFolderCount)
+		} else if len(subPaths) >= 2 && isLetterFolder(subPaths[0]) {
+			// Tag ID under letter folder - show scenes
+			objs := me.getTagScenes(subPaths[1:], host)
+			result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+		} else {
+			// Legacy path without letter - show scenes directly
+			objs := me.getTagScenes(subPaths, host)
+			result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+		}
+
+	case obj.Path == "performers":
+		// Show A-Z letter folders for performers
+		objs := getAlphabetFolders("performers")
+		result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+
+	case strings.HasPrefix(obj.Path, "performers/"):
+		// Check if this is a letter folder (e.g., "performers/A") or a performer ID (e.g., "performers/A/123")
+		subPaths := childPath(paths)
+		if len(subPaths) == 1 && isLetterFolder(subPaths[0]) {
+			// Letter folder - show performers starting with this letter (higher limit)
+			result = me.getPerformersByLetter(subPaths[0], startIndex, letterFolderCount)
+		} else if len(subPaths) >= 2 && isLetterFolder(subPaths[0]) {
+			// Performer ID under letter folder - show scenes
+			objs := me.getPerformerScenes(subPaths[1:], host)
+			result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+		} else {
+			// Legacy path without letter - show scenes directly
+			objs := me.getPerformerScenes(subPaths, host)
+			result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+		}
+
+	case obj.Path == "groups":
+		// Show A-Z letter folders for groups
+		objs := getAlphabetFolders("groups")
+		result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+
+	case strings.HasPrefix(obj.Path, "groups/"):
+		// Check if this is a letter folder (e.g., "groups/A") or a group ID (e.g., "groups/A/123")
+		subPaths := childPath(paths)
+		if len(subPaths) == 1 && isLetterFolder(subPaths[0]) {
+			// Letter folder - show groups starting with this letter (higher limit)
+			result = me.getGroupsByLetter(subPaths[0], startIndex, letterFolderCount)
+		} else if len(subPaths) >= 2 && isLetterFolder(subPaths[0]) {
+			// Group ID under letter folder - show scenes
+			objs := me.getGroupScenes(subPaths[1:], host)
+			result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+		} else {
+			// Legacy path without letter - show scenes directly
+			objs := me.getGroupScenes(subPaths, host)
+			result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+		}
+
+	case obj.Path == "rating":
+		objs := me.getRating()
+		result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
+
+	case strings.HasPrefix(obj.Path, "rating/"):
+		objs := me.getRatingScenes(childPath(paths), host)
+		result = browseResult{Objects: objs, TotalCount: len(objs), IsPaginated: false}
 	}
 
-	// Saved searches
-	// if obj.Path == "saved-searches" {
-	// 	var savedPlaylists []models.Playlist
-	// 	db, _ := models.GetDB()
-	// 	db.Where("is_deo_enabled = ?", true).Order("ordering asc").Find(&savedPlaylists)
-	// 	db.Close()
+	logger.Debugf("[DLNA CDS] BrowseDirectChildren: Path=%q returned %d objects (total: %d, paginated: %v)",
+		obj.Path, len(result.Objects), result.TotalCount, result.IsPaginated)
 
-	// 	for _, playlist := range savedPlaylists {
-	// 		objs = append(objs, upnpav.Container{Object: upnpav.Object{
-	// 			ID:         "saved-searches/" + strconv.Itoa(int(playlist.ID)),
-	// 			Restricted: 1,
-	// 			ParentID:   "saved-searches",
-	// 			Class:      "object.container.storageFolder",
-	// 			Title:      playlist.Name,
-	// 		}})
-	// 	}
-	// }
-
-	// if strings.HasPrefix(obj.Path, "saved-searches/") {
-	// 	id := strings.Split(obj.Path, "/")
-
-	// 	var savedPlaylist models.Playlist
-	// 	db, _ := models.GetDB()
-	// 	db.Where("id = ?", id[1]).First(&savedPlaylist)
-	// 	db.Close()
-
-	// 	var r models.RequestSceneList
-	// 	if err := json.Unmarshal([]byte(savedPlaylist.SearchParams), &r); err == nil {
-	// 		r.IsAccessible = optional.NewBool(true)
-	// 		r.IsAvailable = optional.NewBool(true)
-	// 		data := models.QueryScenesFull(r)
-
-	// 		for i := range data.Scenes {
-	// 			objs = append(objs, me.sceneToContainer(data.Scenes[i], "sites/"+id[1], host))
-	// 		}
-	// 	}
-	// }
-
-	// Studios
-	if obj.Path == "studios" {
-		objs = me.getStudios()
+	// If pagination was already applied at DB level, don't apply it again
+	if result.IsPaginated {
+		return makeBrowseResultDirect(result.Objects, result.TotalCount, me.updateIDString())
 	}
 
-	if strings.HasPrefix(obj.Path, "studios/") {
-		objs = me.getStudioScenes(childPath(paths), host)
-	}
-
-	// Tags
-	if obj.Path == "tags" {
-		objs = me.getTags()
-	}
-
-	if strings.HasPrefix(obj.Path, "tags/") {
-		objs = me.getTagScenes(childPath(paths), host)
-	}
-
-	// Performers
-	if obj.Path == "performers" {
-		objs = me.getPerformers()
-	}
-
-	if strings.HasPrefix(obj.Path, "performers/") {
-		objs = me.getPerformerScenes(childPath(paths), host)
-	}
-
-	// Groups - deprecated
-	if obj.Path == "groups" {
-		objs = me.getGroups()
-	}
-
-	if strings.HasPrefix(obj.Path, "groups/") {
-		objs = me.getGroupScenes(childPath(paths), host)
-	}
-
-	// Rating
-	if obj.Path == "rating" {
-		objs = me.getRating()
-	}
-
-	if strings.HasPrefix(obj.Path, "rating/") {
-		objs = me.getRatingScenes(childPath(paths), host)
-	}
-
-	return makeBrowseResult(objs, me.updateIDString())
+	return makeBrowseResult(result.Objects, me.updateIDString(), browse.StartingIndex, browse.RequestedCount)
 }
 
 func (me *contentDirectoryService) handleBrowseMetadata(obj object, host string) (map[string]string, error) {
+	logger.Debugf("[DLNA CDS] BrowseMetadata: Path=%q", obj.Path)
+
 	var objs []interface{}
 	var updateID string
 
@@ -383,23 +439,66 @@ func (me *contentDirectoryService) handleBrowseMetadata(obj object, host string)
 			const maxUpdateID int64 = 1 << 32
 			updateID = fmt.Sprint(scene.UpdatedAt.Unix() % maxUpdateID)
 		} else {
+			logger.Warnf("[DLNA CDS] BrowseMetadata: scene not found for ID=%d", sceneID)
 			return nil, upnp.Errorf(upnpav.NoSuchObjectErrorCode, "scene not found")
 		}
 	}
 
-	return makeBrowseResult(objs, updateID)
+	logger.Debugf("[DLNA CDS] BrowseMetadata: Path=%q returned %d objects", obj.Path, len(objs))
+
+	// BrowseMetadata always returns a single object, no pagination needed
+	return makeBrowseResult(objs, updateID, 0, 0)
 }
 
-func makeBrowseResult(objs []interface{}, updateID string) (map[string]string, error) {
+func makeBrowseResult(objs []interface{}, updateID string, startingIndex int, requestedCount int) (map[string]string, error) {
+	totalMatches := len(objs)
+
+	// Apply pagination if requested
+	// Note: Many DLNA clients send RequestedCount=0 to mean "return all"
+	if startingIndex > 0 || (requestedCount > 0 && requestedCount < totalMatches) {
+		logger.Debugf("[DLNA CDS] Applying pagination: StartingIndex=%d, RequestedCount=%d, TotalMatches=%d",
+			startingIndex, requestedCount, totalMatches)
+
+		// Clamp starting index
+		if startingIndex >= totalMatches {
+			objs = []interface{}{}
+		} else {
+			endIndex := totalMatches
+			if requestedCount > 0 && startingIndex+requestedCount < totalMatches {
+				endIndex = startingIndex + requestedCount
+			}
+			objs = objs[startingIndex:endIndex]
+		}
+	}
+
+	return makeBrowseResultDirect(objs, totalMatches, updateID)
+}
+
+// makeBrowseResultDirect creates a browse result without applying pagination
+// (used when pagination was already applied at the database level)
+func makeBrowseResultDirect(objs []interface{}, totalMatches int, updateID string) (map[string]string, error) {
 	result, err := xml.Marshal(objs)
 	if err != nil {
+		logger.Errorf("[DLNA CDS] Failed to marshal browse result: %v", err)
 		return nil, upnp.Errorf(upnp.ActionFailedErrorCode, "could not marshal objects: %s", err.Error())
 	}
 
+	didlResult := didl_lite(string(result))
+
+	logger.Debugf("[DLNA CDS] Browse response: TotalMatches=%d, NumberReturned=%d, UpdateID=%s, ResultLength=%d bytes",
+		totalMatches, len(objs), updateID, len(didlResult))
+
+	// Log a snippet of the DIDL-Lite result for debugging (first 500 chars)
+	if len(didlResult) > 500 {
+		logger.Tracef("[DLNA CDS] DIDL-Lite (truncated): %s...", didlResult[:500])
+	} else {
+		logger.Tracef("[DLNA CDS] DIDL-Lite: %s", didlResult)
+	}
+
 	return map[string]string{
-		"TotalMatches":   fmt.Sprint(len(objs)),
+		"TotalMatches":   fmt.Sprint(totalMatches),
 		"NumberReturned": fmt.Sprint(len(objs)),
-		"Result":         didl_lite(string(result)),
+		"Result":         didlResult,
 		"UpdateID":       updateID,
 	}, nil
 }
@@ -416,6 +515,50 @@ func makeStorageFolder(id, title, parentID string) upnpav.Container {
 		},
 		ChildCount: defaultChildCount,
 	}
+}
+
+// getAlphabetFolders returns A-Z folders plus a # folder for non-alphabetic names
+func getAlphabetFolders(parentID string) []interface{} {
+	var objs []interface{}
+
+	// Add # for numbers and symbols
+	objs = append(objs, makeStorageFolder(parentID+"/#", "#", parentID))
+
+	// Add A-Z
+	for c := 'A'; c <= 'Z'; c++ {
+		letter := string(c)
+		objs = append(objs, makeStorageFolder(parentID+"/"+letter, letter, parentID))
+	}
+
+	return objs
+}
+
+// isLetterFolder checks if the path component is a valid letter folder (A-Z or #)
+func isLetterFolder(s string) bool {
+	if s == "#" {
+		return true
+	}
+	if len(s) == 1 {
+		c := s[0]
+		return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+	}
+	return false
+}
+
+// getFirstLetter returns the uppercase first letter for alphabetical grouping
+// Returns "#" for names starting with non-letters
+func getFirstLetter(name string) string {
+	if len(name) == 0 {
+		return "#"
+	}
+	c := name[0]
+	if c >= 'A' && c <= 'Z' {
+		return string(c)
+	}
+	if c >= 'a' && c <= 'z' {
+		return string(c - 32) // Convert to uppercase
+	}
+	return "#"
 }
 
 func getRootObject() []interface{} {
@@ -538,6 +681,438 @@ func (me *contentDirectoryService) getAllScenes(host string) []interface{} {
 	return me.getVideos(&models.SceneFilterType{}, "all", host)
 }
 
+// getAllScenesPaginated returns scenes with database-level pagination
+func (me *contentDirectoryService) getAllScenesPaginated(host string, startIndex int, count int) browseResult {
+	var objs []interface{}
+	var totalCount int
+
+	r := me.repository
+	if err := r.WithReadTxn(context.TODO(), func(ctx context.Context) error {
+		sort := me.VideoSortOrder
+		direction := getSortDirection(&models.SceneFilterType{}, sort)
+
+		// Convert startIndex to page number (1-based for the query)
+		page := (startIndex / count) + 1
+		perPage := count
+
+		findFilter := &models.FindFilterType{
+			PerPage:   &perPage,
+			Page:      &page,
+			Sort:      &sort,
+			Direction: &direction,
+		}
+
+		scenes, total, err := scene.QueryWithCount(ctx, r.SceneFinder, &models.SceneFilterType{}, findFilter)
+		if err != nil {
+			return err
+		}
+
+		totalCount = total
+
+		for _, s := range scenes {
+			if err := s.LoadPrimaryFile(ctx, r.FileGetter); err != nil {
+				return err
+			}
+			objs = append(objs, sceneToContainer(s, "all", host))
+		}
+
+		return nil
+	}); err != nil {
+		logger.Error(err.Error())
+	}
+
+	return browseResult{Objects: objs, TotalCount: totalCount, IsPaginated: true}
+}
+
+// getStudiosPaginated returns studios with database-level pagination
+func (me *contentDirectoryService) getStudiosPaginated(startIndex int, count int) browseResult {
+	var objs []interface{}
+	var totalCount int
+
+	r := me.repository
+	if err := r.WithReadTxn(context.TODO(), func(ctx context.Context) error {
+		// Convert startIndex to page number (1-based for the query)
+		page := (startIndex / count) + 1
+		perPage := count
+		sort := "name"
+		direction := models.SortDirectionEnumAsc
+
+		findFilter := &models.FindFilterType{
+			PerPage:   &perPage,
+			Page:      &page,
+			Sort:      &sort,
+			Direction: &direction,
+		}
+
+		studios, total, err := r.StudioFinder.Query(ctx, nil, findFilter)
+		if err != nil {
+			return err
+		}
+
+		totalCount = total
+
+		for _, s := range studios {
+			objs = append(objs, makeStorageFolder("studios/"+strconv.Itoa(s.ID), s.Name, "studios"))
+		}
+
+		return nil
+	}); err != nil {
+		logger.Errorf(err.Error())
+	}
+
+	return browseResult{Objects: objs, TotalCount: totalCount, IsPaginated: true}
+}
+
+// getTagsPaginated returns tags with database-level pagination
+func (me *contentDirectoryService) getTagsPaginated(startIndex int, count int) browseResult {
+	var objs []interface{}
+	var totalCount int
+
+	r := me.repository
+	if err := r.WithReadTxn(context.TODO(), func(ctx context.Context) error {
+		page := (startIndex / count) + 1
+		perPage := count
+		sort := "name"
+		direction := models.SortDirectionEnumAsc
+
+		findFilter := &models.FindFilterType{
+			PerPage:   &perPage,
+			Page:      &page,
+			Sort:      &sort,
+			Direction: &direction,
+		}
+
+		tags, total, err := r.TagFinder.Query(ctx, nil, findFilter)
+		if err != nil {
+			return err
+		}
+
+		totalCount = total
+
+		for _, s := range tags {
+			objs = append(objs, makeStorageFolder("tags/"+strconv.Itoa(s.ID), s.Name, "tags"))
+		}
+
+		return nil
+	}); err != nil {
+		logger.Errorf(err.Error())
+	}
+
+	return browseResult{Objects: objs, TotalCount: totalCount, IsPaginated: true}
+}
+
+// getPerformersPaginated returns performers with database-level pagination
+func (me *contentDirectoryService) getPerformersPaginated(startIndex int, count int) browseResult {
+	var objs []interface{}
+	var totalCount int
+
+	r := me.repository
+	if err := r.WithReadTxn(context.TODO(), func(ctx context.Context) error {
+		page := (startIndex / count) + 1
+		perPage := count
+		sort := "name"
+		direction := models.SortDirectionEnumAsc
+
+		findFilter := &models.FindFilterType{
+			PerPage:   &perPage,
+			Page:      &page,
+			Sort:      &sort,
+			Direction: &direction,
+		}
+
+		performers, total, err := r.PerformerFinder.Query(ctx, nil, findFilter)
+		if err != nil {
+			return err
+		}
+
+		totalCount = total
+
+		for _, s := range performers {
+			objs = append(objs, makeStorageFolder("performers/"+strconv.Itoa(s.ID), s.Name, "performers"))
+		}
+
+		return nil
+	}); err != nil {
+		logger.Errorf(err.Error())
+	}
+
+	return browseResult{Objects: objs, TotalCount: totalCount, IsPaginated: true}
+}
+
+// getGroupsPaginated returns groups with database-level pagination
+func (me *contentDirectoryService) getGroupsPaginated(startIndex int, count int) browseResult {
+	var objs []interface{}
+	var totalCount int
+
+	r := me.repository
+	if err := r.WithReadTxn(context.TODO(), func(ctx context.Context) error {
+		page := (startIndex / count) + 1
+		perPage := count
+		sort := "name"
+		direction := models.SortDirectionEnumAsc
+
+		findFilter := &models.FindFilterType{
+			PerPage:   &perPage,
+			Page:      &page,
+			Sort:      &sort,
+			Direction: &direction,
+		}
+
+		groups, total, err := r.GroupFinder.Query(ctx, nil, findFilter)
+		if err != nil {
+			return err
+		}
+
+		totalCount = total
+
+		for _, s := range groups {
+			objs = append(objs, makeStorageFolder("groups/"+strconv.Itoa(s.ID), s.Name, "groups"))
+		}
+
+		return nil
+	}); err != nil {
+		logger.Errorf(err.Error())
+	}
+
+	return browseResult{Objects: objs, TotalCount: totalCount, IsPaginated: true}
+}
+
+// getPerformersByLetter returns performers whose names start with the given letter
+func (me *contentDirectoryService) getPerformersByLetter(letter string, startIndex int, count int) browseResult {
+	var objs []interface{}
+	var totalCount int
+
+	r := me.repository
+	if err := r.WithReadTxn(context.TODO(), func(ctx context.Context) error {
+		page := (startIndex / count) + 1
+		perPage := count
+		sort := "name"
+		direction := models.SortDirectionEnumAsc
+
+		findFilter := &models.FindFilterType{
+			PerPage:   &perPage,
+			Page:      &page,
+			Sort:      &sort,
+			Direction: &direction,
+		}
+
+		// Build filter for names starting with the letter
+		var performerFilter *models.PerformerFilterType
+		if letter == "#" {
+			// Match names starting with non-letters (numbers, symbols)
+			performerFilter = &models.PerformerFilterType{
+				Name: &models.StringCriterionInput{
+					Value:    "^[^A-Za-z]",
+					Modifier: models.CriterionModifierMatchesRegex,
+				},
+			}
+		} else {
+			// Match names starting with the letter (case-insensitive)
+			performerFilter = &models.PerformerFilterType{
+				Name: &models.StringCriterionInput{
+					Value:    "^[" + strings.ToUpper(letter) + strings.ToLower(letter) + "]",
+					Modifier: models.CriterionModifierMatchesRegex,
+				},
+			}
+		}
+
+		performers, total, err := r.PerformerFinder.Query(ctx, performerFilter, findFilter)
+		if err != nil {
+			return err
+		}
+
+		totalCount = total
+		parentID := "performers/" + strings.ToUpper(letter)
+
+		for _, s := range performers {
+			objs = append(objs, makeStorageFolder(parentID+"/"+strconv.Itoa(s.ID), s.Name, parentID))
+		}
+
+		return nil
+	}); err != nil {
+		logger.Errorf(err.Error())
+	}
+
+	return browseResult{Objects: objs, TotalCount: totalCount, IsPaginated: true}
+}
+
+// getStudiosByLetter returns studios whose names start with the given letter
+func (me *contentDirectoryService) getStudiosByLetter(letter string, startIndex int, count int) browseResult {
+	var objs []interface{}
+	var totalCount int
+
+	r := me.repository
+	if err := r.WithReadTxn(context.TODO(), func(ctx context.Context) error {
+		page := (startIndex / count) + 1
+		perPage := count
+		sort := "name"
+		direction := models.SortDirectionEnumAsc
+
+		findFilter := &models.FindFilterType{
+			PerPage:   &perPage,
+			Page:      &page,
+			Sort:      &sort,
+			Direction: &direction,
+		}
+
+		// Build filter for names starting with the letter
+		var studioFilter *models.StudioFilterType
+		if letter == "#" {
+			// Match names starting with non-letters (numbers, symbols)
+			studioFilter = &models.StudioFilterType{
+				Name: &models.StringCriterionInput{
+					Value:    "^[^A-Za-z]",
+					Modifier: models.CriterionModifierMatchesRegex,
+				},
+			}
+		} else {
+			// Match names starting with the letter (case-insensitive)
+			studioFilter = &models.StudioFilterType{
+				Name: &models.StringCriterionInput{
+					Value:    "^[" + strings.ToUpper(letter) + strings.ToLower(letter) + "]",
+					Modifier: models.CriterionModifierMatchesRegex,
+				},
+			}
+		}
+
+		studios, total, err := r.StudioFinder.Query(ctx, studioFilter, findFilter)
+		if err != nil {
+			return err
+		}
+
+		totalCount = total
+		parentID := "studios/" + strings.ToUpper(letter)
+
+		for _, s := range studios {
+			objs = append(objs, makeStorageFolder(parentID+"/"+strconv.Itoa(s.ID), s.Name, parentID))
+		}
+
+		return nil
+	}); err != nil {
+		logger.Errorf(err.Error())
+	}
+
+	return browseResult{Objects: objs, TotalCount: totalCount, IsPaginated: true}
+}
+
+// getTagsByLetter returns tags whose names start with the given letter
+func (me *contentDirectoryService) getTagsByLetter(letter string, startIndex int, count int) browseResult {
+	var objs []interface{}
+	var totalCount int
+
+	r := me.repository
+	if err := r.WithReadTxn(context.TODO(), func(ctx context.Context) error {
+		page := (startIndex / count) + 1
+		perPage := count
+		sort := "name"
+		direction := models.SortDirectionEnumAsc
+
+		findFilter := &models.FindFilterType{
+			PerPage:   &perPage,
+			Page:      &page,
+			Sort:      &sort,
+			Direction: &direction,
+		}
+
+		// Build filter for names starting with the letter
+		var tagFilter *models.TagFilterType
+		if letter == "#" {
+			// Match names starting with non-letters (numbers, symbols)
+			tagFilter = &models.TagFilterType{
+				Name: &models.StringCriterionInput{
+					Value:    "^[^A-Za-z]",
+					Modifier: models.CriterionModifierMatchesRegex,
+				},
+			}
+		} else {
+			// Match names starting with the letter (case-insensitive)
+			tagFilter = &models.TagFilterType{
+				Name: &models.StringCriterionInput{
+					Value:    "^[" + strings.ToUpper(letter) + strings.ToLower(letter) + "]",
+					Modifier: models.CriterionModifierMatchesRegex,
+				},
+			}
+		}
+
+		tags, total, err := r.TagFinder.Query(ctx, tagFilter, findFilter)
+		if err != nil {
+			return err
+		}
+
+		totalCount = total
+		parentID := "tags/" + strings.ToUpper(letter)
+
+		for _, s := range tags {
+			objs = append(objs, makeStorageFolder(parentID+"/"+strconv.Itoa(s.ID), s.Name, parentID))
+		}
+
+		return nil
+	}); err != nil {
+		logger.Errorf(err.Error())
+	}
+
+	return browseResult{Objects: objs, TotalCount: totalCount, IsPaginated: true}
+}
+
+// getGroupsByLetter returns groups whose names start with the given letter
+func (me *contentDirectoryService) getGroupsByLetter(letter string, startIndex int, count int) browseResult {
+	var objs []interface{}
+	var totalCount int
+
+	r := me.repository
+	if err := r.WithReadTxn(context.TODO(), func(ctx context.Context) error {
+		page := (startIndex / count) + 1
+		perPage := count
+		sort := "name"
+		direction := models.SortDirectionEnumAsc
+
+		findFilter := &models.FindFilterType{
+			PerPage:   &perPage,
+			Page:      &page,
+			Sort:      &sort,
+			Direction: &direction,
+		}
+
+		// Build filter for names starting with the letter
+		var groupFilter *models.GroupFilterType
+		if letter == "#" {
+			// Match names starting with non-letters (numbers, symbols)
+			groupFilter = &models.GroupFilterType{
+				Name: &models.StringCriterionInput{
+					Value:    "^[^A-Za-z]",
+					Modifier: models.CriterionModifierMatchesRegex,
+				},
+			}
+		} else {
+			// Match names starting with the letter (case-insensitive)
+			groupFilter = &models.GroupFilterType{
+				Name: &models.StringCriterionInput{
+					Value:    "^[" + strings.ToUpper(letter) + strings.ToLower(letter) + "]",
+					Modifier: models.CriterionModifierMatchesRegex,
+				},
+			}
+		}
+
+		groups, total, err := r.GroupFinder.Query(ctx, groupFilter, findFilter)
+		if err != nil {
+			return err
+		}
+
+		totalCount = total
+		parentID := "groups/" + strings.ToUpper(letter)
+
+		for _, s := range groups {
+			objs = append(objs, makeStorageFolder(parentID+"/"+strconv.Itoa(s.ID), s.Name, parentID))
+		}
+
+		return nil
+	}); err != nil {
+		logger.Errorf(err.Error())
+	}
+
+	return browseResult{Objects: objs, TotalCount: totalCount, IsPaginated: true}
+}
+
 func (me *contentDirectoryService) getStudios() []interface{} {
 	var objs []interface{}
 
@@ -561,9 +1136,11 @@ func (me *contentDirectoryService) getStudios() []interface{} {
 }
 
 func (me *contentDirectoryService) getStudioScenes(paths []string, host string) []interface{} {
+	depth := -1
 	sceneFilter := &models.SceneFilterType{
 		Studios: &models.HierarchicalMultiCriterionInput{
 			Modifier: models.CriterionModifierIncludes,
+			Depth:    &depth,
 			Value:    []string{paths[0]},
 		},
 	}

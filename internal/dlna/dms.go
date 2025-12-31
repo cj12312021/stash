@@ -58,18 +58,22 @@ type SceneFinder interface {
 
 type StudioFinder interface {
 	All(ctx context.Context) ([]*models.Studio, error)
+	Query(ctx context.Context, studioFilter *models.StudioFilterType, findFilter *models.FindFilterType) ([]*models.Studio, int, error)
 }
 
 type TagFinder interface {
 	All(ctx context.Context) ([]*models.Tag, error)
+	Query(ctx context.Context, tagFilter *models.TagFilterType, findFilter *models.FindFilterType) ([]*models.Tag, int, error)
 }
 
 type PerformerFinder interface {
 	All(ctx context.Context) ([]*models.Performer, error)
+	Query(ctx context.Context, performerFilter *models.PerformerFilterType, findFilter *models.FindFilterType) ([]*models.Performer, int, error)
 }
 
 type GroupFinder interface {
 	All(ctx context.Context) ([]*models.Group, error)
+	Query(ctx context.Context, groupFilter *models.GroupFilterType, findFilter *models.FindFilterType) ([]*models.Group, int, error)
 }
 
 const (

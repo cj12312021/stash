@@ -78,3 +78,91 @@ func TestBrowseMetadataTags(t *testing.T) {
 
 	assert.Nil(t, err)
 }
+
+func TestBrowseDirectChildrenRoot(t *testing.T) {
+	argsXML := `<u:Browse xmlns:u="urn:schemas-upnp-org:service:ContentDirectory:1"><ObjectID>0</ObjectID><BrowseFlag>BrowseDirectChildren</BrowseFlag><Filter>*</Filter><StartingIndex>0</StartingIndex><RequestedCount>0</RequestedCount><SortCriteria></SortCriteria></u:Browse>`
+	result, err := testHandleBrowse(argsXML)
+
+	assert.Nil(t, err)
+	assert.NotEmpty(t, result["Result"])
+	assert.Equal(t, "6", result["TotalMatches"]) // all, performers, tags, studios, groups, rating
+	assert.Equal(t, "6", result["NumberReturned"])
+}
+
+func TestBrowseDirectChildrenWithPagination(t *testing.T) {
+	// Request only 2 items starting from index 1
+	argsXML := `<u:Browse xmlns:u="urn:schemas-upnp-org:service:ContentDirectory:1"><ObjectID>0</ObjectID><BrowseFlag>BrowseDirectChildren</BrowseFlag><Filter>*</Filter><StartingIndex>1</StartingIndex><RequestedCount>2</RequestedCount><SortCriteria></SortCriteria></u:Browse>`
+	result, err := testHandleBrowse(argsXML)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "6", result["TotalMatches"])   // Total is still 6
+	assert.Equal(t, "2", result["NumberReturned"]) // But only 2 returned
+}
+
+func TestBrowsePerformersReturnsAlphabet(t *testing.T) {
+	argsXML := `<u:Browse xmlns:u="urn:schemas-upnp-org:service:ContentDirectory:1"><ObjectID>performers</ObjectID><BrowseFlag>BrowseDirectChildren</BrowseFlag><Filter>*</Filter><StartingIndex>0</StartingIndex><RequestedCount>100</RequestedCount><SortCriteria></SortCriteria></u:Browse>`
+	result, err := testHandleBrowse(argsXML)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "27", result["TotalMatches"]) // # + A-Z = 27 folders
+	assert.Equal(t, "27", result["NumberReturned"])
+	assert.Contains(t, result["Result"], "performers/#")
+	assert.Contains(t, result["Result"], "performers/A")
+	assert.Contains(t, result["Result"], "performers/Z")
+}
+
+func TestBrowseStudiosReturnsAlphabet(t *testing.T) {
+	argsXML := `<u:Browse xmlns:u="urn:schemas-upnp-org:service:ContentDirectory:1"><ObjectID>studios</ObjectID><BrowseFlag>BrowseDirectChildren</BrowseFlag><Filter>*</Filter><StartingIndex>0</StartingIndex><RequestedCount>100</RequestedCount><SortCriteria></SortCriteria></u:Browse>`
+	result, err := testHandleBrowse(argsXML)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "27", result["TotalMatches"]) // # + A-Z = 27 folders
+	assert.Equal(t, "27", result["NumberReturned"])
+	assert.Contains(t, result["Result"], "studios/#")
+	assert.Contains(t, result["Result"], "studios/A")
+	assert.Contains(t, result["Result"], "studios/Z")
+}
+
+func TestBrowseTagsReturnsAlphabet(t *testing.T) {
+	argsXML := `<u:Browse xmlns:u="urn:schemas-upnp-org:service:ContentDirectory:1"><ObjectID>tags</ObjectID><BrowseFlag>BrowseDirectChildren</BrowseFlag><Filter>*</Filter><StartingIndex>0</StartingIndex><RequestedCount>100</RequestedCount><SortCriteria></SortCriteria></u:Browse>`
+	result, err := testHandleBrowse(argsXML)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "27", result["TotalMatches"]) // # + A-Z = 27 folders
+	assert.Equal(t, "27", result["NumberReturned"])
+	assert.Contains(t, result["Result"], "tags/#")
+	assert.Contains(t, result["Result"], "tags/A")
+	assert.Contains(t, result["Result"], "tags/Z")
+}
+
+func TestBrowseGroupsReturnsAlphabet(t *testing.T) {
+	argsXML := `<u:Browse xmlns:u="urn:schemas-upnp-org:service:ContentDirectory:1"><ObjectID>groups</ObjectID><BrowseFlag>BrowseDirectChildren</BrowseFlag><Filter>*</Filter><StartingIndex>0</StartingIndex><RequestedCount>100</RequestedCount><SortCriteria></SortCriteria></u:Browse>`
+	result, err := testHandleBrowse(argsXML)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "27", result["TotalMatches"]) // # + A-Z = 27 folders
+	assert.Equal(t, "27", result["NumberReturned"])
+	assert.Contains(t, result["Result"], "groups/#")
+	assert.Contains(t, result["Result"], "groups/A")
+	assert.Contains(t, result["Result"], "groups/Z")
+}
+
+func TestIsLetterFolder(t *testing.T) {
+	assert.True(t, isLetterFolder("#"))
+	assert.True(t, isLetterFolder("A"))
+	assert.True(t, isLetterFolder("Z"))
+	assert.True(t, isLetterFolder("a"))
+	assert.True(t, isLetterFolder("z"))
+	assert.False(t, isLetterFolder("123"))
+	assert.False(t, isLetterFolder("AB"))
+	assert.False(t, isLetterFolder(""))
+}
+
+func TestGetFirstLetter(t *testing.T) {
+	assert.Equal(t, "A", getFirstLetter("Alice"))
+	assert.Equal(t, "A", getFirstLetter("alice"))
+	assert.Equal(t, "Z", getFirstLetter("Zoe"))
+	assert.Equal(t, "#", getFirstLetter("123 Studio"))
+	assert.Equal(t, "#", getFirstLetter(""))
+	assert.Equal(t, "#", getFirstLetter("!Special"))
+}

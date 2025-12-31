@@ -23,6 +23,7 @@ This fork is based on **Stash v0.29.3**.
 | `schema-queries.md` | GraphQL query additions (facets + recommendations) | **High** |
 | `repository-interfaces.md` | Faceter interface embeddings | **High** |
 | `extension-indexes.md` | Database index optimization (init.go hook) | **High** |
+| `dlna-enhancements.md` | DLNA alphabetical folders, pagination, activity tracking | **High** |
 | `tag-filter-extensions.md` | Tag filter additions (performers_filter, groups_filter) | Medium |
 | `config-extensions.md` | Frontend config changes (recommendations, sidebar) | Medium |
 | `utility-additions.md` | Small utility functions | Low |
@@ -57,14 +58,22 @@ If `internal/manager/init.go` conflicts:
 If `pkg/sqlite/tag*.go` or `graphql/schema/types/filters.graphql` conflict:
 - See `tag-filter-extensions.md` for tag filter additions
 
-### Step 6: Regenerate & Build
+### Step 6: Handle DLNA Conflicts
+
+If `internal/dlna/*.go` files conflict:
+- See `dlna-enhancements.md` for:
+  - Query interface additions to `dms.go`
+  - Alphabetical folder logic in `cds.go`
+  - Activity tracker integration in `service.go`
+
+### Step 7: Regenerate & Build
 
 ```bash
 go generate ./...
 go build ./...
 ```
 
-### Step 7: Test
+### Step 8: Test
 
 ```bash
 # Backend tests
@@ -101,6 +110,12 @@ internal/api/resolver_query_scene_recommendations.go
 internal/api/resolver_*_recommendations_result_type.go
 ```
 
+### DLNA Activity Tracking
+```
+internal/dlna/activity.go            # Activity tracker for DLNA playback
+internal/dlna/activity_test.go       # Activity tracker tests
+```
+
 ### Frontend Extensions
 ```
 ui/v2.5/src/extensions/           # All custom frontend code (~80 files)
@@ -134,6 +149,10 @@ ui/v2.5/src/extensions/           # All custom frontend code (~80 files)
 | `pkg/sqlite/tag_filter.go` | Filter handlers | `tag-filter-extensions.md` |
 | `pkg/models/resolution.go` | ResolutionFromHeight | `utility-additions.md` |
 | `pkg/sqlite/sql.go` | Random sort helper | `utility-additions.md` |
+| `internal/dlna/dms.go` | Query interfaces, activity tracker | `dlna-enhancements.md` |
+| `internal/dlna/cds.go` | A-Z folders, pagination, logging | `dlna-enhancements.md` |
+| `internal/dlna/cds_test.go` | Alphabetical folder tests | `dlna-enhancements.md` |
+| `internal/dlna/service.go` | Activity tracker lifecycle | `dlna-enhancements.md` |
 
 ### Frontend (Minimal - Most in Extensions)
 | File | Changes | Status |
