@@ -1,0 +1,76 @@
+name: Performer Auto-Tagger
+description: AI-powered tagging for performers - analyze images to suggest and apply tags
+version: 2.0.0
+url: https://github.com/stashapp/stash
+
+# UI Integration (frontend JavaScript)
+ui:
+  javascript:
+    - performerTagger.js
+  
+  css:
+    - performerTagger.css
+
+# Backend task (Python script for ML analysis)
+exec:
+  - python
+  - "{pluginDir}/tagger.py"
+interface: raw
+errLog: info
+
+settings:
+  use_ollama:
+    displayName: Use Ollama (Recommended for NSFW)
+    description: Use local Ollama for analysis - works with adult content
+    type: BOOLEAN
+  
+  ollama_url:
+    displayName: Ollama URL
+    description: Ollama API URL (default http://localhost:11434)
+    type: STRING
+  
+  ollama_model:
+    displayName: Ollama Model
+    description: Vision model to use (default llava)
+    type: STRING
+  
+  api_key:
+    displayName: OpenAI API Key (SFW only)
+    description: For SFW images only - OpenAI rejects explicit content
+    type: STRING
+  
+  confidence_threshold:
+    displayName: Confidence Threshold
+    description: Minimum confidence (0.0-1.0) to apply a tag
+    type: NUMBER
+
+tasks:
+  - name: Analyze Image
+    description: Analyze a specific image and return suggested tags & attributes
+    defaultArgs:
+      mode: analyze_image
+
+  - name: Analyze Performer
+    description: Analyze all images for a performer
+    defaultArgs:
+      mode: analyze_performer
+
+  - name: Apply Tags to Performer
+    description: Apply suggested tags to a performer
+    defaultArgs:
+      mode: apply_tags
+
+  - name: Apply Attributes to Performer
+    description: Apply suggested attributes (eye color, hair color, etc) - only fills empty fields
+    defaultArgs:
+      mode: apply_attributes
+
+  - name: Apply All to Performer
+    description: Apply both tags and attributes to a performer
+    defaultArgs:
+      mode: apply_all
+
+  - name: Process All Performers
+    description: Batch process all performers (tags + attributes)
+    defaultArgs:
+      mode: all

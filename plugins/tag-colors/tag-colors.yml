@@ -1,0 +1,15 @@
+name: Tag Colors by Parent
+description: Colors tag pills based on their parent tag hierarchy - Action (red), People (green), Scene (purple)
+version: 1.0.0
+url: https://github.com/stashapp/stash
+
+ui:
+  javascript:
+    - tagColors.js
+  
+  css:
+    - tagColors.css
+
+
+
+

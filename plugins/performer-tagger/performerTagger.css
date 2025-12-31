@@ -1,0 +1,117 @@
+/* Performer Auto-Tagger Plugin Styles */
+
+.performer-tagger-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.performer-tagger-section h6 {
+  color: var(--bs-secondary);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.performer-tagger-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.performer-tagger-label {
+  font-size: 0.875rem;
+  color: var(--bs-body-color);
+}
+
+.performer-tagger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.performer-tagger-btn .fa-wand-magic-sparkles {
+  font-size: 0.875rem;
+}
+
+.performer-tagger-performer-section {
+  border-top: 1px solid var(--bs-border-color);
+  padding-top: 1rem;
+}
+
+.performer-tagger-info {
+  font-size: 0.875rem;
+}
+
+/* Tag suggestion modal */
+.suggested-tags-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.suggested-tags-list .form-check {
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.suggested-tags-list .form-check:hover {
+  background-color: var(--bs-tertiary-bg);
+}
+
+.suggested-tags-list .form-check-label {
+  cursor: pointer;
+  width: 100%;
+}
+
+/* Loading state */
+.performer-tagger-btn.analyzing {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Results display */
+.performer-tagger-results {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: var(--bs-tertiary-bg);
+  border-radius: 0.5rem;
+}
+
+.performer-tagger-results h6 {
+  margin-bottom: 0.75rem;
+}
+
+.performer-tagger-tag-chip {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  margin: 0.25rem;
+  background-color: var(--bs-primary);
+  color: white;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.performer-tagger-tag-chip:hover {
+  opacity: 0.8;
+}
+
+.performer-tagger-tag-chip.selected {
+  background-color: var(--bs-success);
+}
+
+.performer-tagger-tag-chip.existing {
+  background-color: var(--bs-secondary);
+  opacity: 0.6;
+  cursor: default;
+}
+
+
+
+
+
+
+

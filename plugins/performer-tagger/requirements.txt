@@ -1,0 +1,29 @@
+# Core dependencies (required)
+requests>=2.28.0
+Pillow>=9.0.0
+
+# =============================================================================
+# Choose ONE of the following backends:
+# =============================================================================
+
+# Option 1: Ollama (RECOMMENDED for NSFW content)
+# - Install Ollama from https://ollama.ai
+# - Run: ollama pull llava
+# - No Python packages needed! Uses HTTP API.
+# - Fully local, no content restrictions
+
+# Option 2: Local CLIP model (NSFW friendly, faster)
+# Uncomment both lines below:
+# torch>=2.0.0
+# transformers>=4.30.0
+
+# Option 3: OpenAI Vision API (SFW ONLY - rejects explicit content!)
+# Only use this for non-explicit performer headshots
+# Uncomment to install:
+# openai>=1.0.0
+
+# =============================================================================
+# For NSFW/adult content: Use Ollama or CLIP (Options 1 or 2)
+# OpenAI WILL REJECT explicit images!
+# =============================================================================
+

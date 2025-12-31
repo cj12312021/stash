@@ -1,0 +1,3 @@
+[submodule "plugins/stash-react-plugin"]
+	path = plugins/stash-react-plugin
+	url = https://github.com/cj12312021/stash-react-plugin.git

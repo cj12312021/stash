@@ -1,0 +1,63 @@
+/* Tag Colors by Parent Plugin
+ * Colors tag pills based on their parent tag hierarchy
+ */
+
+/* Action tags - Red */
+.tag-item.tag-ancestor-action,
+.tag-item.tag-ancestor-action.tag-link {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+}
+
+.tag-item.tag-ancestor-action a,
+.tag-item.tag-ancestor-action.tag-link a {
+  color: #fff !important;
+}
+
+.tag-item.tag-ancestor-action:hover,
+.tag-item.tag-ancestor-action.tag-link:hover {
+  background-color: #c82333 !important;
+  border-color: #bd2130 !important;
+}
+
+/* People tags - Green */
+.tag-item.tag-ancestor-people,
+.tag-item.tag-ancestor-people.tag-link {
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+}
+
+.tag-item.tag-ancestor-people a,
+.tag-item.tag-ancestor-people.tag-link a {
+  color: #fff !important;
+}
+
+.tag-item.tag-ancestor-people:hover,
+.tag-item.tag-ancestor-people.tag-link:hover {
+  background-color: #218838 !important;
+  border-color: #1e7e34 !important;
+}
+
+/* Scene tags - Purple */
+.tag-item.tag-ancestor-scene,
+.tag-item.tag-ancestor-scene.tag-link {
+  background-color: #6f42c1 !important;
+  border-color: #6f42c1 !important;
+}
+
+.tag-item.tag-ancestor-scene a,
+.tag-item.tag-ancestor-scene.tag-link a {
+  color: #fff !important;
+}
+
+.tag-item.tag-ancestor-scene:hover,
+.tag-item.tag-ancestor-scene.tag-link:hover {
+  background-color: #5a32a3 !important;
+  border-color: #4e2d91 !important;
+}
+
+/* Priority order: Action > People > Scene (in case of multiple ancestors) */
+
+
+
+

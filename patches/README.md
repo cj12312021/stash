@@ -24,6 +24,7 @@ This fork is based on **Stash v0.29.3**.
 | `repository-interfaces.md` | Faceter interface embeddings | **High** |
 | `extension-indexes.md` | Database index optimization (init.go hook) | **High** |
 | `dlna-enhancements.md` | DLNA alphabetical folders, pagination, activity tracking | **High** |
+| `plugin-submodules.md` | Git submodule plugins (stash-react-plugin) | **High** |
 | `tag-filter-extensions.md` | Tag filter additions (performers_filter, groups_filter) | Medium |
 | `config-extensions.md` | Frontend config changes (recommendations, sidebar) | Medium |
 | `utility-additions.md` | Small utility functions | Low |
@@ -73,7 +74,20 @@ go generate ./...
 go build ./...
 ```
 
-### Step 8: Test
+### Step 8: Build Plugins
+
+If plugin submodules have changed:
+```powershell
+# Windows
+.\scripts\build-plugins.ps1
+
+# Linux/macOS
+./scripts/build-plugins.sh
+```
+
+See `plugin-submodules.md` for details.
+
+### Step 9: Test
 
 ```bash
 # Backend tests
