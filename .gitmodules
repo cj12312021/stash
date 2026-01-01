@@ -1,3 +1,6 @@
 [submodule "plugins/stash-react-plugin"]
 	path = plugins/stash-react-plugin
 	url = https://github.com/cj12312021/stash-react-plugin.git
+[submodule "scrapers/SiteJsonScraper"]
+	path = scrapers/SiteJsonScraper
+	url = https://github.com/cj12312021/SiteJsonScraper.git
