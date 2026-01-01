@@ -1,6 +1,29 @@
+# Go files
 go.mod text eol=lf
 go.sum text eol=lf
 *.go text eol=lf
 vendor/** -text
+
+# UI files
 ui/v2.5/**/*.ts* text eol=lf
 ui/v2.5/**/*.scss text eol=lf
+
+# Python files (plugins, scrapers)
+*.py text eol=lf
+
+# Config/Data files
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.graphql text eol=lf
+
+# Web files
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+
+# Documentation
+*.md text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
