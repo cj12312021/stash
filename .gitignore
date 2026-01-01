@@ -51,6 +51,21 @@ ui/login/locales/*
 .idea/**/dbnavigator.xml
 
 ####
+# Python
+####
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+
+# Scraper cache files
+scrapers/*/.cache/
+
+####
 # Random
 ####
 
