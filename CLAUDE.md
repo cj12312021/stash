@@ -170,3 +170,129 @@ git push origin develop
 - `ui/v2.5/src/extensions/docs/ARCHITECTURE.md` - Full architecture guide
 - `ui/v2.5/src/extensions/docs/UPGRADE-GUIDE.md` - Upstream merge guide
 - `docs/DEVELOPMENT.md` - General development setup
+
+## Submodules
+
+| Submodule | Purpose | Details |
+|-----------|---------|---------|
+| `scrapers/SiteJsonScraper/` | Python scraper for site.json files | See [`scrapers/SiteJsonScraper/CLAUDE.md`](scrapers/SiteJsonScraper/CLAUDE.md) |
+| `plugins/stash-react-plugin/` | UI plugin for Tagger confidence display | See [`plugins/stash-react-plugin/CLAUDE.md`](plugins/stash-react-plugin/CLAUDE.md) |
+
+**Note:** These components share a metadata format - changes to one may require changes to the other. See each submodule's CLAUDE.md for coordination details.
+
+## Stash Server & Deployment
+
+### Server Details
+
+| Property | Value |
+|----------|-------|
+| **Stash URL** | `http://192.168.4.144:6969` |
+| **Config path (Linux)** | `/root/.stash/` |
+| **Config path (Windows via SMB)** | `S:\stash\config\` |
+
+The S: drive maps to `\\NEBULA\stashmetadata` which corresponds to `/root/.stash/` on the Linux server.
+
+### Deployment Paths
+
+| Component | Source (GitHub) | Deployed (Stash Config) |
+|-----------|-----------------|-------------------------|
+| **SiteJsonScraper** | `scrapers/SiteJsonScraper/` | `S:\stash\config\scrapers\SiteJsonScraper\` |
+| **stash-react-plugin** | `plugins/stash-react-plugin/` | `S:\stash\config\plugins\stash-react-plugin\` |
+
+### Critical Rules
+
+**NEVER edit files directly in `S:\stash\config\`.**
+
+- Always edit source code in the GitHub repo (`C:\Users\Admin\Documents\GitHub\stash\`)
+- The S: drive is a live deployment - changes there affect the running Stash server immediately
+- Changes in S: drive are not version controlled and will be lost on next deployment
+- See each submodule's CLAUDE.md for build and deploy commands
+
+## Browser Testing (Playwright MCP)
+
+A Playwright MCP server is configured for browser automation and visual testing.
+
+### Capabilities
+
+- Navigate to any Stash page
+- Take accessibility snapshots (`browser_snapshot`) for element inspection
+- Click, type, and interact with UI elements
+- Take screenshots for visual verification
+- Verify UI changes after deploying plugin updates
+
+### Common Workflows
+
+**Testing plugin changes:**
+```
+1. Build plugin: cd plugins/stash-react-plugin && yarn build
+2. Deploy: copy dist files to S:\stash\config\plugins\stash-react-plugin\
+3. Navigate: browser_navigate to http://192.168.4.144:6969
+4. Refresh and verify: browser_snapshot to check UI renders correctly
+```
+
+**Debugging Tagger UI:**
+```
+1. browser_navigate to http://192.168.4.144:6969/scenes?c=("type":"performers","value":[],"modifier":"NOT_NULL")
+2. Click on a scene to open it
+3. Open Tagger tab
+4. browser_snapshot to inspect confidence badges and metadata display
+```
+
+**Useful pages:**
+- Tagger: `/scenes` → click scene → Tagger tab
+- Settings: `/settings?tab=tasks` (plugin tasks)
+- Performers: `/performers`
+
+## Debugging Complex Issues
+
+For long debugging sessions, use these strategies to maintain focus and avoid spiraling.
+
+### Debugging Scratchpad
+
+Create a `DEBUG_SESSION.md` file in the working directory to track state:
+
+```markdown
+# Debug Session: [Brief Issue Description]
+
+## Original Problem
+[What we're actually trying to solve - don't lose sight of this]
+
+## Current Hypothesis
+[What we think is causing it right now]
+
+## Tried & Results
+- [x] Checked X → Found Y (not the issue)
+- [x] Tried Z → Didn't work because...
+- [ ] Next: Try W
+
+## Key Discoveries
+[Important findings to remember, even if not the solution]
+```
+
+Update this file as we go. If context is lost, re-read it.
+
+### Hypothesis-Driven Debugging
+
+Before each attempt, I should state:
+1. **Hypothesis**: "I think X is causing this because..."
+2. **Test**: "To verify, I'll check Y"
+3. **Result**: "This confirms/refutes because..."
+
+If I'm not doing this, prompt with **"What's your hypothesis?"**
+
+### User Intervention Phrases
+
+Use these phrases to redirect debugging:
+
+| Phrase | What I'll Do |
+|--------|--------------|
+| "Step back and summarize" | List what we've tried, current state, and options |
+| "Try a different approach" | Abandon current path, brainstorm alternatives |
+| "What's your hypothesis?" | State what I think is wrong before continuing |
+| "Check the scratchpad" | Re-read DEBUG_SESSION.md to regain context |
+| "We already tried that" | Note it and try something different |
+| "Time-box this" | If 3 more attempts fail, switch approaches |
+
+### After Solving Issues
+
+When we solve a tricky issue, add it to the relevant CLAUDE.md's "Known Gotchas" section so we don't rediscover it later.
