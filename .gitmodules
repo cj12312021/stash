@@ -4,3 +4,6 @@
 [submodule "scrapers/SiteJsonScraper"]
 	path = scrapers/SiteJsonScraper
 	url = https://github.com/cj12312021/SiteJsonScraper.git
+[submodule "plugins/ModernDark"]
+	path = plugins/ModernDark
+	url = https://github.com/cj12312021/ModernDark.git
