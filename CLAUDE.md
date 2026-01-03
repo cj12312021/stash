@@ -197,7 +197,7 @@ The S: drive maps to `\\NEBULA\stashmetadata` which corresponds to `/root/.stash
 | Component | Source (GitHub) | Deployed (Stash Config) |
 |-----------|-----------------|-------------------------|
 | **SiteJsonScraper** | `scrapers/SiteJsonScraper/` | `S:\stash\config\scrapers\SiteJsonScraper\` |
-| **stash-react-plugin** | `plugins/stash-react-plugin/` | `S:\stash\config\plugins\stash-react-plugin\` |
+| **stash-pro** | `plugins/stash-react-plugin/` | `S:\stash\config\plugins\stash-pro\` |
 
 ### Critical Rules
 
@@ -225,7 +225,7 @@ A Playwright MCP server is configured for browser automation and visual testing.
 **Testing plugin changes:**
 ```
 1. Build plugin: cd plugins/stash-react-plugin && yarn build
-2. Deploy: copy dist files to S:\stash\config\plugins\stash-react-plugin\
+2. Deploy: copy dist files to S:\stash\config\plugins\stash-pro\
 3. Navigate: browser_navigate to http://192.168.4.144:6969
 4. Refresh and verify: browser_snapshot to check UI renders correctly
 ```
