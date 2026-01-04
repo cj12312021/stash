@@ -177,35 +177,66 @@ git push origin develop
 |-----------|---------|---------|
 | `scrapers/SiteJsonScraper/` | Python scraper for site.json files | See [`scrapers/SiteJsonScraper/CLAUDE.md`](scrapers/SiteJsonScraper/CLAUDE.md) |
 | `plugins/stash-react-plugin/` | UI plugin for Tagger confidence display | See [`plugins/stash-react-plugin/CLAUDE.md`](plugins/stash-react-plugin/CLAUDE.md) |
+| `plugins/ModernDark/` | CSS theme plugin (visual styling reference) | See [`plugins/ModernDark/CLAUDE.md`](plugins/ModernDark/CLAUDE.md) |
 
-**Note:** These components share a metadata format - changes to one may require changes to the other. See each submodule's CLAUDE.md for coordination details.
+**Coordination notes:**
+- SiteJsonScraper and stash-react-plugin share a metadata format - changes to one may require changes to the other
+- ModernDark overrides Stash's default styles - new UI may require ModernDark follow-up (see Frontend/UX Workflow below)
+
+## Frontend/UX Workflow
+
+**All frontend work in the Stash repo follows Stash's default styling.** ModernDark is a separate plugin that overrides these styles at runtime.
+
+### Styling Cascade
+
+```
+Stash SCSS ($variables)  →  Extensions CSS (--ext-*)  →  ModernDark CSS (--color-*)
+       ↓                           ↓                            ↓
+   Compiled                    Compiled                   Runtime Override
+```
+
+### When Adding New UI
+
+1. **Write styles using Stash patterns** - Use Stash's SCSS variables (`$primary`, `$secondary`, etc.) or match existing component styles
+2. **Test with default theme first** - Ensure UI works without ModernDark
+3. **Check if ModernDark needs updates** - New components (cards, buttons, forms, modals) may need theme overrides
+4. **Update ModernDark if needed** - Add overrides in the corresponding `components/` file
+
+### Common Elements Requiring ModernDark Updates
+
+| New UI Element | ModernDark File to Update |
+|----------------|---------------------------|
+| Cards, grid items | `components/Shared/styles.scss` |
+| Buttons, forms | `styles/_buttons.scss`, `styles/_forms.scss` |
+| Modals, dialogs | `styles/_modals.scss` |
+| Navigation, tabs | `styles/_navigation.scss` |
+| Feature-specific | `components/[Feature]/styles.scss` |
+
+See [`plugins/ModernDark/CLAUDE.md`](plugins/ModernDark/CLAUDE.md) for the complete theme structure.
 
 ## Stash Server & Deployment
 
 ### Server Details
 
-| Property | Value |
-|----------|-------|
-| **Stash URL** | `http://192.168.4.144:6969` |
-| **Config path (Linux)** | `/root/.stash/` |
-| **Config path (Windows via SMB)** | `S:\stash\config\` |
+Server URL, credentials, and path mappings are in `.claude/credentials.local` (gitignored).
 
-The S: drive maps to `\\NEBULA\stashmetadata` which corresponds to `/root/.stash/` on the Linux server.
+The deployment uses SMB to map a Windows drive letter to the Linux server's config directory.
 
 ### Deployment Paths
 
 | Component | Source (GitHub) | Deployed (Stash Config) |
 |-----------|-----------------|-------------------------|
-| **SiteJsonScraper** | `scrapers/SiteJsonScraper/` | `S:\stash\config\scrapers\SiteJsonScraper\` |
-| **stash-pro** | `plugins/stash-react-plugin/` | `S:\stash\config\plugins\stash-pro\` |
+| **SiteJsonScraper** | `scrapers/SiteJsonScraper/` | `<CONFIG_PATH>/scrapers/SiteJsonScraper/` |
+| **stash-pro** | `plugins/stash-react-plugin/` | `<CONFIG_PATH>/plugins/stash-pro/` |
+| **ModernDark** | `plugins/ModernDark/` | `<CONFIG_PATH>/plugins/ModernDark/` |
 
 ### Critical Rules
 
-**NEVER edit files directly in `S:\stash\config\`.**
+**NEVER edit files directly in the deployed config directory.**
 
-- Always edit source code in the GitHub repo (`C:\Users\Admin\Documents\GitHub\stash\`)
-- The S: drive is a live deployment - changes there affect the running Stash server immediately
-- Changes in S: drive are not version controlled and will be lost on next deployment
+- Always edit source code in the GitHub repo
+- The config drive is a live deployment - changes there affect the running Stash server immediately
+- Changes in config are not version controlled and will be lost on next deployment
 - See each submodule's CLAUDE.md for build and deploy commands
 
 ## Browser Testing (Playwright MCP)
@@ -225,14 +256,14 @@ A Playwright MCP server is configured for browser automation and visual testing.
 **Testing plugin changes:**
 ```
 1. Build plugin: cd plugins/stash-react-plugin && yarn build
-2. Deploy: copy dist files to S:\stash\config\plugins\stash-pro\
-3. Navigate: browser_navigate to http://192.168.4.144:6969
+2. Deploy: copy dist files to <CONFIG_PATH>/plugins/stash-pro/
+3. Navigate: browser_navigate to <STASH_URL>
 4. Refresh and verify: browser_snapshot to check UI renders correctly
 ```
 
 **Debugging Tagger UI:**
 ```
-1. browser_navigate to http://192.168.4.144:6969/scenes?c=("type":"performers","value":[],"modifier":"NOT_NULL")
+1. browser_navigate to <STASH_URL>/scenes?c=("type":"performers","value":[],"modifier":"NOT_NULL")
 2. Click on a scene to open it
 3. Open Tagger tab
 4. browser_snapshot to inspect confidence badges and metadata display
