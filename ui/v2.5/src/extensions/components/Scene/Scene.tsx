@@ -24,7 +24,7 @@ import React, {
   useCallback,
 } from "react";
 import { FormattedDate, FormattedMessage, useIntl } from "react-intl";
-import { Link, RouteComponentProps } from "react-router-dom";
+import { Link, RouteComponentProps, useHistory } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import * as GQL from "src/core/generated-graphql";
 import {
@@ -68,6 +68,7 @@ import cx from "classnames";
 import { TruncatedText } from "src/components/Shared/TruncatedText";
 import { PatchComponent, PatchContainerComponent } from "src/patch";
 import { goBackOrReplace } from "src/utils/history";
+import { SceneMergeModal } from "src/components/Scenes/SceneMergeDialog";
 import ScreenUtils from "src/utils/screen";
 
 const SubmitStashBoxDraft = lazyComponent(
@@ -192,6 +193,7 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
 
   const Toast = useToast();
   const intl = useIntl();
+  const history = useHistory();
   const [updateScene] = useSceneUpdate();
   const [generateScreenshot] = useSceneGenerateScreenshot();
   const { configuration } = useConfigurationContext();
@@ -219,6 +221,7 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState<boolean>(false);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
+  const [isMerging, setIsMerging] = useState(false);
 
   const tabNavRef = useRef<HTMLDivElement>(null);
   const dropDownRef = useRef<HTMLDivElement>(null);
@@ -436,6 +439,24 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
     }
   }
 
+  function maybeRenderMergeDialog() {
+    if (!scene.id) return;
+    return (
+      <SceneMergeModal
+        show={isMerging}
+        onClose={(mergedId) => {
+          setIsMerging(false);
+          if (mergedId !== undefined && mergedId !== scene.id) {
+            // By default, the merge destination is the current scene, but
+            // the user can change it, in which case we need to redirect.
+            history.replace(`/scenes/${mergedId}`);
+          }
+        }}
+        scenes={[{ id: scene.id, title: objectTitle(scene) }]}
+      />
+    );
+  }
+
   const renderOperations = () => (
     <Dropdown>
       <Dropdown.Toggle
@@ -486,6 +507,14 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
             <FormattedMessage id="actions.submit_stash_box" />
           </Dropdown.Item>
         )}
+        <Dropdown.Item
+          key="merge-scene"
+          className="bg-secondary text-white"
+          onClick={() => setIsMerging(true)}
+        >
+          <FormattedMessage id="actions.merge" />
+          ...
+        </Dropdown.Item>
         <Dropdown.Item
           key="delete-scene"
           className="bg-secondary text-white"
@@ -740,6 +769,7 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
         <title>{title}</title>
       </Helmet>
       {maybeRenderSceneGenerateDialog()}
+      {maybeRenderMergeDialog()}
       {maybeRenderDeleteDialog()}
       <div
         className={`scene-tabs order-xl-first order-last ${

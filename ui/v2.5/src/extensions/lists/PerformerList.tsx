@@ -17,6 +17,7 @@ import { DeleteEntityDialog } from "src/components/Shared/DeleteEntityDialog";
 import { IPerformerCardExtraCriteria } from "src/components/Performers/PerformerCard";
 import { PerformerListTable } from "src/components/Performers/PerformerListTable";
 import { EditPerformersDialog } from "src/components/Performers/EditPerformersDialog";
+import { PerformerMergeModal } from "src/components/Performers/PerformerMergeDialog";
 import { cmToImperial, cmToInches, kgToLbs } from "src/utils/units";
 import TextUtils from "src/utils/text";
 import { PerformerCardGrid } from "src/components/Performers/PerformerCardGrid";
@@ -1097,6 +1098,21 @@ export const MyFilteredPerformerList = (props: IFilteredPerformers) => {
     );
   }
 
+  function onMerge() {
+    showModal(
+      <PerformerMergeModal
+        performers={selectedItems}
+        onClose={(mergedId?: string) => {
+          closeModal();
+          if (mergedId) {
+            history.push(`/performers/${mergedId}`);
+          }
+        }}
+        show
+      />
+    );
+  }
+
   const otherOperations = [
     {
       text: intl.formatMessage({ id: "actions.open_random" }),
@@ -1120,6 +1136,11 @@ export const MyFilteredPerformerList = (props: IFilteredPerformers) => {
     {
       text: intl.formatMessage({ id: "actions.select_none" }),
       onClick: () => onSelectNone(),
+      isDisplayed: () => hasSelection,
+    },
+    {
+      text: `${intl.formatMessage({ id: "actions.merge" })}…`,
+      onClick: () => onMerge(),
       isDisplayed: () => hasSelection,
     },
     {

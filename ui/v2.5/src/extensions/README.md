@@ -49,12 +49,17 @@ Full list page implementations with facet counts, custom sidebars, and extended 
 
 | Component | Key Features |
 |-----------|--------------|
-| `PerformerList` | Random performer (`p r`), facets |
-| `SceneList` | Play queue, scene stats |
-| `GalleryList` | Facets, custom filters |
-| `GroupList` | Hierarchical groups |
-| `StudioList` | Tagger integration |
-| `TagList` | Merge dialog |
+| `PerformerList` | Merge dialog, random performer (`p r`), facets |
+| `SceneList` | Merge dialog, play queue, scene stats |
+| `GalleryList` | Edit dialog, facets, custom filters |
+| `GroupList` | Edit dialog, hierarchical groups |
+| `StudioList` | Edit dialog, tagger integration |
+| `TagList` | Merge dialog, facets |
+
+### Scene Detail Page
+| Component | Key Features |
+|-----------|--------------|
+| `Scene.tsx` | Merge action, studio background, discover queue |
 
 ### Filters (29)
 13 NEW + 16 enhanced filter components with facet counts, quick presets, and better UX.

@@ -55,6 +55,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { DeleteEntityDialog } from "src/components/Shared/DeleteEntityDialog";
 import { ExportDialog } from "src/components/Shared/ExportDialog";
+import { EditStudiosDialog } from "src/components/Studios/EditStudiosDialog";
 import {
   SidebarTagsFilter,
   SidebarRatingFilter,
@@ -455,9 +456,10 @@ const StudioListOperations: React.FC<{
   items: number;
   hasSelection: boolean;
   operations: IOperations[];
+  onEdit: () => void;
   onDelete: () => void;
   onCreateNew: () => void;
-}> = ({ items, hasSelection, operations, onDelete, onCreateNew }) => {
+}> = ({ items, hasSelection, operations, onEdit, onDelete, onCreateNew }) => {
   const intl = useIntl();
 
   return (
@@ -479,6 +481,9 @@ const StudioListOperations: React.FC<{
 
         {hasSelection && (
           <>
+            <Button variant="secondary" onClick={() => onEdit()}>
+              <Icon icon={faPencil} />
+            </Button>
             <Button
               variant="danger"
               className="btn-danger-minimal"
@@ -617,6 +622,12 @@ export const MyFilteredStudioList: React.FC<IFilteredStudios> = (props) => {
   });
 
   useEffect(() => {
+    Mousetrap.bind("e", () => {
+      if (hasSelection) {
+        onEdit();
+      }
+    });
+
     Mousetrap.bind("d d", () => {
       if (hasSelection) {
         onDelete();
@@ -624,6 +635,7 @@ export const MyFilteredStudioList: React.FC<IFilteredStudios> = (props) => {
     });
 
     return () => {
+      Mousetrap.unbind("e");
       Mousetrap.unbind("d d");
     };
   });
@@ -651,6 +663,12 @@ export const MyFilteredStudioList: React.FC<IFilteredStudios> = (props) => {
         }}
         onClose={() => closeModal()}
       />
+    );
+  }
+
+  function onEdit() {
+    showModal(
+      <EditStudiosDialog selected={selectedItems} onClose={onCloseEditDelete} />
     );
   }
 
@@ -710,6 +728,7 @@ export const MyFilteredStudioList: React.FC<IFilteredStudios> = (props) => {
       items={items.length}
       hasSelection={hasSelection}
       operations={otherOperations}
+      onEdit={onEdit}
       onDelete={onDelete}
       onCreateNew={onCreateNew}
     />

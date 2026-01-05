@@ -72,6 +72,7 @@ import { ListResultsHeader } from "src/extensions/ui";
 import { FavoriteTagCriterionOption } from "src/models/list-filter/criteria/favorite";
 import { TagCardGrid } from "src/components/Tags/TagCardGrid";
 import { EditTagsDialog } from "src/components/Tags/EditTagsDialog";
+import { TagMergeModal } from "src/components/Tags/TagMergeDialog";
 import { tagRelationHook } from "src/core/tags";
 import { useToast } from "src/hooks/Toast";
 import NavUtils from "src/utils/navigation";
@@ -864,6 +865,21 @@ export const MyFilteredTagList: React.FC<IFilteredTags> = (props) => {
     );
   }
 
+  function onMerge() {
+    showModal(
+      <TagMergeModal
+        tags={selectedItems}
+        onClose={(mergedId?: string) => {
+          closeModal();
+          if (mergedId) {
+            history.push(`/tags/${mergedId}`);
+          }
+        }}
+        show
+      />
+    );
+  }
+
   async function onAutoTag(tag: GQL.TagListDataFragment) {
     if (!tag) return;
     try {
@@ -925,6 +941,11 @@ export const MyFilteredTagList: React.FC<IFilteredTags> = (props) => {
     {
       text: intl.formatMessage({ id: "actions.select_none" }),
       onClick: () => onSelectNone(),
+      isDisplayed: () => hasSelection,
+    },
+    {
+      text: `${intl.formatMessage({ id: "actions.merge" })}…`,
+      onClick: () => onMerge(),
       isDisplayed: () => hasSelection,
     },
     {
