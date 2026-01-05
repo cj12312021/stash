@@ -136,7 +136,7 @@ function useAddKeybinds(
 }
 
 const GroupListContent: React.FC<{
-  groups: GQL.SlimGroupDataFragment[];
+  groups: GQL.ListGroupDataFragment[];
   filter: ListFilterModel;
   selectedIds: Set<string>;
   onSelectChange: (id: string, selected: boolean, shiftKey: boolean) => void;
@@ -146,7 +146,7 @@ const GroupListContent: React.FC<{
   if (filter.displayMode === DisplayMode.Grid) {
     return (
       <GroupCardGrid
-        groups={groups as GQL.GroupDataFragment[]}
+        groups={groups}
         zoomIndex={filter.zoomIndex}
         selectedIds={selectedIds}
         onSelectChange={onSelectChange}
