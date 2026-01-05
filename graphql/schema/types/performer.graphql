@@ -195,3 +195,10 @@ type PerformerRecommendation {
 type PerformerRecommendationsResultType {
   recommendations: [PerformerRecommendation!]!
 }
+
+input PerformerMergeInput {
+  source: [ID!]!
+  destination: ID!
+  # values defined here will override values in the destination
+  values: PerformerUpdateInput
+}

@@ -233,23 +233,33 @@ func (t *ActivityTracker) processExpiredSessions() {
 
 	t.mutex.Lock()
 	for key, session := range t.sessions {
-		if now.Sub(session.LastActivity) > t.sessionTimeout {
-			// DLNA clients buffer aggressively - after initial requests, they play from cache.
-			// We assume the user kept watching until the timeout period began.
-			// So the effective "last activity" is (now - timeout), when they actually stopped.
-			//
-			// Example: Session starts at T0, client buffers file in 1s, times out after 30s.
-			// - LastActivity was T0+1s (last HTTP request)
-			// - now is T0+31s (when we detect timeout)
-			// - Actual watch time is likely T0 to T0+31s-30s = T0+1s (no improvement)
-			//
-			// Better approach: assume they watched until halfway through the timeout period.
-			// This is a heuristic that balances "still watching" vs "stopped immediately".
-			session.LastActivity = now.Add(-t.sessionTimeout / 2)
+		timeSinceStart := now.Sub(session.StartTime)
+		timeSinceActivity := now.Sub(session.LastActivity)
 
-			expiredSessions = append(expiredSessions, session)
-			delete(t.sessions, key)
+		// Must have no HTTP activity for the full timeout period
+		if timeSinceActivity <= t.sessionTimeout {
+			continue
 		}
+
+		// DLNA clients buffer aggressively - they fetch most/all of the video quickly,
+		// then play from cache with NO further HTTP requests.
+		//
+		// Two scenarios:
+		// 1. User watched the whole video: timeSinceStart >= videoDuration
+		//    -> Set LastActivity to when timeout began (they finished watching)
+		// 2. User stopped early: timeSinceStart < videoDuration
+		//    -> Keep LastActivity as-is (best estimate of when they stopped)
+
+		videoDuration := time.Duration(session.VideoDuration) * time.Second
+		if timeSinceStart >= videoDuration && videoDuration > 0 {
+			// User likely watched the whole video, then it timed out
+			// Estimate they watched until the timeout period started
+			session.LastActivity = now.Add(-t.sessionTimeout)
+		}
+		// else: User stopped early - LastActivity is already our best estimate
+
+		expiredSessions = append(expiredSessions, session)
+		delete(t.sessions, key)
 	}
 	t.mutex.Unlock()
 
@@ -264,8 +274,8 @@ func (t *ActivityTracker) processCompletedSession(session *streamSession) {
 	playDuration := session.estimatedPlayDuration()
 	resumeTime := session.estimatedResumeTime()
 
-	logger.Debugf("[DLNA Activity] Session completed: scene=%d, client=%s, percent=%.1f%%, duration=%.1fs, resume=%.1fs",
-		session.SceneID, session.ClientIP, percentWatched, playDuration, resumeTime)
+	logger.Debugf("[DLNA Activity] Session completed: scene=%d, client=%s, duration=%.1fs, startTime=%s, lastActivity=%s, percent=%.1f%%, duration=%.1fs, resume=%.1fs",
+		session.SceneID, session.ClientIP, session.VideoDuration, session.StartTime.String(), session.LastActivity.String(), percentWatched, playDuration, resumeTime)
 
 	// Only save if there was meaningful activity (at least 1% watched or 5 seconds)
 	if percentWatched < 1 && playDuration < 5 {

@@ -358,6 +358,14 @@ export const queryFindPerformers = (filter: ListFilterModel) =>
     },
   });
 
+export const queryFindPerformersByID = (performerIDs: number[]) =>
+  client.query<GQL.FindPerformersQuery>({
+    query: GQL.FindPerformersDocument,
+    variables: {
+      performer_ids: performerIDs,
+    },
+  });
+
 export const queryFindPerformersByIDForSelect = (performerIDs: string[]) =>
   client.query<GQL.FindPerformersForSelectQuery>({
     query: GQL.FindPerformersForSelectDocument,
@@ -425,6 +433,12 @@ export const useFindTag = (id: string) => {
   const skip = id === "new" || id === "";
   return GQL.useFindTagQuery({ variables: { id }, skip });
 };
+
+export const queryFindTag = (id: string) =>
+  client.query<GQL.FindTagQuery>({
+    query: GQL.FindTagDocument,
+    variables: { id },
+  });
 
 export const useFindTags = (filter?: ListFilterModel) =>
   GQL.useFindTagsQuery({
@@ -908,6 +922,10 @@ export const mutateSceneMerge = (
         const obj = { __typename: "Scene", id };
         deleteObject(cache, obj, GQL.FindSceneDocument);
       }
+
+      cache.evict({
+        id: cache.identify({ __typename: "Scene", id: destination }),
+      });
 
       evictTypeFields(cache, sceneMutationImpactedTypeFields);
       evictQueries(cache, [
@@ -1850,7 +1868,6 @@ export const usePerformerDestroy = () =>
       });
       evictQueries(cache, [
         ...performerMutationImpactedQueries,
-        GQL.FindPerformersDocument, // appears with
         GQL.FindGroupsDocument, // filter by performers
         GQL.FindSceneMarkersDocument, // filter by performers
       ]);
@@ -1890,9 +1907,44 @@ export const usePerformersDestroy = (
       });
       evictQueries(cache, [
         ...performerMutationImpactedQueries,
-        GQL.FindPerformersDocument, // appears with
         GQL.FindGroupsDocument, // filter by performers
         GQL.FindSceneMarkersDocument, // filter by performers
+      ]);
+    },
+  });
+
+export const mutatePerformerMerge = (
+  destination: string,
+  source: string[],
+  values: GQL.PerformerUpdateInput
+) =>
+  client.mutate<GQL.PerformerMergeMutation>({
+    mutation: GQL.PerformerMergeDocument,
+    variables: {
+      input: {
+        source,
+        destination,
+        values,
+      },
+    },
+    update(cache, result) {
+      if (!result.data?.performerMerge) return;
+
+      for (const id of source) {
+        const obj = { __typename: "Performer", id };
+        deleteObject(cache, obj, GQL.FindPerformerDocument);
+      }
+
+      cache.evict({
+        id: cache.identify({ __typename: "Performer", id: destination }),
+      });
+
+      evictTypeFields(cache, performerMutationImpactedTypeFields);
+      evictQueries(cache, [
+        ...performerMutationImpactedQueries,
+        GQL.FindGroupsDocument, // filter by performers
+        GQL.FindSceneMarkersDocument, // filter by performers
+        GQL.StatsDocument, // performer count
       ]);
     },
   });
@@ -2005,6 +2057,8 @@ const tagMutationImpactedTypeFields = {
 };
 
 const tagMutationImpactedQueries = [
+  GQL.FindGroupsDocument, // filter by tags
+  GQL.FindSceneMarkersDocument, // filter by tags
   GQL.FindScenesDocument, // filter by tags
   GQL.FindImagesDocument, // filter by tags
   GQL.FindGalleriesDocument, // filter by tags
@@ -2112,16 +2166,14 @@ export const useTagsMerge = () =>
         deleteObject(cache, obj, GQL.FindTagDocument);
       }
 
-      updateStats(cache, "tag_count", -source.length);
+      cache.evict({
+        id: cache.identify({ __typename: "Tag", id: destination }),
+      });
 
-      const obj = { __typename: "Tag", id: destination };
-      evictTypeFields(
-        cache,
-        tagMutationImpactedTypeFields,
-        cache.identify(obj) // don't evict destination tag
-      );
-
-      evictQueries(cache, tagMutationImpactedQueries);
+      evictQueries(cache, [
+        ...tagMutationImpactedQueries,
+        GQL.StatsDocument, // tag count
+      ]);
     },
   });
 
