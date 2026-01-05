@@ -5,9 +5,9 @@ import { Link, useHistory } from "react-router-dom";
 import Mousetrap from "mousetrap";
 import * as GQL from "src/core/generated-graphql";
 import {
-  queryFindTags,
+  queryFindTagsForList,
   mutateMetadataAutoTag,
-  useFindTags,
+  useFindTagsForList,
   useTagDestroy,
   useTagsDestroy,
 } from "src/core/StashService";
@@ -89,7 +89,7 @@ import {
 } from "src/extensions/hooks/useFacetCounts";
 
 function useViewRandom(
-  result: GQL.FindTagsQueryResult,
+  result: GQL.FindTagsForListQueryResult,
   filter: ListFilterModel
 ) {
   const history = useHistory();
@@ -103,7 +103,7 @@ function useViewRandom(
       const filterCopy = cloneDeep(filter);
       filterCopy.itemsPerPage = 1;
       filterCopy.currentPage = index + 1;
-      const singleResult = await queryFindTags(filterCopy);
+      const singleResult = await queryFindTagsForList(filterCopy);
       if (singleResult.data.findTags.tags.length === 1) {
         const { id } = singleResult.data.findTags.tags[0];
         // navigate to the tag page
@@ -116,7 +116,7 @@ function useViewRandom(
 }
 
 function useAddKeybinds(
-  result: GQL.FindTagsQueryResult,
+  result: GQL.FindTagsForListQueryResult,
   filter: ListFilterModel
 ) {
   const viewRandom = useViewRandom(result, filter);
@@ -133,13 +133,13 @@ function useAddKeybinds(
 }
 
 const TagListContent: React.FC<{
-  tags: GQL.TagDataFragment[];
+  tags: GQL.TagListDataFragment[];
   filter: ListFilterModel;
   selectedIds: Set<string>;
   onSelectChange: (id: string, selected: boolean, shiftKey: boolean) => void;
-  onAutoTag: (tag: GQL.TagDataFragment) => void;
-  onDeleteTag: (tag: GQL.TagDataFragment) => void;
-  deletingTag: Partial<GQL.TagDataFragment> | null;
+  onAutoTag: (tag: GQL.TagListDataFragment) => void;
+  onDeleteTag: (tag: GQL.TagListDataFragment) => void;
+  deletingTag: Partial<GQL.TagListDataFragment> | null;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
 }> = ({
@@ -695,7 +695,7 @@ export const MyFilteredTagList: React.FC<IFilteredTags> = (props) => {
 
   // State for individual tag deletion in list view
   const [deletingTag, setDeletingTag] =
-    useState<Partial<GQL.TagDataFragment> | null>(null);
+    useState<Partial<GQL.TagListDataFragment> | null>(null);
 
   function getDeleteTagInput() {
     const tagInput: Partial<GQL.TagDestroyInput> = {};
@@ -746,7 +746,7 @@ export const MyFilteredTagList: React.FC<IFilteredTags> = (props) => {
         useURL: alterQuery,
       },
       queryResultProps: {
-        useResult: useFindTags,
+        useResult: useFindTagsForList,
         getCount: (r) => r.data?.findTags.count ?? 0,
         getItems: (r) => r.data?.findTags.tags ?? [],
         filterHook,
@@ -864,7 +864,7 @@ export const MyFilteredTagList: React.FC<IFilteredTags> = (props) => {
     );
   }
 
-  async function onAutoTag(tag: GQL.TagDataFragment) {
+  async function onAutoTag(tag: GQL.TagListDataFragment) {
     if (!tag) return;
     try {
       await mutateMetadataAutoTag({ tags: [tag.id] });
@@ -881,7 +881,7 @@ export const MyFilteredTagList: React.FC<IFilteredTags> = (props) => {
         children: deletingTag?.children ?? [],
       };
       await deleteTag();
-      tagRelationHook(deletingTag as GQL.TagDataFragment, oldRelations, {
+      tagRelationHook(deletingTag as GQL.TagListDataFragment, oldRelations, {
         parents: [],
         children: [],
       });
