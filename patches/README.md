@@ -133,11 +133,11 @@ internal/dlna/activity_test.go       # Activity tracker tests
 ### Frontend Extensions
 ```
 ui/v2.5/src/extensions/           # All custom frontend code (~80 files)
-├── lists/                        # List components (6 files)
+├── lists/                        # List components (7 files)
 ├── filters/                      # Filter components (29 files)
 ├── hooks/                        # Custom hooks (7 files)
-├── ui/                           # Shared UI components
-├── styles/                       # All custom SCSS (~5,700 lines)
+├── ui/                           # Shared UI components (6 files)
+├── styles/                       # All custom SCSS (14 files, ~10,300 lines)
 │   ├── _list-components.scss
 │   ├── _scene-components.scss
 │   ├── _player-components.scss

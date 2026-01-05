@@ -47,12 +47,13 @@ make build-release      # Build optimized binaries
 
 ### Frontend Code Isolation
 All frontend fork code goes in `ui/v2.5/src/extensions/`:
-- `extensions/lists/` - Enhanced list components (6 files)
+- `extensions/lists/` - Enhanced list components (7 files)
 - `extensions/filters/` - Filter components (29 files)
-- `extensions/hooks/` - Custom React hooks
-- `extensions/components/` - Full page components & detail panels
-- `extensions/styles/` - Custom SCSS (~5,700 lines)
-- `extensions/__tests__/` - Extension tests
+- `extensions/hooks/` - Custom React hooks (7 files)
+- `extensions/components/` - Full page components & detail panels (8 files)
+- `extensions/ui/` - Shared UI components (6 files)
+- `extensions/styles/` - Custom SCSS (14 files, ~10,300 lines)
+- `extensions/__tests__/` - Extension tests (4 files)
 
 **NEVER modify these upstream directories directly:**
 - `ui/v2.5/src/components/List/Filters/` - Kept at v0.29.3 baseline

@@ -28,13 +28,13 @@ extensions/
 ├── registry.tsx        # Extension registration
 ├── README.md           # This file
 │
-├── lists/              # 6 enhanced list components
+├── lists/              # 7 enhanced list components
 ├── filters/            # 29 custom filter components
-├── hooks/              # Custom React hooks
-├── ui/                 # Reusable UI components
+├── hooks/              # 7 custom React hooks
+├── ui/                 # 6 reusable UI components
 ├── facets/             # Facets extension registration
-├── styles/             # Custom SCSS
-├── __tests__/          # Extension tests (4 files, 52 tests)
+├── styles/             # 14 custom SCSS files (~10,300 lines)
+├── __tests__/          # Extension tests (4 files)
 │
 └── docs/               # Documentation
     ├── ARCHITECTURE.md # Full architecture guide
@@ -59,18 +59,20 @@ Full list page implementations with facet counts, custom sidebars, and extended 
 ### Filters (29)
 13 NEW + 16 enhanced filter components with facet counts, quick presets, and better UX.
 
-### Hooks (6)
-- `useFacetCounts` - Main facet counting hook
-- `useSceneFacets`, `useGalleryFacets`, `usePerformerFacets` - Batch facets
-- `useSidebarFilters` - Sidebar state management
-- `useBatchedFilterCounts` - Batched counting
-- `useFacetsContext` - Facets React context
+### Hooks (7)
+Facet counting and filter management:
+- `useFacetCounts` - Main facet counting with entity-specific variants
+- `useSceneFacets` - Scene-specific facet queries
+- `useSidebarFilters`, `useBatchedFilterCounts`
+- `useFacetsContext` - React context for facets state
 
-### Styles (~5,700 lines)
+### Styles (~10,300 lines)
 SCSS files loaded last (can override anything):
 - Component styles: `_list-`, `_scene-`, `_player-`, `_shared-`, `_gallery-`, `_image-components.scss`
 - Feature styles: `_facets.scss`, `_sidebar.scss`, `_filter-tags.scss`
 - Optional theme: `_plex-theme*.scss`
+
+**ModernDark coordination:** Extension styles follow Stash's default patterns. The ModernDark plugin (`plugins/ModernDark/`) overrides these at runtime. New extension UI may require ModernDark follow-up - see main `CLAUDE.md` "Frontend/UX Workflow".
 
 ## Documentation
 
@@ -107,12 +109,12 @@ All fork changes are documented. See [MIGRATION-PLAN.md](docs/MIGRATION-PLAN.md)
 
 | Category | Files | Status |
 |----------|-------|--------|
-| List components | 6 | ✅ In extensions |
+| List components | 7 | ✅ In extensions |
 | Filter components | 29 | ✅ In extensions |
-| UI components | 4 | ✅ In extensions |
-| Hooks | 6 | ✅ In extensions |
-| SCSS | 10 | ✅ In extensions (~5,700 lines) |
-| Tests | 4 | ✅ In extensions (52 tests) |
+| UI components | 6 | ✅ In extensions |
+| Hooks | 7 | ✅ In extensions |
+| SCSS | 14 | ✅ In extensions (~10,300 lines) |
+| Tests | 4 | ✅ In extensions |
 | Component modifications | ~40 | ✅ Documented (12 patch files) |
 | GraphQL | 11 | ✅ Documented |
 | Core config | 2 | ✅ Documented |

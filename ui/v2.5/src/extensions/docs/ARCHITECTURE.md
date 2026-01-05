@@ -196,7 +196,7 @@ export { FilteredSceneList as SceneList, ScenesFilterSidebarSections } from "./S
 
 ### Styles (`extensions/styles/`)
 
-All ~5,700 lines of custom SCSS are extracted here. These load LAST to override upstream:
+All ~10,300 lines of custom SCSS are extracted here (14 files). These load LAST to override upstream:
 
 ```scss
 // extensions/styles/index.scss
@@ -206,12 +206,12 @@ All ~5,700 lines of custom SCSS are extracted here. These load LAST to override 
 @import "filter-tags";
 
 // Component styles (extracted from upstream files)
-@import "list-components";     // From List/styles.scss
-@import "scene-components";    // From Scenes/styles.scss
-@import "player-components";   // From ScenePlayer/styles.scss
-@import "shared-components";   // From Shared/styles.scss
-@import "gallery-components";  // From Galleries/styles.scss
-@import "image-components";    // From Images/styles.scss
+@import "list-components";     // ~1,726 lines - From List/styles.scss
+@import "scene-components";    // ~1,305 lines - From Scenes/styles.scss
+@import "player-components";   // ~830 lines - From ScenePlayer/styles.scss
+@import "shared-components";   // ~1,086 lines - From Shared/styles.scss
+@import "gallery-components";  // ~528 lines - From Galleries/styles.scss
+@import "image-components";    // ~197 lines - From Images/styles.scss
 
 // Optional Plex theme (currently commented out)
 // @import "plex-theme";
@@ -494,12 +494,12 @@ See **[MIGRATION-PLAN.md](./MIGRATION-PLAN.md)** for remaining work.
 
 | Category | Status | Details |
 |----------|--------|---------|
-| List components | ✅ Complete | 6 files in `lists/` |
+| List components | ✅ Complete | 7 files in `lists/` |
 | Filter components | ✅ Complete | 29 files in `filters/` |
-| UI components | ✅ Complete | 4 files in `ui/` |
+| UI components | ✅ Complete | 6 files in `ui/` |
 | Hooks | ✅ Complete | 7 files in `hooks/` |
-| SCSS styles | ✅ Complete | ~5,700 lines in `styles/` |
-| Tests | ✅ Complete | 4 files in `__tests__/` (52 tests) |
+| SCSS styles | ✅ Complete | 14 files, ~10,300 lines in `styles/` |
+| Tests | ✅ Complete | 4 files in `__tests__/` |
 | Component patches | ✅ Complete | ~40 files documented in 12 patch files |
 
 ### What's Fully Extracted
