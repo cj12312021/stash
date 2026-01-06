@@ -30,7 +30,7 @@ extensions/
 │
 ├── lists/              # 7 enhanced list components
 ├── filters/            # 29 custom filter components
-├── hooks/              # 7 custom React hooks
+├── hooks/              # 8 custom React hooks
 ├── ui/                 # 6 reusable UI components
 ├── facets/             # Facets extension registration
 ├── styles/             # 14 custom SCSS files (~10,300 lines)
@@ -64,12 +64,13 @@ Full list page implementations with facet counts, custom sidebars, and extended 
 ### Filters (29)
 13 NEW + 16 enhanced filter components with facet counts, quick presets, and better UX.
 
-### Hooks (7)
+### Hooks (8)
 Facet counting and filter management:
 - `useFacetCounts` - Main facet counting with entity-specific variants
 - `useSceneFacets` - Scene-specific facet queries
 - `useSidebarFilters`, `useBatchedFilterCounts`
 - `useFacetsContext` - React context for facets state
+- `facetCacheLink` - Apollo Link for mutation-based cache invalidation
 
 ### Styles (~10,300 lines)
 SCSS files loaded last (can override anything):
@@ -117,7 +118,7 @@ All fork changes are documented. See [MIGRATION-PLAN.md](docs/MIGRATION-PLAN.md)
 | List components | 7 | ✅ In extensions |
 | Filter components | 29 | ✅ In extensions |
 | UI components | 6 | ✅ In extensions |
-| Hooks | 7 | ✅ In extensions |
+| Hooks | 8 | ✅ In extensions |
 | SCSS | 14 | ✅ In extensions (~10,300 lines) |
 | Tests | 4 | ✅ In extensions |
 | Component modifications | ~40 | ✅ Documented (12 patch files) |

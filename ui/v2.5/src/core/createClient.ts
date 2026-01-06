@@ -13,6 +13,7 @@ import { getMainDefinition } from "@apollo/client/utilities";
 import createUploadLink from "apollo-upload-client/createUploadLink.mjs";
 import * as GQL from "src/core/generated-graphql";
 import { FieldReadFunction } from "@apollo/client/cache";
+import { createFacetCacheLink } from "src/extensions/hooks/facetCacheLink";
 
 // A read function that returns a cache reference with the given
 // typename if no valid reference is available.
@@ -191,7 +192,10 @@ Please disable it on the server and refresh the page.`);
     httpLink
   );
 
-  const link = from([errorLink, splitLink]);
+  // Create facet cache link to invalidate caches on mutations
+  const facetCacheLink = createFacetCacheLink();
+
+  const link = from([errorLink, facetCacheLink, splitLink]);
 
   const cache = new InMemoryCache({
     typePolicies,

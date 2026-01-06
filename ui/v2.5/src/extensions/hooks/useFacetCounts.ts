@@ -143,18 +143,33 @@ const memoryCache: Record<string, Map<string, CacheEntry>> = {
   tags: new Map(),
 };
 
+/**
+ * Track entity types that have been invalidated but localStorage removal failed.
+ * Prevents resurrection of stale data from localStorage when memory cache is empty.
+ */
+const invalidatedTypes = new Set<string>();
+
+/**
+ * Recursively sort all object keys for consistent serialization.
+ * Arrays are processed element-by-element but not reordered (order matters for arrays).
+ */
+function deepSortKeys(obj: unknown): unknown {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(deepSortKeys);
+
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(obj as object).sort()) {
+    sorted[key] = deepSortKeys((obj as Record<string, unknown>)[key]);
+  }
+  return sorted;
+}
+
 /** Generate a stable fingerprint for a filter */
 function getFilterFingerprint(filterData: unknown): string {
   if (!filterData || typeof filterData !== 'object') return 'empty';
-  const keys = Object.keys(filterData as object);
-  if (keys.length === 0) return 'empty';
-  // Sort keys for consistent fingerprinting
-  return JSON.stringify(filterData, Object.keys(filterData as object).sort());
-}
-
-/** Check if a filter is empty */
-function isFilterEmpty(filterData: unknown): boolean {
-  return getFilterFingerprint(filterData) === 'empty';
+  if (Object.keys(filterData as object).length === 0) return 'empty';
+  // Deep sort keys for consistent fingerprinting across all nested levels
+  return JSON.stringify(deepSortKeys(filterData));
 }
 
 /** Serialize FacetCounts for storage (Maps can't be JSON serialized) */
@@ -214,63 +229,93 @@ function loadCacheFromStorage(entityType: string): void {
   try {
     const stored = localStorage.getItem(`${STORAGE_KEY_PREFIX}${entityType}`);
     if (!stored) return;
-    
+
     const entries: CacheEntry[] = JSON.parse(stored);
     const cache = memoryCache[entityType];
-    
+    const validEntries: CacheEntry[] = [];
+
     for (const entry of entries) {
       // Skip expired entries
       const ttl = entry.filterFingerprint === 'empty' ? CACHE_TTL_UNFILTERED_MS : CACHE_TTL_FILTERED_MS;
       if (Date.now() - entry.timestamp > ttl) continue;
-      
+
       cache.set(entry.filterFingerprint, entry);
+      validEntries.push(entry);
+    }
+
+    // Clean up expired entries from localStorage if any were removed
+    if (validEntries.length < entries.length) {
+      try {
+        if (validEntries.length === 0) {
+          localStorage.removeItem(`${STORAGE_KEY_PREFIX}${entityType}`);
+        } else {
+          localStorage.setItem(`${STORAGE_KEY_PREFIX}${entityType}`, JSON.stringify(validEntries));
+        }
+      } catch {
+        // Ignore cleanup errors - not critical
+      }
     }
   } catch (e) {
     console.warn(`Failed to load facet cache for ${entityType}:`, e);
   }
 }
 
-/** Save cache to localStorage */
-function saveCacheToStorage(entityType: string): void {
+/**
+ * Save cache to localStorage.
+ *
+ * Design note: Memory cache is authoritative during the session. localStorage is
+ * best-effort persistence for faster initial loads on page refresh. If save fails:
+ * - Current session continues with correct data in memory
+ * - Next session may load older data from localStorage (if not expired by TTL)
+ * - This is acceptable because: (1) TTL ensures data isn't too stale, (2) fresh
+ *   data will be fetched and cached again, (3) the alternative (rollback memory)
+ *   would discard valid data
+ *
+ * Returns true if save succeeded, false otherwise.
+ */
+function saveCacheToStorage(entityType: string): boolean {
   try {
     const cache = memoryCache[entityType];
     const entries = Array.from(cache.values());
-    
+
     // Prune old entries if we have too many
     if (entries.length > MAX_CACHED_PATTERNS) {
       entries.sort((a, b) => b.timestamp - a.timestamp);
       entries.length = MAX_CACHED_PATTERNS;
-      
+
       // Rebuild cache with pruned entries
       cache.clear();
       for (const entry of entries) {
         cache.set(entry.filterFingerprint, entry);
       }
     }
-    
+
     localStorage.setItem(`${STORAGE_KEY_PREFIX}${entityType}`, JSON.stringify(entries));
+    return true;
   } catch (e) {
     console.warn(`Failed to save facet cache for ${entityType}:`, e);
+    return false;
   }
 }
 
 /** Get cached counts for a filter */
 function getCachedCounts(entityType: string, filterFingerprint: string): FacetCounts | null {
-  // Ensure cache is loaded from storage
-  if (memoryCache[entityType].size === 0) {
+  // Ensure cache is loaded from storage, but NOT if this type was invalidated
+  // (prevents resurrection of stale data when localStorage.removeItem failed)
+  if (memoryCache[entityType].size === 0 && !invalidatedTypes.has(entityType)) {
     loadCacheFromStorage(entityType);
   }
-  
+
   const entry = memoryCache[entityType].get(filterFingerprint);
   if (!entry) return null;
-  
+
   // Check TTL
   const ttl = filterFingerprint === 'empty' ? CACHE_TTL_UNFILTERED_MS : CACHE_TTL_FILTERED_MS;
   if (Date.now() - entry.timestamp > ttl) {
     memoryCache[entityType].delete(filterFingerprint);
     return null;
   }
-  
+
   return deserializeCounts(entry.counts);
 }
 
@@ -281,9 +326,12 @@ function setCachedCounts(entityType: string, filterFingerprint: string, counts: 
     timestamp: Date.now(),
     filterFingerprint,
   };
-  
+
   memoryCache[entityType].set(filterFingerprint, entry);
-  
+
+  // Clear invalidated flag - fresh data has been fetched
+  invalidatedTypes.delete(entityType);
+
   // Persist to localStorage (debounced would be better, but simple for now)
   saveCacheToStorage(entityType);
 }
@@ -292,19 +340,24 @@ function setCachedCounts(entityType: string, filterFingerprint: string, counts: 
 export function invalidateFacetCache(entityType?: string): void {
   if (entityType) {
     memoryCache[entityType].clear();
+    invalidatedTypes.add(entityType);
     try {
       localStorage.removeItem(`${STORAGE_KEY_PREFIX}${entityType}`);
+      // Only clear invalidated flag if localStorage removal succeeded
+      invalidatedTypes.delete(entityType);
     } catch (e) {
-      // Ignore storage errors
+      console.warn(`Failed to clear localStorage for ${entityType}, cache resurrection blocked`);
     }
   } else {
     // Invalidate all
     for (const type of Object.keys(memoryCache)) {
       memoryCache[type].clear();
+      invalidatedTypes.add(type);
       try {
         localStorage.removeItem(`${STORAGE_KEY_PREFIX}${type}`);
+        invalidatedTypes.delete(type);
       } catch (e) {
-        // Ignore storage errors
+        console.warn(`Failed to clear localStorage for ${type}, cache resurrection blocked`);
       }
     }
   }

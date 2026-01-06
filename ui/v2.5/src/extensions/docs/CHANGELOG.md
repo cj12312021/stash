@@ -4,6 +4,46 @@ This document tracks what has been added/modified from the upstream Stash codeba
 
 ---
 
+## 2026-01-06: Facet Cache System Fixes
+
+Major bugfixes for the facet cache system that was causing incorrect cached data.
+
+### Fixed Issues (6)
+
+| Issue | Severity | Fix |
+|-------|----------|-----|
+| **Fingerprint Bug** | Critical | Nested filter values were stripped during serialization. Implemented `deepSortKeys()` for full recursive key sorting |
+| **Cache Resurrection** | High | Stale data resurrected from localStorage after failed invalidation. Added `invalidatedTypes` Set to block resurrection |
+| **No Mutation Invalidation** | High | Editing data didn't refresh facet counts. Added `facetCacheLink` Apollo Link to invalidate on mutations |
+| **Memory/localStorage Inconsistency** | Medium | Documented as accepted behavior - memory cache is authoritative, localStorage is best-effort |
+| **Dead Code** | Low | Removed unused `isFilterEmpty` function |
+| **Expired Entries Not Cleaned** | Low | `loadCacheFromStorage()` now cleans up expired entries during load |
+
+### New Files
+
+- `ui/v2.5/src/extensions/hooks/facetCacheLink.ts` - Apollo Link for mutation-based cache invalidation
+- `ui/v2.5/src/extensions/docs/FACET-CACHE-ISSUES.md` - Comprehensive documentation of all cache issues and fixes
+
+### Modified Files
+
+- `ui/v2.5/src/extensions/hooks/useFacetCounts.ts` - `deepSortKeys()`, `invalidatedTypes` Set, improved `loadCacheFromStorage()`
+- `ui/v2.5/src/core/createClient.ts` - Added `facetCacheLink` to Apollo link chain
+
+### Mutation Invalidation Mapping
+
+The new `facetCacheLink` maps mutations to affected entity types:
+
+| Mutation | Invalidates |
+|----------|-------------|
+| Scene* | scenes |
+| Performer* | performers, scenes, galleries |
+| Tag* | tags, scenes, performers, galleries, groups, studios |
+| Studio* | studios, scenes, galleries, groups |
+| Group* | groups, scenes |
+| Gallery* | galleries |
+
+---
+
 ## January 2026: Facet Query Performance & Cache Documentation
 
 ### Backend Performance Improvements
