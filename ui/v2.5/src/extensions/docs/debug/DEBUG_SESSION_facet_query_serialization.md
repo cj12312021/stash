@@ -126,9 +126,11 @@ curl -s -X POST http://localhost:9999/graphql \
 
 ## Cleanup TODO
 
-The timing logs (`[FACET TIMING]`) are currently at INFO level. Once debugging is complete:
-- Change back to `logger.Debugf` or remove entirely
-- Files: `scene_facets.go`, `criterion_handlers.go`, `resolver_query_facets.go`
+~~The timing logs (`[FACET TIMING]`) are currently at INFO level. Once debugging is complete:~~
+- ~~Change back to `logger.Debugf` or remove entirely~~
+- ~~Files: `scene_facets.go`, `criterion_handlers.go`, `resolver_query_facets.go`~~
+
+✅ **Completed 2026-01-06** - Timing logs cleaned up
 
 ---
 
