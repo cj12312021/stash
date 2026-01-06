@@ -17,7 +17,7 @@ import {
   defaultRatingSystemOptions,
   RatingSystemType,
 } from "src/utils/rating";
-import { ConfigurationContext } from "src/hooks/Config";
+import { useConfigurationContext } from "src/hooks/Config";
 import { RatingCriterion } from "src/models/list-filter/criteria/rating";
 import { ListFilterModel } from "src/models/list-filter/filter";
 import { Option, SidebarListFilter } from "./SidebarListFilter";
@@ -181,7 +181,7 @@ function useRatingFilterState(props: {
   const intl = useIntl();
   const { option, filter, setFilter, ratingCounts, countsLoading, totalCount } = props;
 
-  const { configuration: config } = React.useContext(ConfigurationContext);
+  const { configuration: config } = useConfigurationContext();
   const ratingSystemOptions =
     config?.ui.ratingSystemOptions ?? defaultRatingSystemOptions;
   const starPrecision = ratingSystemOptions.starPrecision ?? defaultRatingStarPrecision;

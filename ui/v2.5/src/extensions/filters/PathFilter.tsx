@@ -6,7 +6,7 @@ import { faChevronDown, faFolder } from "@fortawesome/free-solid-svg-icons";
 import { Icon } from "src/components/Shared/Icon";
 import { FolderSelect } from "src/components/Shared/FolderSelect/FolderSelect";
 import { CriterionModifier } from "src/core/generated-graphql";
-import { ConfigurationContext } from "src/hooks/Config";
+import { useConfigurationContext } from "src/hooks/Config";
 import {
   ModifierCriterion,
   CriterionValue,
@@ -30,8 +30,8 @@ export const PathFilter: React.FC<IInputFilterProps> = ({
   criterion,
   onValueChanged,
 }) => {
-  const { configuration } = React.useContext(ConfigurationContext);
-  const libraryPaths = configuration?.general.stashes.map((s) => s.path);
+  const { configuration } = useConfigurationContext();
+  const libraryPaths = configuration?.general.stashes.map((s: { path: string }) => s.path);
 
   // don't show folder select for regex
   const regex =
@@ -98,14 +98,14 @@ function usePathFilterState(props: {
 }) {
   const intl = useIntl();
   const { option, filter, setFilter } = props;
-  const { configuration } = React.useContext(ConfigurationContext);
+  const { configuration } = useConfigurationContext();
 
   const [inputValue, setInputValue] = useState("");
   const [inputMode, setInputMode] = useState<InputMode>("none");
 
   // Get library paths from configuration
   const libraryPaths = useMemo(() => {
-    return configuration?.general.stashes.map((s) => s.path) ?? [];
+    return configuration?.general.stashes.map((s: { path: string }) => s.path) ?? [];
   }, [configuration]);
 
   const criterion = useMemo(() => {

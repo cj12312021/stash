@@ -523,9 +523,10 @@ export const FilterTags: React.FC<IFilterTagsProps> = ({
     return tags;
   }
 
-  // Get filter tags for a labeled ID list criterion
+  // Get filter tags for a labeled ID list criterion (with ILabeledValueListValue structure)
   function getLabeledIdListFilterTags(criterion: ILabeledIdCriterion) {
-    const value = criterion.value as ILabeledValueListValue;
+    // Value is already runtime-checked to have items/excluded structure before this call
+    const value = criterion.value as unknown as ILabeledValueListValue;
     const tags: React.ReactNode[] = [];
 
     // Handle IsNull/NotNull modifiers

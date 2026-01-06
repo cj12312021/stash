@@ -263,7 +263,7 @@ function useDateFilterState(props: {
       // Custom date range
       let label = "";
       if (modifier === CriterionModifier.Equals) {
-        label = value.value;
+        label = value.value ?? "";
       } else if (modifier === CriterionModifier.NotEquals) {
         label = `≠ ${value.value}`;
       } else if (modifier === CriterionModifier.GreaterThan) {

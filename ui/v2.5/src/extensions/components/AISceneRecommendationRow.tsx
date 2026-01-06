@@ -47,6 +47,7 @@ export const AISceneRecommendationRow: React.FC<IProps> = ({
     <RecommendationRow
       className="scene-recommendations ai-recommendations"
       header={header}
+      link={<></>}
     >
       <Slider
         {...getSlickSliderSettings(cardCount || limit, isTouch)}

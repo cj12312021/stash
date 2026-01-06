@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { CriterionOption } from "src/models/list-filter/criteria/criterion";
+import { ModifierCriterionOption, Option as CriterionOptionValue } from "src/models/list-filter/criteria/criterion";
 import { ListFilterModel } from "src/models/list-filter/filter";
 import { IsMissingCriterion } from "src/models/list-filter/criteria/is-missing";
 import { Option, SidebarListFilter } from "./SidebarListFilter";
@@ -59,7 +59,7 @@ const optionIcons: Record<string, IconDefinition> = {
 
 interface ISidebarIsMissingFilterProps {
   title?: React.ReactNode;
-  option: CriterionOption;
+  option: ModifierCriterionOption;
   filter: ListFilterModel;
   setFilter: (f: ListFilterModel) => void;
   sectionID?: string;
@@ -82,9 +82,9 @@ export const SidebarIsMissingFilter: React.FC<ISidebarIsMissingFilterProps> = ({
 
   // Create option objects with icons
   const options: Option[] = useMemo(() => {
-    return availableOptions.map((opt) => {
-      const optValue = typeof opt === "string" ? opt : opt.value;
-      const optLabel = typeof opt === "string" ? opt : opt.messageID;
+    return availableOptions.map((opt: CriterionOptionValue) => {
+      const optValue = typeof opt === "string" ? opt : typeof opt === "number" ? String(opt) : opt.id;
+      const optLabel = typeof opt === "string" ? opt : typeof opt === "number" ? String(opt) : (opt.name ?? opt.id);
       const icon = optionIcons[optValue] ?? faQuestion;
       
       return {

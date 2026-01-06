@@ -53,6 +53,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import * as GQL from "src/core/generated-graphql";
 import { LabeledFacetCount, FacetCounts } from "src/extensions/hooks/useFacetCounts";
 
 describe("LabeledFacetCount interface", () => {
@@ -97,6 +98,9 @@ describe("FacetCounts interface", () => {
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map<string, LabeledFacetCount>(),
@@ -137,6 +141,9 @@ describe("FacetCounts interface", () => {
       booleans: {
         organized: { true: 10, false: 90 },
         interactive: { true: 5, false: 95 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 20, false: 80 },
       },
       parents: new Map(),
@@ -488,6 +495,9 @@ describe("State update patterns", () => {
       booleans: {
         organized: { true: 10, false: 90 },
         interactive: { true: 5, false: 95 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -540,6 +550,9 @@ describe("State update patterns", () => {
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -596,6 +609,9 @@ describe("State update patterns", () => {
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -631,6 +647,9 @@ describe("State update patterns", () => {
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -774,6 +793,9 @@ describe("Cache serialization", () => {
       booleans: {
         organized: { true: 100, false: 900 },
         interactive: { true: 10, false: 990 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -981,6 +1003,9 @@ describe("Entity-specific FacetCounts builders", () => {
       booleans: {
         organized: { true: 0, false: 0 },
         interactive: { true: 0, false: 0 },
+        hasMarkers: { true: 0, false: 0 },
+        performerFavorite: { true: 0, false: 0 },
+        hasChapters: { true: 0, false: 0 },
         favorite: { true: 0, false: 0 },
       },
       parents: new Map(),
@@ -1010,8 +1035,8 @@ describe("Entity-specific FacetCounts builders", () => {
       counts.performers = new Map([["2", { count: 20, label: "Performer" }]]);
       counts.studios = new Map([["3", { count: 30, label: "Studio" }]]);
       counts.booleans.organized = { true: 5, false: 10 };
-      counts.ratings = new Map([["100", { count: 3, label: "100" }]]);
-      
+      counts.ratings = new Map([[100, 3]]);
+
       expect(counts.tags.size).toBe(1);
       expect(counts.performers.size).toBe(1);
       expect(counts.studios.size).toBe(1);
@@ -1037,11 +1062,11 @@ describe("Entity-specific FacetCounts builders", () => {
       
       counts.tags = new Map([["1", { count: 10, label: "Tag" }]]);
       counts.studios = new Map([["2", { count: 20, label: "Studio" }]]);
-      counts.genders = new Map([["FEMALE", { count: 30, label: "Female" }]]);
+      counts.genders = new Map([[GQL.GenderEnum.Female, 30]]);
       counts.countries = new Map([["US", { count: 40, label: "US" }]]);
-      counts.circumcised = new Map([["CUT", { count: 5, label: "Cut" }]]);
+      counts.circumcised = new Map([[GQL.CircumisedEnum.Cut, 5]]);
       counts.booleans.favorite = { true: 15, false: 85 };
-      counts.ratings = new Map([["80", { count: 10, label: "80" }]]);
+      counts.ratings = new Map([[80, 10]]);
       
       expect(counts.tags.size).toBe(1);
       expect(counts.studios.size).toBe(1);

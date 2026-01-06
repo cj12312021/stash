@@ -2,7 +2,7 @@ import React from "react";
 import * as GQL from "src/core/generated-graphql";
 import { HoverPopover } from "src/components/Shared/HoverPopover";
 import { GalleryCard } from "src/components/Galleries/GalleryCard";
-import { ConfigurationContext } from "src/hooks/Config";
+import { useConfigurationContext } from "src/hooks/Config";
 import { Placement } from "react-bootstrap/esm/Overlay";
 
 interface IGalleryPopoverCardProps {
@@ -33,7 +33,7 @@ export const GalleryPopover: React.FC<IGalleryPopoverProps> = ({
   placement = "top",
   target,
 }) => {
-  const { configuration: config } = React.useContext(ConfigurationContext);
+  const { configuration: config } = useConfigurationContext();
 
   const showTagCardOnHover = config?.ui.showTagCardOnHover ?? true;
 
