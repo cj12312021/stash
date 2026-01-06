@@ -1027,10 +1027,16 @@ export const MyFilteredPerformerList = (props: IFilteredPerformers) => {
     () => (filterHook ? filterHook(filter.clone()) : filter),
     [filter, filterHook]
   );
-  const { counts: facetCounts, loading: facetLoading } = usePerformerFacetCounts(facetFilter, {
+  const { counts: facetCounts, loading: facetLoading, error: facetError } = usePerformerFacetCounts(facetFilter, {
     isOpen: showSidebar ?? false,
     debounceMs: 300,
   });
+
+  // IMPORTANT: This useMemo must be BEFORE any early returns to satisfy React's Rules of Hooks
+  const facetContextValue = useMemo(
+    () => ({ counts: facetCounts, loading: facetLoading, error: facetError }),
+    [facetCounts, facetLoading, facetError]
+  );
 
   useEffect(() => {
     Mousetrap.bind("e", () => {
@@ -1178,7 +1184,7 @@ export const MyFilteredPerformerList = (props: IFilteredPerformers) => {
         {modal}
 
         <SidebarStateContext.Provider value={{ sectionOpen, setSectionOpen, disabled: isFilterEditMode }}>
-          <FacetCountsContext.Provider value={{ counts: facetCounts, loading: facetLoading }}>
+          <FacetCountsContext.Provider value={facetContextValue}>
           <SidebarPane hideSidebar={!showSidebar}>
             <Sidebar hide={!showSidebar} onHide={() => setShowSidebar(false)}>
               <SidebarContent

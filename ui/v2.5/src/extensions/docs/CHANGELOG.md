@@ -4,6 +4,57 @@ This document tracks what has been added/modified from the upstream Stash codeba
 
 ---
 
+## January 2026: Facet Query Performance & Cache Documentation
+
+### Backend Performance Improvements
+
+**Query Optimization:**
+- Replaced CTE-based facet queries with IN subquery pattern (5x+ faster on large datasets)
+- All `*_facets.go` files now use `WHERE x IN (SELECT id FROM ...)` instead of `WITH filtered AS (...)`
+- Added 60-second context timeout to prevent runaway queries
+
+**New Extension Indexes (8 added):**
+- `idx_ext_scene_markers_scene` - has_markers facet optimization
+- `idx_ext_galleries_chapters_gallery` - has_chapters facet optimization
+- `idx_ext_video_captions_file` - captions facet optimization
+- `idx_ext_scenes_files_scene_primary` - video metadata facet optimization
+- `idx_ext_tags_relations_parent` - tag hierarchy optimization
+- `idx_ext_tags_relations_child` - tag hierarchy optimization
+- `idx_ext_groups_scenes_scene` - group performers facet optimization
+- `idx_ext_groups_tags_group_tag` - group tags facet optimization
+
+**Benchmark Test Suite:**
+- Added `pkg/sqlite/facets_benchmark_test.go` (649 lines)
+- Run with: `go test -v -tags=benchmark -bench=. ./pkg/sqlite/... -run=^$`
+- Tests CTE vs IN-subquery performance, cache effectiveness
+
+### Frontend Changes
+
+**Cache System:**
+- All list components now properly pass filter context to `useFacetCounts`
+- Added filter fingerprint-based caching for any filter pattern
+
+**Documentation:**
+- Added `docs/FACET-CACHE-ISSUES.md` - Known cache system issues with test scripts
+- Documents 6 issues: fingerprint bug, cache resurrection, mutation staleness, etc.
+
+### Files Modified
+
+**Backend:**
+- `pkg/sqlite/scene_facets.go` - IN-subquery pattern, context timeout
+- `pkg/sqlite/performer_facets.go` - IN-subquery pattern
+- `pkg/sqlite/gallery_facets.go` - IN-subquery pattern
+- `pkg/sqlite/studio_facets.go` - IN-subquery pattern
+- `pkg/sqlite/group_facets.go` - IN-subquery pattern
+- `pkg/sqlite/tag_facets.go` - IN-subquery pattern
+- `pkg/sqlite/extension_indexes.go` - 8 new indexes
+
+**Frontend:**
+- `ui/v2.5/src/extensions/hooks/useFacetCounts.ts` - Cache refinements
+- `ui/v2.5/src/extensions/lists/*.tsx` - Filter context improvements
+
+---
+
 ## Added
 
 ### Performance

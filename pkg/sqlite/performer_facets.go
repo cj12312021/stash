@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/stashapp/stash/pkg/models"
 )
@@ -72,6 +73,9 @@ func isEmptyPerformerFilter(filter *models.PerformerFilterType) bool {
 // All facets run in parallel goroutines for optimal performance.
 // When no filter is applied, uses optimized "fast path" queries that skip the CTE.
 func (qb *PerformerStore) GetFacets(ctx context.Context, performerFilter *models.PerformerFilterType, limit int) (*models.PerformerFacets, error) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	result := &models.PerformerFacets{
 		Tags:        []models.FacetCount{},
 		Studios:     []models.FacetCount{},
@@ -392,13 +396,15 @@ func (qb *PerformerStore) getFacetsUnfiltered(ctx context.Context, limit int, re
 
 // Individual facet query functions for filtered queries
 
+// getTagsFacet fetches tag counts
+// Uses IN subquery instead of CTE for better performance on large datasets.
+// This leverages the idx_ext_performers_tags_performer_tag index.
 func (qb *PerformerStore) getTagsFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, limit int, result *models.PerformerFacets, mu *sync.Mutex) error {
 	sql := fmt.Sprintf(`
-		WITH filtered_performers AS (%s)
 		SELECT t.id, t.name as label, COUNT(DISTINCT pt.performer_id) as count
-		FROM filtered_performers fp
-		INNER JOIN performers_tags pt ON fp.id = pt.performer_id
+		FROM performers_tags pt
 		INNER JOIN tags t ON pt.tag_id = t.id
+		WHERE pt.performer_id IN (%s)
 		GROUP BY t.id
 		ORDER BY count DESC
 		LIMIT ?
@@ -428,15 +434,15 @@ func (qb *PerformerStore) getTagsFacet(ctx context.Context, baseSQL string, base
 	return rows.Err()
 }
 
+// getStudiosFacet fetches studio counts (via performers_scenes -> scenes -> studios)
+// Uses IN subquery instead of CTE for better performance on large datasets.
 func (qb *PerformerStore) getStudiosFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, limit int, result *models.PerformerFacets, mu *sync.Mutex) error {
 	sql := fmt.Sprintf(`
-		WITH filtered_performers AS (%s)
 		SELECT s.id, s.name as label, COUNT(DISTINCT ps.performer_id) as count
-		FROM filtered_performers fp
-		INNER JOIN performers_scenes ps ON fp.id = ps.performer_id
+		FROM performers_scenes ps
 		INNER JOIN scenes sc ON ps.scene_id = sc.id
 		INNER JOIN studios s ON sc.studio_id = s.id
-		WHERE sc.studio_id IS NOT NULL
+		WHERE ps.performer_id IN (%s) AND sc.studio_id IS NOT NULL
 		GROUP BY s.id
 		ORDER BY count DESC
 		LIMIT ?

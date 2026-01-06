@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/stashapp/stash/pkg/models"
 )
@@ -44,6 +45,9 @@ func isEmptyGroupFilter(filter *models.GroupFilterType) bool {
 // All facets run in parallel goroutines for optimal performance.
 // When no filter is applied, uses optimized "fast path" queries that skip the CTE.
 func (qb *GroupStore) GetFacets(ctx context.Context, groupFilter *models.GroupFilterType, limit int) (*models.GroupFacets, error) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	result := &models.GroupFacets{
 		Tags:       []models.FacetCount{},
 		Performers: []models.FacetCount{},
@@ -236,13 +240,15 @@ func (qb *GroupStore) getFacetsUnfiltered(ctx context.Context, limit int, result
 
 // Individual facet query functions for filtered queries
 
+// getTagsFacet fetches tag counts
+// Uses IN subquery instead of CTE for better performance on large datasets.
+// This leverages the idx_ext_groups_tags_group_tag index.
 func (qb *GroupStore) getTagsFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, limit int, result *models.GroupFacets, mu *sync.Mutex) error {
 	sql := fmt.Sprintf(`
-		WITH filtered_groups AS (%s)
 		SELECT t.id, t.name as label, COUNT(DISTINCT gt.group_id) as count
-		FROM filtered_groups fg
-		INNER JOIN groups_tags gt ON fg.id = gt.group_id
+		FROM groups_tags gt
 		INNER JOIN tags t ON gt.tag_id = t.id
+		WHERE gt.group_id IN (%s)
 		GROUP BY t.id
 		ORDER BY count DESC
 		LIMIT ?
@@ -272,14 +278,15 @@ func (qb *GroupStore) getTagsFacet(ctx context.Context, baseSQL string, baseArgs
 	return rows.Err()
 }
 
+// getPerformersFacet fetches performer counts (via groups_scenes -> performers_scenes -> performers)
+// Uses IN subquery instead of CTE for better performance on large datasets.
 func (qb *GroupStore) getPerformersFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, limit int, result *models.GroupFacets, mu *sync.Mutex) error {
 	sql := fmt.Sprintf(`
-		WITH filtered_groups AS (%s)
 		SELECT p.id, p.name as label, COUNT(DISTINCT gs.group_id) as count
-		FROM filtered_groups fg
-		INNER JOIN groups_scenes gs ON fg.id = gs.group_id
+		FROM groups_scenes gs
 		INNER JOIN performers_scenes ps ON gs.scene_id = ps.scene_id
 		INNER JOIN performers p ON ps.performer_id = p.id
+		WHERE gs.group_id IN (%s)
 		GROUP BY p.id
 		ORDER BY count DESC
 		LIMIT ?

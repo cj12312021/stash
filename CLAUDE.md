@@ -164,6 +164,8 @@ git merge upstream/develop
 git push origin develop
 ```
 
+**After merging, run `/check-upstream-extensions`** to verify extension components have feature parity with upstream changes.
+
 ## Key Documentation
 
 - `patches/README.md` - Backend patch overview and merge guide

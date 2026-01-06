@@ -729,10 +729,16 @@ export const MyFilteredGalleryList = (props: IFilteredGalleries) => {
     () => (filterHook ? filterHook(filter.clone()) : filter),
     [filter, filterHook]
   );
-  const { counts: facetCounts, loading: facetLoading } = useGalleryFacetCounts(facetFilter, {
+  const { counts: facetCounts, loading: facetLoading, error: facetError } = useGalleryFacetCounts(facetFilter, {
     isOpen: showSidebar ?? false,
     debounceMs: 300,
   });
+
+  // IMPORTANT: This useMemo must be BEFORE any early returns to satisfy React's Rules of Hooks
+  const facetContextValue = useMemo(
+    () => ({ counts: facetCounts, loading: facetLoading, error: facetError }),
+    [facetCounts, facetLoading, facetError]
+  );
 
   useEffect(() => {
     Mousetrap.bind("e", () => {
@@ -857,7 +863,7 @@ export const MyFilteredGalleryList = (props: IFilteredGalleries) => {
         {modal}
 
         <SidebarStateContext.Provider value={{ sectionOpen, setSectionOpen, disabled: isFilterEditMode }}>
-          <FacetCountsContext.Provider value={{ counts: facetCounts, loading: facetLoading }}>
+          <FacetCountsContext.Provider value={facetContextValue}>
           <SidebarPane hideSidebar={!showSidebar}>
             <Sidebar hide={!showSidebar} onHide={() => setShowSidebar(false)}>
               <SidebarContent

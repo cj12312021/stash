@@ -5,6 +5,7 @@ import (
 	stdsql "database/sql"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/stashapp/stash/pkg/models"
 )
@@ -13,6 +14,9 @@ import (
 // Note: TagStore doesn't have complex filtering like other stores,
 // so we use a simpler approach that queries all tags.
 func (qb *TagStore) GetFacets(ctx context.Context, tagFilter *models.TagFilterType, limit int) (*models.TagFacets, error) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	result := &models.TagFacets{
 		Parents:  []models.FacetCount{},
 		Children: []models.FacetCount{},

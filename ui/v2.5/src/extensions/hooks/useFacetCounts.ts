@@ -593,14 +593,15 @@ export function useSceneFacetCounts(
   filter: ListFilterModel,
   options: UseFacetCountsOptions = {}
 ) {
-  const { 
-    isOpen = true, 
-    debounceMs = 500, 
+  const {
+    isOpen = true,
+    debounceMs = 500,
     limit = 100,
   } = options;
 
   const [counts, setCounts] = useState<FacetCounts>(createEmptyCounts);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFilterRef = useRef<string>("");
 
@@ -619,7 +620,7 @@ export function useSceneFacetCounts(
     const requestFingerprint = filterFingerprint;
     const filterData = filter.makeFilter();
     const cacheFingerprint = getFilterFingerprint(filterData);
-    
+
     // Check cache for ANY filter pattern (not just empty)
     const cached = getCachedCounts('scenes', cacheFingerprint);
     if (cached) {
@@ -642,8 +643,9 @@ export function useSceneFacetCounts(
       });
       return;
     }
-    
+
     setLoading(true);
+    setError(null);
     try {
       const result = await fetchFacets({
         variables: {
@@ -664,8 +666,9 @@ export function useSceneFacetCounts(
         // Cache all filter patterns
         setCachedCounts('scenes', cacheFingerprint, newCounts);
       }
-    } catch (error) {
-      console.error("Error fetching scene facets:", error);
+    } catch (err) {
+      console.error("Error fetching scene facets:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       // Only clear loading if this is still the current request
       if (lastFilterRef.current === requestFingerprint) {
@@ -707,7 +710,7 @@ export function useSceneFacetCounts(
     };
   }, [filterFingerprint, isOpen, debounceMs, doFetch]);
 
-  return { counts, loading, refetch: doFetch };
+  return { counts, loading, error, refetch: doFetch };
 }
 
 /**
@@ -724,6 +727,7 @@ export function usePerformerFacetCounts(
 
   const [counts, setCounts] = useState<FacetCounts>(createEmptyCounts);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFilterRef = useRef<string>("");
 
@@ -765,8 +769,9 @@ export function usePerformerFacetCounts(
       });
       return;
     }
-    
+
     setLoading(true);
+    setError(null);
     try {
       const result = await fetchFacets({
         variables: {
@@ -787,8 +792,9 @@ export function usePerformerFacetCounts(
         // Cache all filter patterns
         setCachedCounts('performers', cacheFingerprint, newCounts);
       }
-    } catch (error) {
-      console.error("Error fetching performer facets:", error);
+    } catch (err) {
+      console.error("Error fetching performer facets:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       // Only clear loading if this is still the current request
       if (lastFilterRef.current === requestFingerprint) {
@@ -830,7 +836,7 @@ export function usePerformerFacetCounts(
     };
   }, [filterFingerprint, isOpen, debounceMs, doFetch]);
 
-  return { counts, loading, refetch: doFetch };
+  return { counts, loading, error, refetch: doFetch };
 }
 
 /**
@@ -847,6 +853,7 @@ export function useGalleryFacetCounts(
 
   const [counts, setCounts] = useState<FacetCounts>(createEmptyCounts);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFilterRef = useRef<string>("");
 
@@ -888,8 +895,9 @@ export function useGalleryFacetCounts(
       });
       return;
     }
-    
+
     setLoading(true);
+    setError(null);
     try {
       const result = await fetchFacets({
         variables: {
@@ -910,8 +918,9 @@ export function useGalleryFacetCounts(
         // Cache all filter patterns
         setCachedCounts('galleries', cacheFingerprint, newCounts);
       }
-    } catch (error) {
-      console.error("Error fetching gallery facets:", error);
+    } catch (err) {
+      console.error("Error fetching gallery facets:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       // Only clear loading if this is still the current request
       if (lastFilterRef.current === requestFingerprint) {
@@ -953,7 +962,7 @@ export function useGalleryFacetCounts(
     };
   }, [filterFingerprint, isOpen, debounceMs, doFetch]);
 
-  return { counts, loading, refetch: doFetch };
+  return { counts, loading, error, refetch: doFetch };
 }
 
 /**
@@ -970,6 +979,7 @@ export function useGroupFacetCounts(
 
   const [counts, setCounts] = useState<FacetCounts>(createEmptyCounts);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFilterRef = useRef<string>("");
 
@@ -1011,8 +1021,9 @@ export function useGroupFacetCounts(
       });
       return;
     }
-    
+
     setLoading(true);
+    setError(null);
     try {
       const result = await fetchFacets({
         variables: {
@@ -1033,8 +1044,9 @@ export function useGroupFacetCounts(
         // Cache all filter patterns
         setCachedCounts('groups', cacheFingerprint, newCounts);
       }
-    } catch (error) {
-      console.error("Error fetching group facets:", error);
+    } catch (err) {
+      console.error("Error fetching group facets:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       // Only clear loading if this is still the current request
       if (lastFilterRef.current === requestFingerprint) {
@@ -1076,7 +1088,7 @@ export function useGroupFacetCounts(
     };
   }, [filterFingerprint, isOpen, debounceMs, doFetch]);
 
-  return { counts, loading, refetch: doFetch };
+  return { counts, loading, error, refetch: doFetch };
 }
 
 /**
@@ -1092,6 +1104,7 @@ export function useStudioFacetCounts(
 
   const [counts, setCounts] = useState<FacetCounts>(createEmptyCounts);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFilterRef = useRef<string>("");
 
@@ -1133,8 +1146,9 @@ export function useStudioFacetCounts(
       });
       return;
     }
-    
+
     setLoading(true);
+    setError(null);
     try {
       const result = await fetchFacets({
         variables: {
@@ -1155,8 +1169,9 @@ export function useStudioFacetCounts(
         // Cache all filter patterns
         setCachedCounts('studios', cacheFingerprint, newCounts);
       }
-    } catch (error) {
-      console.error("Error fetching studio facets:", error);
+    } catch (err) {
+      console.error("Error fetching studio facets:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       // Only clear loading if this is still the current request
       if (lastFilterRef.current === requestFingerprint) {
@@ -1198,12 +1213,12 @@ export function useStudioFacetCounts(
     };
   }, [filterFingerprint, isOpen, debounceMs, doFetch]);
 
-  return { counts, loading, refetch: doFetch };
+  return { counts, loading, error, refetch: doFetch };
 }
 
 /**
  * Hook for tag facet counts
- * 
+ *
  * Results are cached in memory and localStorage for instant display on repeat visits.
  */
 export function useTagFacetCounts(
@@ -1214,6 +1229,7 @@ export function useTagFacetCounts(
 
   const [counts, setCounts] = useState<FacetCounts>(createEmptyCounts);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFilterRef = useRef<string>("");
 
@@ -1255,8 +1271,9 @@ export function useTagFacetCounts(
       });
       return;
     }
-    
+
     setLoading(true);
+    setError(null);
     try {
       const result = await fetchFacets({
         variables: {
@@ -1277,8 +1294,9 @@ export function useTagFacetCounts(
         // Cache all filter patterns
         setCachedCounts('tags', cacheFingerprint, newCounts);
       }
-    } catch (error) {
-      console.error("Error fetching tag facets:", error);
+    } catch (err) {
+      console.error("Error fetching tag facets:", err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       // Only clear loading if this is still the current request
       if (lastFilterRef.current === requestFingerprint) {
@@ -1320,7 +1338,7 @@ export function useTagFacetCounts(
     };
   }, [filterFingerprint, isOpen, debounceMs, doFetch]);
 
-  return { counts, loading, refetch: doFetch };
+  return { counts, loading, error, refetch: doFetch };
 }
 
 /**
@@ -1382,9 +1400,11 @@ export function useFacetCounts(
 export const FacetCountsContext = React.createContext<{
   counts: FacetCounts;
   loading: boolean;
+  error?: Error | null;
 }>({
   counts: EMPTY_COUNTS,
   loading: false,
+  error: null,
 });
 
 /**

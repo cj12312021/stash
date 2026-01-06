@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/stashapp/stash/pkg/models"
 )
@@ -51,6 +52,9 @@ func isEmptyGalleryFilter(filter *models.GalleryFilterType) bool {
 // All facets run in parallel goroutines for optimal performance.
 // When no filter is applied, uses optimized "fast path" queries that skip the CTE.
 func (qb *GalleryStore) GetFacets(ctx context.Context, galleryFilter *models.GalleryFilterType, limit int) (*models.GalleryFacets, error) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	result := &models.GalleryFacets{
 		Tags:              []models.FacetCount{},
 		Performers:        []models.FacetCount{},
@@ -449,13 +453,15 @@ func (qb *GalleryStore) getFacetsUnfiltered(ctx context.Context, limit int, resu
 
 // Individual facet query functions for filtered queries
 
+// getTagsFacet fetches tag counts
+// Uses IN subquery instead of CTE for better performance on large datasets.
+// This leverages the idx_ext_galleries_tags_gallery_tag index.
 func (qb *GalleryStore) getTagsFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, limit int, result *models.GalleryFacets, mu *sync.Mutex) error {
 	sql := fmt.Sprintf(`
-		WITH filtered_galleries AS (%s)
 		SELECT t.id, t.name as label, COUNT(DISTINCT gt.gallery_id) as count
-		FROM filtered_galleries fg
-		INNER JOIN galleries_tags gt ON fg.id = gt.gallery_id
+		FROM galleries_tags gt
 		INNER JOIN tags t ON gt.tag_id = t.id
+		WHERE gt.gallery_id IN (%s)
 		GROUP BY t.id
 		ORDER BY count DESC
 		LIMIT ?
@@ -485,13 +491,15 @@ func (qb *GalleryStore) getTagsFacet(ctx context.Context, baseSQL string, baseAr
 	return rows.Err()
 }
 
+// getPerformersFacet fetches performer counts
+// Uses IN subquery instead of CTE for better performance on large datasets.
+// This leverages the idx_ext_performers_galleries_gallery_performer index.
 func (qb *GalleryStore) getPerformersFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, limit int, result *models.GalleryFacets, mu *sync.Mutex) error {
 	sql := fmt.Sprintf(`
-		WITH filtered_galleries AS (%s)
 		SELECT p.id, p.name as label, COUNT(DISTINCT pg.gallery_id) as count
-		FROM filtered_galleries fg
-		INNER JOIN performers_galleries pg ON fg.id = pg.gallery_id
+		FROM performers_galleries pg
 		INNER JOIN performers p ON pg.performer_id = p.id
+		WHERE pg.gallery_id IN (%s)
 		GROUP BY p.id
 		ORDER BY count DESC
 		LIMIT ?
@@ -558,14 +566,16 @@ func (qb *GalleryStore) getStudiosFacet(ctx context.Context, baseSQL string, bas
 	return rows.Err()
 }
 
+// getPerformerTagsFacet fetches performer tags facet (3 joins)
+// Uses IN subquery instead of CTE for better performance on large datasets.
+// This leverages idx_ext_performers_galleries_gallery_performer and idx_ext_performers_tags_performer_tag indexes.
 func (qb *GalleryStore) getPerformerTagsFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, limit int, result *models.GalleryFacets, mu *sync.Mutex) error {
 	sql := fmt.Sprintf(`
-		WITH filtered_galleries AS (%s)
-		SELECT t.id, t.name as label, COUNT(DISTINCT fg.id) as count
-		FROM filtered_galleries fg
-		INNER JOIN performers_galleries pg ON fg.id = pg.gallery_id
+		SELECT t.id, t.name as label, COUNT(DISTINCT pg.gallery_id) as count
+		FROM performers_galleries pg
 		INNER JOIN performers_tags pt ON pg.performer_id = pt.performer_id
 		INNER JOIN tags t ON pt.tag_id = t.id
+		WHERE pg.gallery_id IN (%s)
 		GROUP BY t.id
 		ORDER BY count DESC
 		LIMIT ?
@@ -663,17 +673,18 @@ func (qb *GalleryStore) getSimpleFacets(ctx context.Context, baseSQL string, bas
 }
 
 // getHasChaptersFacet fetches has_chapters boolean facet
+// Uses LEFT JOIN instead of EXISTS for better performance (avoids N+1 pattern)
 func (qb *GalleryStore) getHasChaptersFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, result *models.GalleryFacets, mu *sync.Mutex) error {
 	args := append([]interface{}{}, baseArgs...)
 
 	sql := fmt.Sprintf(`
-		WITH filtered_galleries AS (%s)
-		SELECT 
-			CASE WHEN EXISTS (
-				SELECT 1 FROM galleries_chapters gc WHERE gc.gallery_id = fg.id
-			) THEN 'true' ELSE 'false' END as has_chapters,
+		WITH filtered_galleries AS (%s),
+		chapter_galleries AS (SELECT DISTINCT gallery_id FROM galleries_chapters)
+		SELECT
+			CASE WHEN cg.gallery_id IS NOT NULL THEN 'true' ELSE 'false' END as has_chapters,
 			COUNT(*) as count
 		FROM filtered_galleries fg
+		LEFT JOIN chapter_galleries cg ON fg.id = cg.gallery_id
 		GROUP BY has_chapters
 	`, baseSQL)
 
@@ -706,19 +717,23 @@ func (qb *GalleryStore) getHasChaptersFacet(ctx context.Context, baseSQL string,
 }
 
 // getPerformerFavoriteFacet fetches performer_favorite boolean facet
+// Uses LEFT JOIN instead of EXISTS for better performance (avoids N+1 pattern)
 func (qb *GalleryStore) getPerformerFavoriteFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, result *models.GalleryFacets, mu *sync.Mutex) error {
 	args := append([]interface{}{}, baseArgs...)
 
 	sql := fmt.Sprintf(`
-		WITH filtered_galleries AS (%s)
-		SELECT 
-			CASE WHEN EXISTS (
-				SELECT 1 FROM performers_galleries pg 
-				INNER JOIN performers p ON pg.performer_id = p.id
-				WHERE pg.gallery_id = fg.id AND p.favorite = 1
-			) THEN 'true' ELSE 'false' END as performer_favorite,
+		WITH filtered_galleries AS (%s),
+		favorite_galleries AS (
+			SELECT DISTINCT pg.gallery_id
+			FROM performers_galleries pg
+			INNER JOIN performers p ON pg.performer_id = p.id
+			WHERE p.favorite = 1
+		)
+		SELECT
+			CASE WHEN fav.gallery_id IS NOT NULL THEN 'true' ELSE 'false' END as performer_favorite,
 			COUNT(*) as count
 		FROM filtered_galleries fg
+		LEFT JOIN favorite_galleries fav ON fg.id = fav.gallery_id
 		GROUP BY performer_favorite
 	`, baseSQL)
 

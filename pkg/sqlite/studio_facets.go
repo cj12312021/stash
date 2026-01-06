@@ -5,6 +5,7 @@ import (
 	stdsql "database/sql"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/stashapp/stash/pkg/models"
 )
@@ -12,6 +13,9 @@ import (
 // GetFacets returns aggregated facet counts for studios matching the given filter.
 // This uses a single query with CTE to avoid re-executing the filter multiple times.
 func (qb *StudioStore) GetFacets(ctx context.Context, studioFilter *models.StudioFilterType, limit int) (*models.StudioFacets, error) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	result := &models.StudioFacets{
 		Tags:     []models.FacetCount{},
 		Parents:  []models.FacetCount{},

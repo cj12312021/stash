@@ -77,6 +77,49 @@ var extensionIndexes = []string{
 	// groups_tags: Composite index for tag facet counts
 	// Covers: SELECT tag_id, COUNT(group_id) FROM groups_tags WHERE group_id IN (...) GROUP BY tag_id
 	`CREATE INDEX IF NOT EXISTS idx_ext_groups_tags_group_tag ON groups_tags (group_id, tag_id)`,
+
+	// ==========================================================================
+	// Boolean Facet Optimization Indexes
+	// ==========================================================================
+	// These indexes optimize the has_markers, has_chapters, and performer_favorite
+	// facets which use LEFT JOIN patterns.
+
+	// scene_markers: Index for has_markers facet
+	// Covers: SELECT DISTINCT scene_id FROM scene_markers
+	`CREATE INDEX IF NOT EXISTS idx_ext_scene_markers_scene ON scene_markers (scene_id)`,
+
+	// galleries_chapters: Index for has_chapters facet
+	// Covers: SELECT DISTINCT gallery_id FROM galleries_chapters
+	`CREATE INDEX IF NOT EXISTS idx_ext_galleries_chapters_gallery ON galleries_chapters (gallery_id)`,
+
+	// ==========================================================================
+	// Caption and Video Metadata Optimization Indexes
+	// ==========================================================================
+
+	// video_captions: Index for captions facet
+	// Covers: SELECT DISTINCT language_code FROM video_captions WHERE file_id IN (...)
+	`CREATE INDEX IF NOT EXISTS idx_ext_video_captions_file ON video_captions (file_id)`,
+
+	// scenes_files: Composite index for primary file lookups in video metadata facets
+	// Covers: SELECT file_id FROM scenes_files WHERE scene_id = ? AND "primary" = 1
+	`CREATE INDEX IF NOT EXISTS idx_ext_scenes_files_scene_primary ON scenes_files (scene_id, "primary")`,
+
+	// ==========================================================================
+	// Tag Hierarchy Optimization Indexes
+	// ==========================================================================
+
+	// tags_relations: Indexes for tag parent/child facets
+	// Covers: SELECT parent_id, COUNT(*) FROM tags_relations GROUP BY parent_id
+	`CREATE INDEX IF NOT EXISTS idx_ext_tags_relations_parent ON tags_relations (parent_id)`,
+	`CREATE INDEX IF NOT EXISTS idx_ext_tags_relations_child ON tags_relations (child_id)`,
+
+	// ==========================================================================
+	// Group Performers Optimization Index
+	// ==========================================================================
+
+	// groups_scenes: Index for group performers facet (reverse direction from existing)
+	// Covers: SELECT scene_id FROM groups_scenes WHERE group_id = ?
+	`CREATE INDEX IF NOT EXISTS idx_ext_groups_scenes_scene ON groups_scenes (scene_id)`,
 }
 
 // EnsureExtensionIndexes creates all extension-specific database indexes.
@@ -138,6 +181,17 @@ func (db *Database) DropExtensionIndexes(ctx context.Context) error {
 		`DROP INDEX IF EXISTS idx_ext_galleries_rating_not_null`,
 		// Group indexes
 		`DROP INDEX IF EXISTS idx_ext_groups_tags_group_tag`,
+		// Boolean facet indexes
+		`DROP INDEX IF EXISTS idx_ext_scene_markers_scene`,
+		`DROP INDEX IF EXISTS idx_ext_galleries_chapters_gallery`,
+		// Caption and video metadata indexes
+		`DROP INDEX IF EXISTS idx_ext_video_captions_file`,
+		`DROP INDEX IF EXISTS idx_ext_scenes_files_scene_primary`,
+		// Tag hierarchy indexes
+		`DROP INDEX IF EXISTS idx_ext_tags_relations_parent`,
+		`DROP INDEX IF EXISTS idx_ext_tags_relations_child`,
+		// Group performers index
+		`DROP INDEX IF EXISTS idx_ext_groups_scenes_scene`,
 	}
 
 	for _, sql := range dropStatements {
