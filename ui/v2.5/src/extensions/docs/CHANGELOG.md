@@ -4,6 +4,45 @@ This document tracks what has been added/modified from the upstream Stash codeba
 
 ---
 
+## 2026-01-06: Facet Query Parallelization Fix
+
+Fixed transaction serialization that caused facet queries to timeout (~60s) instead of running in parallel (~10s).
+
+### Root Cause
+
+`withReadTxn` created a single transaction that serialized all 10 parallel facet goroutines through one database connection. Each goroutine waited for the previous one to complete.
+
+### Solution
+
+Added `withDB` method to `internal/api/resolver.go` that allows each goroutine to get its own connection from the pool:
+
+```go
+func (r *Resolver) withDB(ctx context.Context, fn func(ctx context.Context) error) error {
+	return r.repository.WithDB(ctx, fn)
+}
+```
+
+All 6 facet resolvers now use `withDB` instead of `withReadTxn`.
+
+### Performance
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Filtered facets | ~60s (timeout) | ~10s |
+| Parallel execution | Serialized | True parallel |
+
+### Files Modified
+
+- `internal/api/resolver.go` - Added `withDB` method
+- `internal/api/resolver_query_facets.go` - Changed all resolvers to use `withDB`
+
+### Documentation
+
+- Added to `patches/utility-additions.md` - Documents the `withDB` method for merge reference
+- Debug session notes in `extensions/docs/debug/DEBUG_SESSION_facet_query_serialization.md`
+
+---
+
 ## 2026-01-06: Facet Cache System Fixes
 
 Major bugfixes for the facet cache system that was causing incorrect cached data.

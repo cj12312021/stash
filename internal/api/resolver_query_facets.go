@@ -20,7 +20,9 @@ func (r *queryResolver) SceneFacets(
 
 	var result *SceneFacetsResult
 
-	if err := r.withReadTxn(ctx, func(ctx context.Context) error {
+	// Use withDB instead of withReadTxn to allow parallel queries
+	// withReadTxn creates a single transaction that serializes all queries
+	if err := r.withDB(ctx, func(ctx context.Context) error {
 		// All facets are computed in parallel - no lazy loading
 		facets, err := r.repository.Scene.GetFacets(ctx, sceneFilter, effectiveLimit)
 		if err != nil {
@@ -48,7 +50,8 @@ func (r *queryResolver) PerformerFacets(
 
 	var result *PerformerFacetsResult
 
-	if err := r.withReadTxn(ctx, func(ctx context.Context) error {
+	// Use withDB instead of withReadTxn to allow parallel queries
+	if err := r.withDB(ctx, func(ctx context.Context) error {
 		facets, err := r.repository.Performer.GetFacets(ctx, performerFilter, effectiveLimit)
 		if err != nil {
 			return err
@@ -75,7 +78,8 @@ func (r *queryResolver) GalleryFacets(
 
 	var result *GalleryFacetsResult
 
-	if err := r.withReadTxn(ctx, func(ctx context.Context) error {
+	// Use withDB instead of withReadTxn to allow parallel queries
+	if err := r.withDB(ctx, func(ctx context.Context) error {
 		facets, err := r.repository.Gallery.GetFacets(ctx, galleryFilter, effectiveLimit)
 		if err != nil {
 			return err
@@ -102,7 +106,8 @@ func (r *queryResolver) GroupFacets(
 
 	var result *GroupFacetsResult
 
-	if err := r.withReadTxn(ctx, func(ctx context.Context) error {
+	// Use withDB instead of withReadTxn to allow parallel queries
+	if err := r.withDB(ctx, func(ctx context.Context) error {
 		facets, err := r.repository.Group.GetFacets(ctx, groupFilter, effectiveLimit)
 		if err != nil {
 			return err
@@ -129,7 +134,8 @@ func (r *queryResolver) StudioFacets(
 
 	var result *StudioFacetsResult
 
-	if err := r.withReadTxn(ctx, func(ctx context.Context) error {
+	// Use withDB instead of withReadTxn to allow parallel queries
+	if err := r.withDB(ctx, func(ctx context.Context) error {
 		facets, err := r.repository.Studio.GetFacets(ctx, studioFilter, effectiveLimit)
 		if err != nil {
 			return err
@@ -156,7 +162,8 @@ func (r *queryResolver) TagFacets(
 
 	var result *TagFacetsResult
 
-	if err := r.withReadTxn(ctx, func(ctx context.Context) error {
+	// Use withDB instead of withReadTxn to allow parallel queries
+	if err := r.withDB(ctx, func(ctx context.Context) error {
 		facets, err := r.repository.Tag.GetFacets(ctx, tagFilter, effectiveLimit)
 		if err != nil {
 			return err

@@ -768,16 +768,16 @@ func (qb *SceneStore) getPerformersFacet(ctx context.Context, baseSQL string, ba
 
 // getStudiosFacet fetches studio counts
 func (qb *SceneStore) getStudiosFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, limit int, result *models.SceneFacets, mu *sync.Mutex) error {
+	// Use IN subquery instead of CTE for better index utilization
+	// This uses idx_ext_scenes_studio_not_null for efficient lookups
 	args := append([]interface{}{}, baseArgs...)
 	args = append(args, limit)
 
 	sql := fmt.Sprintf(`
-		WITH filtered_scenes AS (%s)
 		SELECT s.id, s.name as label, COUNT(DISTINCT sc.id) as count
-		FROM filtered_scenes fs
-		INNER JOIN scenes sc ON fs.id = sc.id
+		FROM scenes sc
 		INNER JOIN studios s ON sc.studio_id = s.id
-		WHERE sc.studio_id IS NOT NULL
+		WHERE sc.id IN (%s) AND sc.studio_id IS NOT NULL
 		GROUP BY s.id
 		ORDER BY count DESC
 		LIMIT ?
@@ -862,14 +862,16 @@ func (qb *SceneStore) getGroupsFacet(ctx context.Context, baseSQL string, baseAr
 
 // getVideoFacets fetches resolution, orientation, and interactive facets
 func (qb *SceneStore) getVideoFacets(ctx context.Context, baseSQL string, baseArgs []interface{}, result *models.SceneFacets, mu *sync.Mutex) error {
+	// Use IN subquery instead of CTE for better index utilization
+	// This uses idx_ext_scenes_files_scene_primary for efficient lookups
 	args := append([]interface{}{}, baseArgs...)
+	args = append(args, baseArgs...)
+	args = append(args, baseArgs...)
 
 	sql := fmt.Sprintf(`
-		WITH filtered_scenes AS (%s)
-		
 		SELECT * FROM (
 			SELECT 'resolution' as facet_type,
-				CASE 
+				CASE
 					WHEN vf.height >= 144 AND vf.height < 240 THEN 'VERY_LOW'
 					WHEN vf.height >= 240 AND vf.height < 360 THEN 'LOW'
 					WHEN vf.height >= 360 AND vf.height < 480 THEN 'R360P'
@@ -888,42 +890,41 @@ func (qb *SceneStore) getVideoFacets(ctx context.Context, baseSQL string, baseAr
 					ELSE 'UNKNOWN'
 				END as enum_value,
 				COUNT(DISTINCT sf.scene_id) as count
-			FROM filtered_scenes fs
-			INNER JOIN scenes_files sf ON fs.id = sf.scene_id AND sf."primary" = 1
+			FROM scenes_files sf
 			INNER JOIN video_files vf ON sf.file_id = vf.file_id
-			WHERE vf.height IS NOT NULL
+			WHERE sf.scene_id IN (%s) AND sf."primary" = 1 AND vf.height IS NOT NULL
 			GROUP BY enum_value
 			HAVING enum_value != 'UNKNOWN'
 		)
-		
+
 		UNION ALL
-		
+
 		SELECT * FROM (
 			SELECT 'orientation' as facet_type,
-				CASE 
+				CASE
 					WHEN vf.width > vf.height THEN 'LANDSCAPE'
 					WHEN vf.width < vf.height THEN 'PORTRAIT'
 					ELSE 'SQUARE'
 				END as enum_value,
 				COUNT(DISTINCT sf.scene_id) as count
-			FROM filtered_scenes fs
-			INNER JOIN scenes_files sf ON fs.id = sf.scene_id AND sf."primary" = 1
+			FROM scenes_files sf
 			INNER JOIN video_files vf ON sf.file_id = vf.file_id
+			WHERE sf.scene_id IN (%s) AND sf."primary" = 1
 			GROUP BY enum_value
 		)
-		
+
 		UNION ALL
-		
+
 		SELECT * FROM (
 			SELECT 'interactive' as facet_type,
 				CASE WHEN vf.interactive = 1 THEN 'true' ELSE 'false' END as enum_value,
 				COUNT(DISTINCT sf.scene_id) as count
-			FROM filtered_scenes fs
-			INNER JOIN scenes_files sf ON fs.id = sf.scene_id AND sf."primary" = 1
+			FROM scenes_files sf
 			INNER JOIN video_files vf ON sf.file_id = vf.file_id
+			WHERE sf.scene_id IN (%s) AND sf."primary" = 1
 			GROUP BY vf.interactive
 		)
-	`, baseSQL)
+	`, baseSQL, baseSQL, baseSQL)
 
 	rows, err := dbWrapper.Queryx(ctx, sql, args...)
 	if err != nil {
@@ -980,34 +981,33 @@ func (qb *SceneStore) getVideoFacets(ctx context.Context, baseSQL string, baseAr
 }
 
 // getSimpleFacets fetches organized and rating facets (fast - direct from scenes table)
+// Uses IN subquery instead of CTE for better index utilization
 func (qb *SceneStore) getSimpleFacets(ctx context.Context, baseSQL string, baseArgs []interface{}, result *models.SceneFacets, mu *sync.Mutex) error {
 	args := append([]interface{}{}, baseArgs...)
+	args = append(args, baseArgs...)
 
 	sql := fmt.Sprintf(`
-		WITH filtered_scenes AS (%s)
-		
 		SELECT * FROM (
 			SELECT 'organized' as facet_type,
 				CASE WHEN sc.organized = 1 THEN 'true' ELSE 'false' END as enum_value,
 				COUNT(*) as count
-			FROM filtered_scenes fs
-			INNER JOIN scenes sc ON fs.id = sc.id
+			FROM scenes sc
+			WHERE sc.id IN (%s)
 			GROUP BY sc.organized
 		)
-		
+
 		UNION ALL
-		
+
 		SELECT * FROM (
 			SELECT 'rating' as facet_type,
 				CAST(sc.rating AS TEXT) as enum_value,
 				COUNT(*) as count
-			FROM filtered_scenes fs
-			INNER JOIN scenes sc ON fs.id = sc.id
-			WHERE sc.rating IS NOT NULL
+			FROM scenes sc
+			WHERE sc.id IN (%s) AND sc.rating IS NOT NULL
 			GROUP BY sc.rating
 			ORDER BY sc.rating DESC
 		)
-	`, baseSQL)
+	`, baseSQL, baseSQL)
 
 	rows, err := dbWrapper.Queryx(ctx, sql, args...)
 	if err != nil {
@@ -1105,16 +1105,16 @@ func (qb *SceneStore) getPerformerTagsFacet(ctx context.Context, baseSQL string,
 }
 
 // getCaptionsFacet fetches captions facet
+// Uses IN subquery instead of CTE for better index utilization
 func (qb *SceneStore) getCaptionsFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, result *models.SceneFacets, mu *sync.Mutex) error {
 	args := append([]interface{}{}, baseArgs...)
 
 	sql := fmt.Sprintf(`
-		WITH filtered_scenes AS (%s)
 		SELECT vc.language_code, COUNT(DISTINCT sf.scene_id) as count
-		FROM filtered_scenes fs
-		INNER JOIN scenes_files sf ON fs.id = sf.scene_id AND sf."primary" = 1
+		FROM scenes_files sf
 		INNER JOIN video_captions vc ON sf.file_id = vc.file_id
-		WHERE vc.language_code IS NOT NULL AND vc.language_code != ''
+		WHERE sf.scene_id IN (%s) AND sf."primary" = 1
+			AND vc.language_code IS NOT NULL AND vc.language_code != ''
 		GROUP BY vc.language_code
 		ORDER BY count DESC
 	`, baseSQL)
@@ -1148,18 +1148,18 @@ func (qb *SceneStore) getCaptionsFacet(ctx context.Context, baseSQL string, base
 }
 
 // getHasMarkersFacet fetches has_markers boolean facet
-// Uses LEFT JOIN instead of EXISTS for better performance (avoids N+1 pattern)
+// Uses IN subquery instead of CTE for better performance
 func (qb *SceneStore) getHasMarkersFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, result *models.SceneFacets, mu *sync.Mutex) error {
 	args := append([]interface{}{}, baseArgs...)
 
 	sql := fmt.Sprintf(`
-		WITH filtered_scenes AS (%s),
-		marker_scenes AS (SELECT DISTINCT scene_id FROM scene_markers)
+		WITH marker_scenes AS (SELECT DISTINCT scene_id FROM scene_markers)
 		SELECT
 			CASE WHEN ms.scene_id IS NOT NULL THEN 'true' ELSE 'false' END as has_markers,
 			COUNT(*) as count
-		FROM filtered_scenes fs
-		LEFT JOIN marker_scenes ms ON fs.id = ms.scene_id
+		FROM scenes s
+		LEFT JOIN marker_scenes ms ON s.id = ms.scene_id
+		WHERE s.id IN (%s)
 		GROUP BY has_markers
 	`, baseSQL)
 
@@ -1192,14 +1192,12 @@ func (qb *SceneStore) getHasMarkersFacet(ctx context.Context, baseSQL string, ba
 }
 
 // getPerformerFavoriteFacet fetches performer_favorite boolean facet
-// Uses LEFT JOIN instead of EXISTS for better performance (avoids N+1 pattern)
-// Benchmarks show 3.6x improvement (2,067ms → 570ms on 788k scenes)
+// Uses IN subquery instead of CTE for better performance
 func (qb *SceneStore) getPerformerFavoriteFacet(ctx context.Context, baseSQL string, baseArgs []interface{}, result *models.SceneFacets, mu *sync.Mutex) error {
 	args := append([]interface{}{}, baseArgs...)
 
 	sql := fmt.Sprintf(`
-		WITH filtered_scenes AS (%s),
-		favorite_scenes AS (
+		WITH favorite_scenes AS (
 			SELECT DISTINCT ps.scene_id
 			FROM performers_scenes ps
 			INNER JOIN performers p ON ps.performer_id = p.id
@@ -1208,8 +1206,9 @@ func (qb *SceneStore) getPerformerFavoriteFacet(ctx context.Context, baseSQL str
 		SELECT
 			CASE WHEN fav.scene_id IS NOT NULL THEN 'true' ELSE 'false' END as performer_favorite,
 			COUNT(*) as count
-		FROM filtered_scenes fs
-		LEFT JOIN favorite_scenes fav ON fs.id = fav.scene_id
+		FROM scenes s
+		LEFT JOIN favorite_scenes fav ON s.id = fav.scene_id
+		WHERE s.id IN (%s)
 		GROUP BY performer_favorite
 	`, baseSQL)
 

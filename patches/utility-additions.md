@@ -105,6 +105,37 @@ case strings.Compare(sort, "random") == 0:
 
 ---
 
+## 4. withDB Method for Parallel Queries
+
+**File:** `internal/api/resolver.go`
+
+Add this method to the `Resolver` struct (after `withReadTxn`):
+
+```go
+func (r *Resolver) withDB(ctx context.Context, fn func(ctx context.Context) error) error {
+	return r.repository.WithDB(ctx, fn)
+}
+```
+
+**Purpose:** Allows database queries to run in parallel without transaction serialization.
+
+**Why needed:**
+- `withReadTxn` creates a single transaction that serializes all queries through one connection
+- This caused 60s timeouts when running 10 parallel facet goroutines (each waiting for the others)
+- `withDB` allows each goroutine to get its own connection from the pool
+
+**Used by:** All facet resolvers in `internal/api/resolver_query_facets.go`
+
+```go
+// Before (serialized - 60s timeout)
+if err := r.withReadTxn(ctx, func(ctx context.Context) error {
+
+// After (parallel - ~10s)
+if err := r.withDB(ctx, func(ctx context.Context) error {
+```
+
+---
+
 ## Summary
 
 | Function | File | Used By |
@@ -112,6 +143,7 @@ case strings.Compare(sort, "random") == 0:
 | `ResolutionFromHeight` | `pkg/models/resolution.go` | Facets system |
 | `FindFavoriteTagIDs` | `pkg/sqlite/tag.go` | Tag facets |
 | `getRandomSortForDevTesting` | `pkg/sqlite/sql.go` | Dev/testing |
+| `withDB` | `internal/api/resolver.go` | Facet resolvers (parallel queries) |
 
 These are minor additions that can be easily identified in a diff and re-added if lost during merge.
 

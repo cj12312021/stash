@@ -163,6 +163,7 @@ ui/v2.5/src/extensions/           # All custom frontend code (~80 files)
 | `pkg/sqlite/tag_filter.go` | Filter handlers | `tag-filter-extensions.md` |
 | `pkg/models/resolution.go` | ResolutionFromHeight | `utility-additions.md` |
 | `pkg/sqlite/sql.go` | Random sort helper | `utility-additions.md` |
+| `internal/api/resolver.go` | withDB method for parallel queries | `utility-additions.md` |
 | `internal/dlna/dms.go` | Query interfaces, activity tracker | `dlna-enhancements.md` |
 | `internal/dlna/cds.go` | A-Z folders, pagination, logging | `dlna-enhancements.md` |
 | `internal/dlna/cds_test.go` | Alphabetical folder tests | `dlna-enhancements.md` |

@@ -153,6 +153,10 @@ func (r *Resolver) withReadTxn(ctx context.Context, fn func(ctx context.Context)
 	return r.repository.WithReadTxn(ctx, fn)
 }
 
+func (r *Resolver) withDB(ctx context.Context, fn func(ctx context.Context) error) error {
+	return r.repository.WithDB(ctx, fn)
+}
+
 func (r *queryResolver) MarkerWall(ctx context.Context, q *string) (ret []*models.SceneMarker, err error) {
 	if err := r.withReadTxn(ctx, func(ctx context.Context) error {
 		ret, err = r.repository.SceneMarker.Wall(ctx, q)
