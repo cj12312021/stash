@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Player Marker Options - Design Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --yt-red: #f00;
+      --yt-red-glow: rgba(255, 0, 0, 0.4);
+      --yt-white: #fff;
+      --yt-white-muted: rgba(255, 255, 255, 0.7);
+      --yt-white-dim: rgba(255, 255, 255, 0.5);
+      --yt-progress-bg: rgba(255, 255, 255, 0.2);
+      --yt-progress-buffer: rgba(255, 255, 255, 0.4);
+      --bg-dark: #0a0a0b;
+      --bg-card: #141416;
+      --bg-elevated: #1a1a1d;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --accent-cyan: #00d4ff;
+      --accent-magenta: #ff00aa;
+      --accent-amber: #ffaa00;
+      --marker-point: #00d4ff;
+      --marker-range: rgba(255, 170, 0, 0.35);
+      --marker-range-solid: #ffaa00;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg-dark);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      color: var(--yt-white);
+      padding: 60px 40px;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 0, 0, 0.08), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0, 212, 255, 0.05), transparent);
+    }
+
+    .header {
+      max-width: 1100px;
+      margin: 0 auto 60px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 42px;
+      font-weight: 300;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--yt-white) 0%, var(--yt-white-muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      font-size: 16px;
+      color: var(--yt-white-dim);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-top: 32px;
+      padding: 16px 24px;
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--yt-white-muted);
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    .legend-dot.point {
+      background: var(--marker-point);
+      box-shadow: 0 0 8px var(--marker-point);
+    }
+
+    .legend-dot.range {
+      background: var(--marker-range-solid);
+      box-shadow: 0 0 8px var(--marker-range-solid);
+    }
+
+    .legend-dot.played {
+      background: var(--yt-red);
+    }
+
+    .legend-dot.buffered {
+      background: var(--yt-progress-buffer);
+    }
+
+    .options-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    .option-card {
+      background: var(--bg-card);
+      border-radius: 20px;
+      border: 1px solid var(--border-subtle);
+      padding: 32px;
+      transition: all 0.3s ease;
+    }
+
+    .option-card:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+
+    .option-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .option-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .option-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--yt-white-muted);
+    }
+
+    .option-badge.recommended {
+      background: rgba(255, 0, 0, 0.15);
+      border-color: rgba(255, 0, 0, 0.3);
+      color: var(--yt-red);
+    }
+
+    .option-name {
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+
+    .option-desc {
+      font-size: 14px;
+      color: var(--yt-white-dim);
+      max-width: 500px;
+      line-height: 1.5;
+    }
+
+    /* Video container mockup */
+    .video-mockup {
+      background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+      border-radius: 12px;
+      aspect-ratio: 16 / 5;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 0;
+    }
+
+    .video-mockup::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.02) 50%, transparent 60%),
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.01) 2px, rgba(255,255,255,0.01) 4px);
+    }
+
+    .video-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 13px;
+      color: var(--yt-white-dim);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      opacity: 0.4;
+    }
+
+    /* Control bar */
+    .control-bar {
+      background: linear-gradient(0deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.7) 60%, transparent 100%);
+      padding: 50px 16px 16px;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+
+    /* Progress container - shared styles */
+    .progress-container {
+      position: relative;
+      height: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    .progress-bar-wrapper {
+      position: relative;
+      width: 100%;
+      height: 4px;
+      transition: height 0.15s ease;
+    }
+
+    .progress-container:hover .progress-bar-wrapper {
+      height: 6px;
+    }
+
+    .progress-bg {
+      position: absolute;
+      inset: 0;
+      background: var(--yt-progress-bg);
+      border-radius: 2px;
+    }
+
+    .progress-buffer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 55%;
+      background: var(--yt-progress-buffer);
+      border-radius: 2px;
+    }
+
+    .progress-played {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 30%;
+      background: var(--yt-red);
+      border-radius: 2px;
+    }
+
+    .scrubber {
+      position: absolute;
+      top: 50%;
+      left: 30%;
+      width: 14px;
+      height: 14px;
+      background: var(--yt-red);
+      border-radius: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      transition: transform 0.15s ease;
+      z-index: 10;
+      box-shadow: 0 0 10px var(--yt-red-glow);
+    }
+
+    .progress-container:hover .scrubber {
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* Time display */
+    .time-display {
+      position: absolute;
+      bottom: 20px;
+      right: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--yt-white);
+    }
+
+    /* Tooltip */
+    .marker-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20, 20, 22, 0.98);
+      border: 1px solid var(--border-subtle);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      margin-bottom: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    .marker-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: rgba(20, 20, 22, 0.98);
+    }
+
+    .marker-tooltip.point {
+      border-color: var(--marker-point);
+    }
+
+    .marker-tooltip.range {
+      border-color: var(--marker-range-solid);
+    }
+
+    /* ============================================
+       OPTION A: Hybrid Approach
+       ============================================ */
+    .option-a .point-marker {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 14px;
+      background: var(--marker-point);
+      border-radius: 2px;
+      z-index: 5;
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--marker-point);
+      transition: height 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .option-a .point-marker:hover {
+      height: 18px;
+      box-shadow: 0 0 16px var(--marker-point);
+    }
+
+    .option-a .point-marker:hover .marker-tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    .option-a .range-marker {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      background: var(--marker-range);
+      border-radius: 2px;
+      z-index: 3;
+      cursor: pointer;
+      border-left: 2px solid var(--marker-range-solid);
+      border-right: 2px solid var(--marker-range-solid);
+      transition: background 0.15s ease;
+    }
+
+    .option-a .range-marker:hover {
+      background: rgba(255, 170, 0, 0.5);
+    }
+
+    .option-a .range-marker:hover .marker-tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    /* ============================================
+       OPTION B: All Gaps (YouTube-style)
+       ============================================ */
+    .option-b .progress-bar-wrapper {
+      display: flex;
+      gap: 4px;
+    }
+
+    .option-b .progress-bg,
+    .option-b .progress-buffer,
+    .option-b .progress-played {
+      position: relative;
+      border-radius: 2px;
+    }
+
+    .option-b .chapter-segment {
+      position: relative;
+      height: 100%;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .option-b .chapter-segment .segment-bg {
+      position: absolute;
+      inset: 0;
+      background: var(--yt-progress-bg);
+      border-radius: 2px;
+    }
+
+    .option-b .chapter-segment .segment-buffer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      background: var(--yt-progress-buffer);
+      border-radius: 2px;
+    }
+
+    .option-b .chapter-segment .segment-played {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      background: var(--yt-red);
+      border-radius: 2px;
+    }
+
+    .option-b .chapter-segment.range-segment .segment-bg {
+      background: linear-gradient(180deg, var(--marker-range) 0%, var(--yt-progress-bg) 100%);
+    }
+
+    .option-b .chapter-segment.point-segment::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: -4px;
+      bottom: -4px;
+      width: 3px;
+      background: var(--marker-point);
+      border-radius: 2px;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .option-b .chapter-segment:hover::before {
+      opacity: 1;
+    }
+
+    .option-b .chapter-segment:hover .marker-tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    .option-b .scrubber {
+      display: none;
+    }
+
+    /* ============================================
+       OPTION C: Separate Layers
+       ============================================ */
+    .option-c .progress-container {
+      height: 40px;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .option-c .range-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 10px;
+      pointer-events: none;
+    }
+
+    .option-c .range-band {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      background: var(--marker-range);
+      border-radius: 4px;
+      cursor: pointer;
+      pointer-events: auto;
+      border: 1px solid var(--marker-range-solid);
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+    .option-c .range-band:hover {
+      background: rgba(255, 170, 0, 0.55);
+      transform: scaleY(1.2);
+    }
+
+    .option-c .range-band:hover .marker-tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    .option-c .point-layer {
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      right: 0;
+      height: 8px;
+    }
+
+    .option-c .point-dot {
+      position: absolute;
+      top: 0;
+      width: 8px;
+      height: 8px;
+      background: var(--marker-point);
+      border-radius: 50%;
+      transform: translateX(-50%);
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--marker-point);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .option-c .point-dot:hover {
+      transform: translateX(-50%) scale(1.4);
+      box-shadow: 0 0 16px var(--marker-point);
+    }
+
+    .option-c .point-dot:hover .marker-tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(-4px);
+    }
+
+    /* Pros/Cons */
+    .pros-cons {
+      display: flex;
+      gap: 24px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .pros, .cons {
+      flex: 1;
+    }
+
+    .pros h4, .cons h4 {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+      color: var(--yt-white-dim);
+    }
+
+    .pros h4 { color: #4ade80; }
+    .cons h4 { color: #f87171; }
+
+    .pros ul, .cons ul {
+      list-style: none;
+      font-size: 13px;
+      color: var(--yt-white-muted);
+      line-height: 1.8;
+    }
+
+    .pros li::before {
+      content: '+';
+      margin-right: 8px;
+      color: #4ade80;
+      font-weight: 600;
+    }
+
+    .cons li::before {
+      content: '−';
+      margin-right: 8px;
+      color: #f87171;
+      font-weight: 600;
+    }
+
+    /* Interactive hint */
+    .hint {
+      text-align: center;
+      margin-top: 40px;
+      padding: 16px;
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px dashed var(--border-subtle);
+      color: var(--yt-white-dim);
+      font-size: 13px;
+    }
+
+    .hint strong {
+      color: var(--yt-white);
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>Video Player Marker Options</h1>
+    <p>Three design approaches for displaying point markers and range markers on a YouTube-style progress bar. Hover over markers to see interactions.</p>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot point"></div>
+        <span>Point Marker (start time only)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot range"></div>
+        <span>Range Marker (start + end time)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot played"></div>
+        <span>Played</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot buffered"></div>
+        <span>Buffered</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="options-grid">
+    <!-- OPTION A: Hybrid Approach -->
+    <div class="option-card">
+      <div class="option-header">
+        <div class="option-title">
+          <span class="option-badge recommended">Recommended</span>
+          <h2 class="option-name">Option A: Hybrid Approach</h2>
+        </div>
+        <p class="option-desc">Point markers as tick marks, range markers as colored overlays on the progress bar.</p>
+      </div>
+
+      <div class="video-mockup">
+        <span class="video-label">Video Content</span>
+        <div class="control-bar">
+          <div class="progress-container option-a">
+            <div class="progress-bar-wrapper">
+              <div class="progress-bg"></div>
+              <div class="progress-buffer"></div>
+
+              <!-- Range marker: 10% to 25% -->
+              <div class="range-marker" style="left: 10%; width: 15%;">
+                <div class="marker-tooltip range">Action Scene (2:00 - 5:00)</div>
+              </div>
+
+              <!-- Range marker: 60% to 80% -->
+              <div class="range-marker" style="left: 60%; width: 20%;">
+                <div class="marker-tooltip range">Climax (12:00 - 16:00)</div>
+              </div>
+
+              <div class="progress-played"></div>
+
+              <!-- Point marker at 5% -->
+              <div class="point-marker" style="left: 5%;">
+                <div class="marker-tooltip point">Intro (1:00)</div>
+              </div>
+
+              <!-- Point marker at 45% -->
+              <div class="point-marker" style="left: 45%;">
+                <div class="marker-tooltip point">Plot Twist (9:00)</div>
+              </div>
+
+              <!-- Point marker at 90% -->
+              <div class="point-marker" style="left: 90%;">
+                <div class="marker-tooltip point">Credits (18:00)</div>
+              </div>
+
+              <div class="scrubber"></div>
+            </div>
+          </div>
+          <div class="time-display">6:00 / 20:00</div>
+        </div>
+      </div>
+
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>Clear visual distinction between marker types</li>
+            <li>Range markers show duration at a glance</li>
+            <li>Minimal disruption to progress bar</li>
+            <li>Works with existing VideoJS structure</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>Overlapping markers can be confusing</li>
+            <li>Range overlays may obscure playhead</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPTION B: All Gaps -->
+    <div class="option-card">
+      <div class="option-header">
+        <div class="option-title">
+          <span class="option-badge">Option B</span>
+          <h2 class="option-name">All Gaps (YouTube-style)</h2>
+        </div>
+        <p class="option-desc">Both marker types create chapter-like segments with gaps between them.</p>
+      </div>
+
+      <div class="video-mockup">
+        <span class="video-label">Video Content</span>
+        <div class="control-bar">
+          <div class="progress-container option-b">
+            <div class="progress-bar-wrapper">
+              <!-- Segment 1: 0-5% (point marker at start) -->
+              <div class="chapter-segment point-segment" style="width: 5%;">
+                <div class="segment-bg"></div>
+                <div class="segment-buffer" style="width: 100%;"></div>
+                <div class="segment-played" style="width: 100%;"></div>
+                <div class="marker-tooltip point">Intro (1:00)</div>
+              </div>
+
+              <!-- Segment 2: 5-10% -->
+              <div class="chapter-segment" style="width: 5%;">
+                <div class="segment-bg"></div>
+                <div class="segment-buffer" style="width: 100%;"></div>
+                <div class="segment-played" style="width: 100%;"></div>
+              </div>
+
+              <!-- Segment 3: 10-25% (range marker) -->
+              <div class="chapter-segment range-segment" style="width: 15%;">
+                <div class="segment-bg"></div>
+                <div class="segment-buffer" style="width: 100%;"></div>
+                <div class="segment-played" style="width: 100%;"></div>
+                <div class="marker-tooltip range">Action Scene (2:00 - 5:00)</div>
+              </div>
+
+              <!-- Segment 4: 25-45% -->
+              <div class="chapter-segment" style="width: 20%;">
+                <div class="segment-bg"></div>
+                <div class="segment-buffer" style="width: 100%;"></div>
+                <div class="segment-played" style="width: 0;"></div>
+              </div>
+
+              <!-- Segment 5: 45-60% (point marker at start) -->
+              <div class="chapter-segment point-segment" style="width: 15%;">
+                <div class="segment-bg"></div>
+                <div class="segment-buffer" style="width: 70%;"></div>
+                <div class="segment-played" style="width: 0;"></div>
+                <div class="marker-tooltip point">Plot Twist (9:00)</div>
+              </div>
+
+              <!-- Segment 6: 60-80% (range marker) -->
+              <div class="chapter-segment range-segment" style="width: 20%;">
+                <div class="segment-bg"></div>
+                <div class="segment-buffer" style="width: 0;"></div>
+                <div class="segment-played" style="width: 0;"></div>
+                <div class="marker-tooltip range">Climax (12:00 - 16:00)</div>
+              </div>
+
+              <!-- Segment 7: 80-90% -->
+              <div class="chapter-segment" style="width: 10%;">
+                <div class="segment-bg"></div>
+                <div class="segment-buffer" style="width: 0;"></div>
+                <div class="segment-played" style="width: 0;"></div>
+              </div>
+
+              <!-- Segment 8: 90-100% (point marker at start) -->
+              <div class="chapter-segment point-segment" style="width: 10%;">
+                <div class="segment-bg"></div>
+                <div class="segment-buffer" style="width: 0;"></div>
+                <div class="segment-played" style="width: 0;"></div>
+                <div class="marker-tooltip point">Credits (18:00)</div>
+              </div>
+            </div>
+          </div>
+          <div class="time-display">6:00 / 20:00</div>
+        </div>
+      </div>
+
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>Matches YouTube's native chapter style</li>
+            <li>Clean, modern appearance</li>
+            <li>Clear segment boundaries</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>Gaps reduce clickable progress area</li>
+            <li>Complex to implement with VideoJS</li>
+            <li>Hard to show overlapping markers</li>
+            <li>Point vs range markers look similar</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPTION C: Separate Layers -->
+    <div class="option-card">
+      <div class="option-header">
+        <div class="option-title">
+          <span class="option-badge">Option C</span>
+          <h2 class="option-name">Separate Layers</h2>
+        </div>
+        <p class="option-desc">Progress bar stays continuous. Markers displayed in separate layers above and below.</p>
+      </div>
+
+      <div class="video-mockup">
+        <span class="video-label">Video Content</span>
+        <div class="control-bar">
+          <div class="progress-container option-c">
+            <!-- Range layer (above progress bar) -->
+            <div class="range-layer">
+              <div class="range-band" style="left: 10%; width: 15%;">
+                <div class="marker-tooltip range">Action Scene (2:00 - 5:00)</div>
+              </div>
+              <div class="range-band" style="left: 60%; width: 20%;">
+                <div class="marker-tooltip range">Climax (12:00 - 16:00)</div>
+              </div>
+            </div>
+
+            <div class="progress-bar-wrapper">
+              <div class="progress-bg"></div>
+              <div class="progress-buffer"></div>
+              <div class="progress-played"></div>
+              <div class="scrubber"></div>
+            </div>
+
+            <!-- Point layer (below progress bar) -->
+            <div class="point-layer">
+              <div class="point-dot" style="left: 5%;">
+                <div class="marker-tooltip point">Intro (1:00)</div>
+              </div>
+              <div class="point-dot" style="left: 45%;">
+                <div class="marker-tooltip point">Plot Twist (9:00)</div>
+              </div>
+              <div class="point-dot" style="left: 90%;">
+                <div class="marker-tooltip point">Credits (18:00)</div>
+              </div>
+            </div>
+          </div>
+          <div class="time-display">6:00 / 20:00</div>
+        </div>
+      </div>
+
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>No interference with progress bar</li>
+            <li>Clear spatial separation of marker types</li>
+            <li>Handles overlapping markers well</li>
+            <li>Similar to current Stash implementation</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>Takes more vertical space</li>
+            <li>Doesn't match YouTube aesthetic</li>
+            <li>Dots below bar may be missed</li>
+            <li>Adds visual complexity</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint">
+    <strong>Interactive:</strong> Hover over each progress bar to see hover states. Hover over markers to see tooltips.
+  </div>
+</body>
+</html>

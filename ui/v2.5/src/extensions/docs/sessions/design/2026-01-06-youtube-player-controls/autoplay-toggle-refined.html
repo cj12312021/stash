@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autoplay Toggle — Refined Integration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Stash Theme */
+      --stash-primary: #137cbd;
+      --stash-primary-hover: #48aff0;
+      --stash-primary-dim: rgba(19, 124, 189, 0.4);
+      --stash-text: #f5f8fa;
+      --stash-text-muted: rgba(245, 248, 250, 0.7);
+      --stash-text-dim: rgba(245, 248, 250, 0.5);
+      --stash-body-bg: #202b33;
+      --stash-card-bg: #30404d;
+      --stash-secondary: #394b59;
+
+      /* Component tokens */
+      --btn-size: 32px;
+      --track-height: 14px;
+      --thumb-size: 18px;
+      --group-bg: rgba(32, 43, 51, 0.85);
+      --group-border: rgba(255, 255, 255, 0.06);
+      --divider: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--stash-body-bg);
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      color: var(--stash-text);
+      padding: 40px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--stash-text-muted);
+      font-size: 13px;
+      margin-bottom: 48px;
+    }
+
+    .section {
+      margin-bottom: 56px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--stash-text-dim);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--divider);
+    }
+
+    .badge {
+      font-size: 9px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-recommended {
+      background: rgba(19, 124, 189, 0.2);
+      color: var(--stash-primary-hover);
+    }
+
+    .demo-row {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      margin-bottom: 20px;
+    }
+
+    .demo-context {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border-radius: 12px;
+      padding: 24px 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .demo-context::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      opacity: 0.03;
+      pointer-events: none;
+    }
+
+    .description {
+      font-size: 12px;
+      color: var(--stash-text-muted);
+      line-height: 1.6;
+      max-width: 400px;
+    }
+
+    .specs {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--stash-text-dim);
+      margin-top: 8px;
+    }
+
+    /* ==========================================
+       BUTTON GROUP CONTAINER (shared)
+       ========================================== */
+
+    .button-group {
+      display: flex;
+      align-items: center;
+      background: var(--group-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--group-border);
+      border-radius: 8px;
+      padding: 4px;
+      gap: 2px;
+    }
+
+    /* Standard icon button */
+    .icon-btn {
+      width: var(--btn-size);
+      height: var(--btn-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.15s ease;
+      position: relative;
+    }
+
+    .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .icon-btn:active {
+      transform: scale(0.95);
+    }
+
+    .icon-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--stash-text);
+      transition: fill 0.15s ease;
+    }
+
+    /* Divider between buttons */
+    .divider {
+      width: 1px;
+      height: 16px;
+      background: var(--divider);
+      margin: 0 2px;
+    }
+
+    /* ==========================================
+       APPROACH 1: Compact Inline Track
+       The track sits flush with button height
+       ========================================== */
+
+    .toggle-v1 {
+      width: 44px;
+      height: var(--btn-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 0 6px;
+      transition: background 0.15s ease;
+    }
+
+    .toggle-v1:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .toggle-v1 .track {
+      position: relative;
+      width: 32px;
+      height: var(--track-height);
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 7px;
+      transition: background 0.2s ease;
+    }
+
+    .toggle-v1.is-on .track {
+      background: var(--stash-primary-dim);
+    }
+
+    .toggle-v1 .thumb {
+      position: absolute;
+      top: 50%;
+      left: 2px;
+      width: var(--thumb-size);
+      height: var(--thumb-size);
+      transform: translateY(-50%);
+      background: var(--stash-text-muted);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .toggle-v1.is-on .thumb {
+      left: calc(100% - var(--thumb-size) - 2px);
+      background: var(--stash-primary);
+    }
+
+    .toggle-v1 .thumb svg {
+      width: 10px;
+      height: 10px;
+      fill: var(--stash-body-bg);
+      transition: fill 0.15s ease;
+    }
+
+    .toggle-v1.is-on .thumb svg {
+      fill: var(--stash-text);
+    }
+
+    /* ==========================================
+       APPROACH 2: Embedded Track Button
+       Track embedded within circular button bounds
+       ========================================== */
+
+    .toggle-v2 {
+      width: 40px;
+      height: var(--btn-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .toggle-v2:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .toggle-v2 .track {
+      position: relative;
+      width: 28px;
+      height: 12px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .toggle-v2.is-on .track {
+      background: var(--stash-primary);
+    }
+
+    .toggle-v2 .thumb {
+      position: absolute;
+      top: 50%;
+      left: 1px;
+      width: 16px;
+      height: 16px;
+      transform: translateY(-50%);
+      background: var(--stash-text);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    .toggle-v2.is-on .thumb {
+      left: calc(100% - 16px - 1px);
+    }
+
+    .toggle-v2 .thumb svg {
+      width: 9px;
+      height: 9px;
+      fill: var(--stash-body-bg);
+      opacity: 0.8;
+    }
+
+    /* ==========================================
+       APPROACH 3: Minimal Track (RECOMMENDED)
+       Ultra-compact, icon-forward design
+       ========================================== */
+
+    .toggle-v3 {
+      width: 42px;
+      height: var(--btn-size);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 0 5px;
+      transition: background 0.15s ease;
+    }
+
+    .toggle-v3:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .toggle-v3:hover .thumb {
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    .toggle-v3 .track {
+      position: relative;
+      width: 32px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      transition: all 0.25s ease;
+    }
+
+    .toggle-v3.is-on .track {
+      background: var(--stash-primary);
+      box-shadow: 0 0 8px var(--stash-primary-dim);
+    }
+
+    .toggle-v3 .thumb {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 20px;
+      height: 20px;
+      transform: translateY(-50%);
+      background: var(--stash-text-muted);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 0 0 2px rgba(255, 255, 255, 0.05);
+    }
+
+    .toggle-v3.is-on .thumb {
+      left: calc(100% - 20px);
+      background: var(--stash-text);
+      box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.3),
+        0 0 0 2px var(--stash-primary-dim);
+    }
+
+    .toggle-v3 .thumb svg {
+      width: 11px;
+      height: 11px;
+      fill: var(--stash-body-bg);
+      transition: all 0.2s ease;
+    }
+
+    .toggle-v3.is-on .thumb svg {
+      fill: var(--stash-primary);
+    }
+
+    /* ==========================================
+       APPROACH 4: Segmented Toggle
+       Two distinct states with icon swap
+       ========================================== */
+
+    .toggle-v4 {
+      width: 48px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      cursor: pointer;
+      border-radius: 12px;
+      padding: 2px;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .toggle-v4::before {
+      content: '';
+      position: absolute;
+      left: 2px;
+      top: 2px;
+      width: 20px;
+      height: 20px;
+      background: var(--stash-text-muted);
+      border-radius: 50%;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1;
+    }
+
+    .toggle-v4.is-on::before {
+      left: calc(100% - 22px);
+      background: var(--stash-primary);
+    }
+
+    .toggle-v4:hover::before {
+      transform: scale(1.05);
+    }
+
+    .toggle-v4 .icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      margin: 0 2px;
+    }
+
+    .toggle-v4 .icon svg {
+      width: 10px;
+      height: 10px;
+      fill: var(--stash-text-dim);
+      transition: fill 0.2s ease;
+    }
+
+    .toggle-v4 .icon.off svg {
+      fill: var(--stash-body-bg);
+    }
+
+    .toggle-v4.is-on .icon.on svg {
+      fill: var(--stash-text);
+    }
+
+    .toggle-v4.is-on .icon.off svg {
+      fill: var(--stash-text-dim);
+    }
+
+    /* ==========================================
+       LIVE PREVIEW SECTION
+       ========================================== */
+
+    .live-preview {
+      margin-top: 64px;
+      padding-top: 32px;
+      border-top: 1px solid var(--divider);
+    }
+
+    .player-mock {
+      position: relative;
+      width: 100%;
+      max-width: 720px;
+      aspect-ratio: 16/9;
+      background: linear-gradient(135deg, #0f1419 0%, #1a2634 50%, #0d1117 100%);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .player-mock::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 30% 40%, rgba(19, 124, 189, 0.1) 0%, transparent 60%);
+    }
+
+    .control-bar {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+    }
+
+    .controls-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .time-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--stash-text);
+      margin-left: 8px;
+    }
+
+    /* Standalone buttons (left side) */
+    .control-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background 0.15s ease;
+    }
+
+    .control-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .control-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: var(--stash-text);
+    }
+
+    .control-btn.play-btn svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    /* Progress bar */
+    .progress-container {
+      position: absolute;
+      bottom: 56px;
+      left: 12px;
+      right: 12px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 1.5px;
+      cursor: pointer;
+      transition: height 0.15s ease;
+    }
+
+    .progress-container:hover .progress-bar {
+      height: 5px;
+    }
+
+    .progress-fill {
+      width: 35%;
+      height: 100%;
+      background: var(--stash-primary);
+      border-radius: 1.5px;
+      position: relative;
+    }
+
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      right: -6px;
+      top: 50%;
+      transform: translateY(-50%) scale(0);
+      width: 12px;
+      height: 12px;
+      background: var(--stash-primary);
+      border-radius: 50%;
+      transition: transform 0.15s ease;
+    }
+
+    .progress-container:hover .progress-fill::after {
+      transform: translateY(-50%) scale(1);
+    }
+  </style>
+</head>
+<body>
+  <h1>Autoplay Toggle — Integration Study</h1>
+  <p class="subtitle">Designing a pill-track toggle that harmonizes with 32px icon buttons</p>
+
+  <!-- APPROACH 1 -->
+  <div class="section">
+    <div class="section-title">Approach 1: Compact Inline Track</div>
+    <div class="demo-row">
+      <div class="demo-context">
+        <div class="button-group">
+          <button class="toggle-v1 is-on" onclick="this.classList.toggle('is-on')">
+            <div class="track">
+              <div class="thumb">
+                <svg viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
+              </div>
+            </div>
+          </button>
+          <div class="divider"></div>
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V6h14v12zm-8-6H9.5v-.5h-2v3h2v-.5H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2v-.5H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
+          </button>
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+          </button>
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div>
+        <p class="description">Full pill track with visible background. Thumb slides with icon inside. Track background changes color when active.</p>
+        <p class="specs">Width: 44px | Track: 32×14px | Thumb: 18px</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPROACH 2 -->
+  <div class="section">
+    <div class="section-title">Approach 2: Embedded Track Button</div>
+    <div class="demo-row">
+      <div class="demo-context">
+        <div class="button-group">
+          <button class="toggle-v2 is-on" onclick="this.classList.toggle('is-on')">
+            <div class="track">
+              <div class="thumb">
+                <svg viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
+              </div>
+            </div>
+          </button>
+          <div class="divider"></div>
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V6h14v12zm-8-6H9.5v-.5h-2v3h2v-.5H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2v-.5H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
+          </button>
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+          </button>
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div>
+        <p class="description">Smaller track where thumb extends beyond track bounds. Track fills with primary color when on. Compact footprint.</p>
+        <p class="specs">Width: 40px | Track: 28×12px | Thumb: 16px</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPROACH 3 (RECOMMENDED) -->
+  <div class="section">
+    <div class="section-title">
+      Approach 3: Minimal Track
+      <span class="badge badge-recommended">Recommended</span>
+    </div>
+    <div class="demo-row">
+      <div class="demo-context">
+        <div class="button-group">
+          <button class="toggle-v3 is-on" onclick="this.classList.toggle('is-on')">
+            <div class="track">
+              <div class="thumb">
+                <svg viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
+              </div>
+            </div>
+          </button>
+          <div class="divider"></div>
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V6h14v12zm-8-6H9.5v-.5h-2v3h2v-.5H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2v-.5H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
+          </button>
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+          </button>
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div>
+        <p class="description"><strong>Icon-forward design.</strong> Ultra-thin 4px track acts as a "rail" while the prominent thumb carries the icon. Track glows when active. Bouncy spring animation on slide.</p>
+        <p class="specs">Width: 42px | Track: 32×4px | Thumb: 20px</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPROACH 4 -->
+  <div class="section">
+    <div class="section-title">Approach 4: Segmented Toggle</div>
+    <div class="demo-row">
+      <div class="demo-context">
+        <div class="button-group">
+          <button class="toggle-v4 is-on" onclick="this.classList.toggle('is-on')">
+            <span class="icon off">
+              <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            </span>
+            <span class="icon on">
+              <svg viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
+            </span>
+          </button>
+          <div class="divider"></div>
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V6h14v12zm-8-6H9.5v-.5h-2v3h2v-.5H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2v-.5H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
+          </button>
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+          </button>
+          <button class="icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div>
+        <p class="description">Two icons visible (pause/play), thumb slides between them. Both states always visible, selected state highlighted. More iOS-like toggle behavior.</p>
+        <p class="specs">Width: 48px | Height: 24px | Icons: 10px</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE PREVIEW -->
+  <div class="live-preview">
+    <div class="section-title">Live Preview: In Context</div>
+    <div class="player-mock">
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+      </div>
+      <div class="control-bar">
+        <div class="controls-left">
+          <button class="control-btn play-btn">
+            <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
+          </button>
+          <button class="control-btn">
+            <svg viewBox="0 0 24 24"><path d="M6 4l10 8-10 8V4zm10 0h2v16h-2V4z"/></svg>
+          </button>
+          <button class="control-btn">
+            <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+          </button>
+          <span class="time-display">7:15 / 20:48</span>
+        </div>
+        <div class="controls-right">
+          <div class="button-group">
+            <button class="toggle-v3 is-on" onclick="this.classList.toggle('is-on')">
+              <div class="track">
+                <div class="thumb">
+                  <svg viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
+                </div>
+              </div>
+            </button>
+            <div class="divider"></div>
+            <button class="icon-btn">
+              <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V6h14v12zm-8-6H9.5v-.5h-2v3h2v-.5H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2v-.5H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
+            </button>
+            <button class="icon-btn">
+              <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+            </button>
+            <button class="icon-btn">
+              <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

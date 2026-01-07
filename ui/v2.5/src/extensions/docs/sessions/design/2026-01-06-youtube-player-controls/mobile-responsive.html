@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player Controls — Mobile Responsive Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --stash-primary: #137cbd;
+      --stash-primary-hover: #48aff0;
+      --stash-text: #f5f8fa;
+      --stash-text-muted: rgba(245, 248, 250, 0.7);
+      --stash-text-dim: rgba(245, 248, 250, 0.5);
+      --stash-body-bg: #202b33;
+      --stash-card-bg: #30404d;
+      --stash-secondary: #394b59;
+      --stash-danger: #db3737;
+      --stash-success: #0d8050;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--stash-body-bg);
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      color: var(--stash-text);
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--stash-text-muted);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .section {
+      margin-bottom: 48px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--stash-text-dim);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+    }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .badge-issue { background: rgba(219, 55, 55, 0.2); color: #ff6b6b; }
+    .badge-solution { background: rgba(13, 128, 80, 0.2); color: #3dcc91; }
+
+    /* ==========================================
+       VIEWPORT SIMULATOR
+       ========================================== */
+
+    .viewport-container {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .viewport {
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      flex-shrink: 0;
+    }
+
+    .viewport-header {
+      background: var(--stash-card-bg);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .viewport-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--stash-text-muted);
+    }
+
+    .viewport-size {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--stash-text-dim);
+    }
+
+    .viewport-content {
+      position: relative;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+
+    /* ==========================================
+       DESKTOP CONTROLS (Current - 900px)
+       ========================================== */
+
+    .desktop-viewport .viewport-content {
+      width: 560px;
+      aspect-ratio: 16/9;
+    }
+
+    /* ==========================================
+       MOBILE BROKEN (320px - Shows problems)
+       ========================================== */
+
+    .mobile-broken .viewport-content {
+      width: 320px;
+      aspect-ratio: 16/9;
+    }
+
+    /* ==========================================
+       MOBILE FIXED (320px - Responsive solution)
+       ========================================== */
+
+    .mobile-fixed .viewport-content {
+      width: 320px;
+      aspect-ratio: 16/9;
+    }
+
+    /* ==========================================
+       SHARED CONTROL BAR STYLES
+       ========================================== */
+
+    .control-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+      padding: 40px 8px 8px;
+    }
+
+    .progress-bar {
+      height: 3px;
+      background: rgba(255,255,255,0.2);
+      margin-bottom: 8px;
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 35%;
+      background: var(--stash-primary);
+      border-radius: 2px;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .controls-left,
+    .controls-right {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .ctrl-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .ctrl-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--stash-text);
+    }
+
+    .ctrl-btn.play svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .time-display {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--stash-text);
+      white-space: nowrap;
+      padding: 0 4px;
+    }
+
+    .chapter-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      max-width: 120px;
+    }
+
+    .chapter-btn span {
+      font-size: 11px;
+      color: var(--stash-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chapter-btn svg {
+      width: 12px;
+      height: 12px;
+      fill: var(--stash-text);
+      flex-shrink: 0;
+    }
+
+    .right-group {
+      display: flex;
+      align-items: center;
+      background: rgba(32, 43, 51, 0.85);
+      border-radius: 16px;
+      padding: 0 4px;
+    }
+
+    .right-group .ctrl-btn {
+      width: 28px;
+      height: 28px;
+    }
+
+    .right-group .ctrl-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .autoplay-toggle {
+      width: 36px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .autoplay-track {
+      width: 24px;
+      height: 10px;
+      background: var(--stash-primary);
+      border-radius: 5px;
+      position: relative;
+    }
+
+    .autoplay-thumb {
+      position: absolute;
+      right: 1px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 12px;
+      background: var(--stash-text);
+      border-radius: 50%;
+    }
+
+    /* ==========================================
+       ISSUE INDICATORS
+       ========================================== */
+
+    .issue-overlay {
+      position: absolute;
+      background: rgba(219, 55, 55, 0.15);
+      border: 2px dashed var(--stash-danger);
+      border-radius: 4px;
+      pointer-events: none;
+    }
+
+    .issue-label {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      font-weight: 600;
+      color: #ff6b6b;
+      background: rgba(219, 55, 55, 0.9);
+      padding: 2px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .overflow-indicator {
+      position: absolute;
+      right: -8px;
+      top: 0;
+      bottom: 0;
+      width: 24px;
+      background: linear-gradient(to right, transparent, rgba(219, 55, 55, 0.5));
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 4px;
+    }
+
+    .overflow-indicator::after {
+      content: '→';
+      color: #ff6b6b;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    /* ==========================================
+       MOBILE FIXED LAYOUT
+       ========================================== */
+
+    .mobile-fixed .controls-row {
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .mobile-fixed .controls-left {
+      order: 2;
+      flex: 1;
+      justify-content: flex-start;
+    }
+
+    .mobile-fixed .controls-right {
+      order: 3;
+    }
+
+    .mobile-fixed .time-row {
+      order: 1;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .mobile-fixed .ctrl-btn {
+      width: 44px;
+      height: 44px;
+    }
+
+    .mobile-fixed .ctrl-btn svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .mobile-fixed .ctrl-btn.play svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .mobile-fixed .right-group {
+      border-radius: 22px;
+      padding: 0 6px;
+    }
+
+    .mobile-fixed .right-group .ctrl-btn {
+      width: 40px;
+      height: 40px;
+    }
+
+    .mobile-fixed .right-group .ctrl-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Hide secondary controls on mobile */
+    .mobile-fixed .hide-mobile {
+      display: none;
+    }
+
+    /* ==========================================
+       ANALYSIS TABLE
+       ========================================== */
+
+    .analysis-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 16px;
+    }
+
+    .analysis-table th {
+      text-align: left;
+      padding: 12px;
+      background: var(--stash-card-bg);
+      font-weight: 500;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .analysis-table td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      vertical-align: top;
+    }
+
+    .analysis-table tr:hover td {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .status-bad {
+      color: #ff6b6b;
+    }
+
+    .status-good {
+      color: #3dcc91;
+    }
+
+    /* ==========================================
+       RESPONSIVE STRATEGY
+       ========================================== */
+
+    .strategy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .strategy-card {
+      background: var(--stash-card-bg);
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .strategy-card h4 {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .strategy-card h4 .breakpoint {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--stash-primary);
+      background: rgba(19, 124, 189, 0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .strategy-card ul {
+      list-style: none;
+      font-size: 12px;
+      color: var(--stash-text-muted);
+    }
+
+    .strategy-card li {
+      padding: 4px 0;
+      padding-left: 16px;
+      position: relative;
+    }
+
+    .strategy-card li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--stash-primary);
+    }
+
+    /* ==========================================
+       CODE SNIPPET
+       ========================================== */
+
+    .code-block {
+      background: #0d1117;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .code-block .comment {
+      color: #6e7681;
+    }
+
+    .code-block .selector {
+      color: #7ee787;
+    }
+
+    .code-block .property {
+      color: #79c0ff;
+    }
+
+    .code-block .value {
+      color: #a5d6ff;
+    }
+
+    .code-block .media {
+      color: #ff7b72;
+    }
+  </style>
+</head>
+<body>
+  <h1>Player Controls — Mobile Analysis</h1>
+  <p class="subtitle">Responsive behavior at 320-480px viewport widths</p>
+
+  <!-- Visual Comparison -->
+  <div class="section">
+    <div class="section-title">
+      Visual Comparison
+      <span class="badge badge-issue">Issues Highlighted</span>
+    </div>
+
+    <div class="viewport-container">
+      <!-- Desktop Reference -->
+      <div class="viewport desktop-viewport">
+        <div class="viewport-header">
+          <span class="viewport-label">Desktop (Reference)</span>
+          <span class="viewport-size">560px</span>
+        </div>
+        <div class="viewport-content">
+          <div class="control-bar">
+            <div class="progress-bar"><div class="progress-fill"></div></div>
+            <div class="controls-row">
+              <div class="controls-left">
+                <button class="ctrl-btn play">
+                  <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
+                </button>
+                <button class="ctrl-btn">
+                  <svg viewBox="0 0 24 24"><path d="M6 4l10 8-10 8V4zm10 0h2v16h-2V4z"/></svg>
+                </button>
+                <button class="ctrl-btn">
+                  <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                </button>
+                <span class="time-display">2:34 / 20:48</span>
+                <button class="chapter-btn">
+                  <span>Introduction</span>
+                  <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+                </button>
+              </div>
+              <div class="controls-right">
+                <div class="right-group">
+                  <button class="ctrl-btn autoplay-toggle">
+                    <div class="autoplay-track"><div class="autoplay-thumb"></div></div>
+                  </button>
+                  <button class="ctrl-btn">
+                    <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V6h14v12z"/></svg>
+                  </button>
+                  <button class="ctrl-btn">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                  </button>
+                  <button class="ctrl-btn">
+                    <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Broken -->
+      <div class="viewport mobile-broken">
+        <div class="viewport-header">
+          <span class="viewport-label">Mobile (Broken)</span>
+          <span class="viewport-size">320px</span>
+        </div>
+        <div class="viewport-content">
+          <div class="control-bar" style="overflow: hidden;">
+            <div class="progress-bar"><div class="progress-fill"></div></div>
+            <div class="controls-row" style="position: relative;">
+              <div class="controls-left">
+                <button class="ctrl-btn play">
+                  <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
+                </button>
+                <button class="ctrl-btn">
+                  <svg viewBox="0 0 24 24"><path d="M6 4l10 8-10 8V4zm10 0h2v16h-2V4z"/></svg>
+                </button>
+                <button class="ctrl-btn">
+                  <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                </button>
+                <span class="time-display">2:34 / 20:48</span>
+                <button class="chapter-btn">
+                  <span>Intro...</span>
+                  <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+                </button>
+              </div>
+              <div class="controls-right" style="position: absolute; right: -40px;">
+                <div class="right-group">
+                  <button class="ctrl-btn autoplay-toggle">
+                    <div class="autoplay-track"><div class="autoplay-thumb"></div></div>
+                  </button>
+                  <button class="ctrl-btn">
+                    <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V6h14v12z"/></svg>
+                  </button>
+                  <button class="ctrl-btn">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                  <button class="ctrl-btn">
+                    <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="overflow-indicator"></div>
+            </div>
+          </div>
+          <!-- Issue overlays -->
+          <div class="issue-overlay" style="bottom: 8px; right: 0; width: 60px; height: 36px;">
+            <span class="issue-label">OVERFLOW</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Fixed -->
+      <div class="viewport mobile-fixed">
+        <div class="viewport-header">
+          <span class="viewport-label">Mobile (Fixed)</span>
+          <span class="viewport-size">320px</span>
+        </div>
+        <div class="viewport-content">
+          <div class="control-bar">
+            <div class="progress-bar"><div class="progress-fill"></div></div>
+            <div class="controls-row">
+              <div class="time-row">
+                <span class="time-display">2:34 / 20:48</span>
+                <button class="chapter-btn" style="max-width: 140px;">
+                  <span>Introduction</span>
+                  <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+                </button>
+              </div>
+              <div class="controls-left">
+                <button class="ctrl-btn play">
+                  <svg viewBox="0 0 24 24"><polygon points="6,4 20,12 6,20"/></svg>
+                </button>
+                <button class="ctrl-btn hide-mobile">
+                  <svg viewBox="0 0 24 24"><path d="M6 4l10 8-10 8V4zm10 0h2v16h-2V4z"/></svg>
+                </button>
+                <button class="ctrl-btn hide-mobile">
+                  <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                </button>
+              </div>
+              <div class="controls-right">
+                <div class="right-group">
+                  <button class="ctrl-btn hide-mobile autoplay-toggle">
+                    <div class="autoplay-track"><div class="autoplay-thumb"></div></div>
+                  </button>
+                  <button class="ctrl-btn hide-mobile">
+                    <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V6h14v12z"/></svg>
+                  </button>
+                  <button class="ctrl-btn">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                  </button>
+                  <button class="ctrl-btn">
+                    <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Issues Analysis -->
+  <div class="section">
+    <div class="section-title">Issues at 320px</div>
+    <table class="analysis-table">
+      <thead>
+        <tr>
+          <th>Element</th>
+          <th>Desktop</th>
+          <th>Mobile Issue</th>
+          <th>Solution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Touch targets</td>
+          <td>32-36px buttons</td>
+          <td class="status-bad">Below 44px minimum</td>
+          <td class="status-good">Increase to 44px</td>
+        </tr>
+        <tr>
+          <td>Total controls width</td>
+          <td>~400px needed</td>
+          <td class="status-bad">Overflows 320px viewport</td>
+          <td class="status-good">Hide secondary controls</td>
+        </tr>
+        <tr>
+          <td>Volume slider</td>
+          <td>Expands on hover</td>
+          <td class="status-bad">No hover on touch</td>
+          <td class="status-good">Hide or move to settings</td>
+        </tr>
+        <tr>
+          <td>Thumbnail preview</td>
+          <td>Shows on hover</td>
+          <td class="status-bad">Unusable on touch</td>
+          <td class="status-good">Disable on mobile</td>
+        </tr>
+        <tr>
+          <td>Chapter dropdown</td>
+          <td>Opens below button</td>
+          <td class="status-bad">May overflow screen</td>
+          <td class="status-good">Full-width modal on mobile</td>
+        </tr>
+        <tr>
+          <td>Right pill group</td>
+          <td>4 buttons (136px)</td>
+          <td class="status-bad">Too wide</td>
+          <td class="status-good">2 essential buttons only</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Responsive Strategy -->
+  <div class="section">
+    <div class="section-title">
+      Responsive Strategy
+      <span class="badge badge-solution">Recommended</span>
+    </div>
+
+    <div class="strategy-grid">
+      <div class="strategy-card">
+        <h4>Large <span class="breakpoint">&gt;768px</span></h4>
+        <ul>
+          <li>All controls visible</li>
+          <li>Volume slider expands on hover</li>
+          <li>Thumbnail preview enabled</li>
+          <li>Chapter dropdown as-is</li>
+        </ul>
+      </div>
+
+      <div class="strategy-card">
+        <h4>Medium <span class="breakpoint">481-768px</span></h4>
+        <ul>
+          <li>Hide Next button</li>
+          <li>Move volume to settings menu</li>
+          <li>Keep time + chapter</li>
+          <li>Keep full right group</li>
+        </ul>
+      </div>
+
+      <div class="strategy-card">
+        <h4>Small <span class="breakpoint">≤480px</span></h4>
+        <ul>
+          <li>Play + Settings + Fullscreen only</li>
+          <li>Time/chapter on separate row above</li>
+          <li>44px touch targets</li>
+          <li>Hide autoplay, CC (access via settings)</li>
+          <li>Disable hover thumbnail</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="code-block">
+<span class="comment">/* Mobile-first responsive controls */</span>
+
+<span class="media">@media (max-width: 480px)</span> {
+  <span class="selector">.control-btn</span> {
+    <span class="property">width</span>: <span class="value">44px</span>;
+    <span class="property">height</span>: <span class="value">44px</span>;
+  }
+
+  <span class="selector">.next-btn,
+  .volume-control,
+  .autoplay-btn,
+  .cc-btn</span> {
+    <span class="property">display</span>: <span class="value">none</span>;
+  }
+
+  <span class="selector">.controls-row</span> {
+    <span class="property">flex-wrap</span>: <span class="value">wrap</span>;
+  }
+
+  <span class="selector">.time-chapter-row</span> {
+    <span class="property">width</span>: <span class="value">100%</span>;
+    <span class="property">order</span>: <span class="value">-1</span>;
+    <span class="property">margin-bottom</span>: <span class="value">8px</span>;
+  }
+
+  <span class="selector">.hover-preview</span> {
+    <span class="property">display</span>: <span class="value">none</span>;
+  }
+}
+    </div>
+  </div>
+
+  <!-- Settings Menu Analysis -->
+  <div class="section">
+    <div class="section-title">
+      Settings Menu on Mobile
+      <span class="badge badge-issue">Needs Adaptation</span>
+    </div>
+
+    <div class="viewport-container">
+      <!-- Settings - Desktop -->
+      <div class="viewport" style="width: auto;">
+        <div class="viewport-header">
+          <span class="viewport-label">Desktop Settings</span>
+          <span class="viewport-size">Overlay</span>
+        </div>
+        <div class="viewport-content" style="width: 400px; height: 420px; display: flex; align-items: flex-end; justify-content: flex-end; padding: 12px;">
+          <div class="settings-menu-mock">
+            <div class="settings-header">
+              <span>Settings</span>
+            </div>
+            <div class="settings-item toggle-item">
+              <span class="item-icon">↻</span>
+              <span class="item-label">Loop video</span>
+              <span class="toggle-switch on"></span>
+            </div>
+            <div class="settings-item toggle-item">
+              <span class="item-icon">▤</span>
+              <span class="item-label">Show scrubber</span>
+              <span class="toggle-switch on"></span>
+            </div>
+            <div class="settings-divider"></div>
+            <div class="settings-item">
+              <span class="item-icon">◈</span>
+              <span class="item-label">Quality</span>
+              <span class="item-value">Auto (720p)</span>
+              <span class="item-chevron">›</span>
+            </div>
+            <div class="settings-item">
+              <span class="item-icon">◷</span>
+              <span class="item-label">Playback speed</span>
+              <span class="item-value">Normal</span>
+              <span class="item-chevron">›</span>
+            </div>
+            <div class="settings-divider"></div>
+            <div class="settings-item">
+              <span class="item-icon">◉</span>
+              <span class="item-label">Video filters</span>
+              <span class="item-chevron">›</span>
+            </div>
+            <div class="settings-item">
+              <span class="item-icon">⤢</span>
+              <span class="item-label">Video transforms</span>
+              <span class="item-chevron">›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings - Mobile Broken -->
+      <div class="viewport" style="width: auto;">
+        <div class="viewport-header">
+          <span class="viewport-label">Mobile (Broken)</span>
+          <span class="viewport-size">320px</span>
+        </div>
+        <div class="viewport-content" style="width: 320px; height: 400px; position: relative; overflow: hidden;">
+          <!-- Simulated video area -->
+          <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--stash-text-dim); font-size: 11px;">VIDEO</div>
+
+          <!-- Settings menu overflowing -->
+          <div class="settings-menu-mock" style="position: absolute; bottom: 50px; right: 8px; transform: translateX(20px);">
+            <div class="settings-header">
+              <span>Settings</span>
+            </div>
+            <div class="settings-item toggle-item">
+              <span class="item-icon">↻</span>
+              <span class="item-label">Loop video</span>
+              <span class="toggle-switch on"></span>
+            </div>
+            <div class="settings-item toggle-item">
+              <span class="item-icon">▤</span>
+              <span class="item-label">Show scrubber</span>
+              <span class="toggle-switch on"></span>
+            </div>
+            <div class="settings-divider"></div>
+            <div class="settings-item">
+              <span class="item-icon">◈</span>
+              <span class="item-label">Quality</span>
+              <span class="item-value">Auto</span>
+              <span class="item-chevron">›</span>
+            </div>
+            <div class="settings-item">
+              <span class="item-icon">◷</span>
+              <span class="item-label">Speed</span>
+              <span class="item-value">Normal</span>
+              <span class="item-chevron">›</span>
+            </div>
+          </div>
+
+          <!-- Issue overlay -->
+          <div class="issue-overlay" style="bottom: 50px; right: 0; width: 30px; height: 200px;">
+            <span class="issue-label" style="top: 50%; transform: translate(-50%, -50%) rotate(-90deg); left: -20px;">CLIPPED</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings - Mobile Fixed (Full Screen) -->
+      <div class="viewport" style="width: auto;">
+        <div class="viewport-header">
+          <span class="viewport-label">Mobile (Fixed)</span>
+          <span class="viewport-size">Full-screen modal</span>
+        </div>
+        <div class="viewport-content" style="width: 320px; height: 400px; position: relative;">
+          <!-- Full screen settings modal -->
+          <div class="settings-modal-mobile">
+            <div class="modal-header">
+              <button class="modal-close">✕</button>
+              <span>Settings</span>
+              <span></span>
+            </div>
+            <div class="modal-content">
+              <div class="settings-item-mobile toggle-item">
+                <span class="item-icon">↻</span>
+                <span class="item-label">Loop video</span>
+                <span class="toggle-switch-mobile on"></span>
+              </div>
+              <div class="settings-item-mobile toggle-item">
+                <span class="item-icon">▤</span>
+                <span class="item-label">Show scrubber</span>
+                <span class="toggle-switch-mobile on"></span>
+              </div>
+              <div class="settings-divider-mobile"></div>
+              <div class="settings-item-mobile">
+                <span class="item-icon">◈</span>
+                <span class="item-label">Quality</span>
+                <span class="item-value">Auto (720p)</span>
+                <span class="item-chevron">›</span>
+              </div>
+              <div class="settings-item-mobile">
+                <span class="item-icon">◷</span>
+                <span class="item-label">Playback speed</span>
+                <span class="item-value">Normal</span>
+                <span class="item-chevron">›</span>
+              </div>
+              <div class="settings-divider-mobile"></div>
+              <div class="settings-item-mobile">
+                <span class="item-icon">🔊</span>
+                <span class="item-label">Volume</span>
+                <span class="item-value">70%</span>
+                <span class="item-chevron">›</span>
+              </div>
+              <div class="settings-item-mobile">
+                <span class="item-icon">▶▶</span>
+                <span class="item-label">Autoplay</span>
+                <span class="toggle-switch-mobile on"></span>
+              </div>
+              <div class="settings-item-mobile">
+                <span class="item-icon">CC</span>
+                <span class="item-label">Subtitles</span>
+                <span class="item-value">Off</span>
+                <span class="item-chevron">›</span>
+              </div>
+              <div class="settings-divider-mobile"></div>
+              <div class="settings-item-mobile">
+                <span class="item-icon">◉</span>
+                <span class="item-label">Video filters</span>
+                <span class="item-chevron">›</span>
+              </div>
+              <div class="settings-item-mobile">
+                <span class="item-icon">⤢</span>
+                <span class="item-label">Video transforms</span>
+                <span class="item-chevron">›</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Mobile Strategy -->
+    <div class="strategy-grid" style="margin-top: 24px;">
+      <div class="strategy-card">
+        <h4>Desktop Overlay <span class="breakpoint">&gt;480px</span></h4>
+        <ul>
+          <li>280-320px floating panel</li>
+          <li>Positioned near settings button</li>
+          <li>Backdrop blur effect</li>
+          <li>Click outside to close</li>
+        </ul>
+      </div>
+
+      <div class="strategy-card">
+        <h4>Mobile Modal <span class="breakpoint">≤480px</span></h4>
+        <ul>
+          <li>Full-screen modal (100vw × 100vh)</li>
+          <li>Close button in header</li>
+          <li>48px touch target rows</li>
+          <li>Larger toggle switches</li>
+          <li>Include hidden controls (Volume, Autoplay, CC)</li>
+          <li>Slide-in from bottom animation</li>
+        </ul>
+      </div>
+
+      <div class="strategy-card">
+        <h4>Mobile Submenus</h4>
+        <ul>
+          <li>Full-screen slide from right</li>
+          <li>Large back button (← Quality)</li>
+          <li>Larger radio button targets</li>
+          <li>Slider tracks: 8px height (vs 4px)</li>
+          <li>Thumb size: 24px (vs 14px)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="code-block">
+<span class="comment">/* Mobile settings - full screen modal */</span>
+
+<span class="media">@media (max-width: 480px)</span> {
+  <span class="selector">.settings-menu</span> {
+    <span class="property">position</span>: <span class="value">fixed</span>;
+    <span class="property">inset</span>: <span class="value">0</span>;
+    <span class="property">width</span>: <span class="value">100vw</span>;
+    <span class="property">height</span>: <span class="value">100vh</span>;
+    <span class="property">max-width</span>: <span class="value">none</span>;
+    <span class="property">max-height</span>: <span class="value">none</span>;
+    <span class="property">border-radius</span>: <span class="value">0</span>;
+    <span class="property">transform</span>: <span class="value">translateY(100%)</span>;
+    <span class="property">transition</span>: <span class="value">transform 0.3s ease</span>;
+  }
+
+  <span class="selector">.settings-menu.is-open</span> {
+    <span class="property">transform</span>: <span class="value">translateY(0)</span>;
+  }
+
+  <span class="selector">.settings-menu-item,
+  .settings-menu-toggle</span> {
+    <span class="property">min-height</span>: <span class="value">48px</span>;
+    <span class="property">padding</span>: <span class="value">12px 16px</span>;
+  }
+
+  <span class="selector">.toggle-switch</span> {
+    <span class="property">width</span>: <span class="value">52px</span>;
+    <span class="property">height</span>: <span class="value">32px</span>;
+  }
+
+  <span class="selector">input[type="range"]</span> {
+    <span class="property">height</span>: <span class="value">8px</span>;
+  }
+
+  <span class="selector">input[type="range"]::-webkit-slider-thumb</span> {
+    <span class="property">width</span>: <span class="value">24px</span>;
+    <span class="property">height</span>: <span class="value">24px</span>;
+  }
+}
+    </div>
+  </div>
+
+  <style>
+    /* Settings menu mock styles */
+    .settings-menu-mock {
+      background: rgba(28, 28, 28, 0.95);
+      backdrop-filter: blur(12px);
+      border-radius: 12px;
+      width: 260px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .settings-header {
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .settings-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .settings-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .settings-item .item-icon {
+      width: 20px;
+      margin-right: 12px;
+      text-align: center;
+      opacity: 0.7;
+    }
+
+    .settings-item .item-label {
+      flex: 1;
+    }
+
+    .settings-item .item-value {
+      color: var(--stash-text-muted);
+      font-size: 12px;
+      margin-right: 4px;
+    }
+
+    .settings-item .item-chevron {
+      color: var(--stash-text-dim);
+      font-size: 16px;
+    }
+
+    .toggle-switch {
+      width: 36px;
+      height: 20px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      position: relative;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      background: var(--stash-text);
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle-switch.on {
+      background: var(--stash-primary);
+    }
+
+    .toggle-switch.on::after {
+      transform: translateX(16px);
+    }
+
+    .settings-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+      margin: 8px 0;
+    }
+
+    /* Mobile settings modal */
+    .settings-modal-mobile {
+      position: absolute;
+      inset: 0;
+      background: var(--stash-body-bg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: var(--stash-text);
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 50%;
+    }
+
+    .modal-close:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .modal-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .settings-item-mobile {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      min-height: 48px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .settings-item-mobile:active {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .settings-item-mobile .item-icon {
+      width: 28px;
+      margin-right: 14px;
+      text-align: center;
+      opacity: 0.7;
+      font-size: 16px;
+    }
+
+    .settings-item-mobile .item-label {
+      flex: 1;
+    }
+
+    .settings-item-mobile .item-value {
+      color: var(--stash-text-muted);
+      font-size: 13px;
+      margin-right: 8px;
+    }
+
+    .settings-item-mobile .item-chevron {
+      color: var(--stash-text-dim);
+      font-size: 18px;
+    }
+
+    .toggle-switch-mobile {
+      width: 52px;
+      height: 32px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 16px;
+      position: relative;
+    }
+
+    .toggle-switch-mobile::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 28px;
+      height: 28px;
+      background: var(--stash-text);
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle-switch-mobile.on {
+      background: var(--stash-primary);
+    }
+
+    .toggle-switch-mobile.on::after {
+      transform: translateX(20px);
+    }
+
+    .settings-divider-mobile {
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin: 8px 16px;
+    }
+  </style>
+</body>
+</html>

@@ -8,6 +8,45 @@ $scrubberHeight: 120px;
 $menuHeight: 4rem;
 $sceneTabWidth: 450px;
 
+// ============================================
+// YouTube 2026 Player Controls Design System
+// ============================================
+
+// Primary colors (Material Blue)
+$player-primary: #2196f3;
+$player-primary-hover: #64b5f6;
+$player-primary-glow: rgba(33, 150, 243, 0.4);
+
+// Marker colors
+$marker-cyan: #00e5ff;
+$marker-cyan-glow: rgba(0, 229, 255, 0.5);
+$marker-amber: #ffab40;
+$marker-amber-glow: rgba(255, 171, 64, 0.4);
+
+// Control colors
+$player-text: #f5f8fa;
+$player-text-muted: rgba(245, 248, 250, 0.7);
+$player-text-dim: rgba(245, 248, 250, 0.45);
+
+// Progress bar
+$progress-bar-height: 3px;
+$progress-bar-height-hover: 5px;
+$progress-bg: rgba(255, 255, 255, 0.18);
+$progress-buffer: rgba(255, 255, 255, 0.38);
+
+// Backgrounds
+$player-body-bg: #181e24;
+$player-card-bg: #242d35;
+
+// Shadows
+$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+$shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+$shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+$shadow-glow: 0 0 20px $player-primary-glow;
+
+// Aliases for consistency
+$stash-text: $player-text;
+
 .VideoPlayer {
   display: flex;
   flex-direction: column;
@@ -72,7 +111,9 @@ $sceneTabWidth: 450px;
     outline: none;
   }
 
-  // Control bar buttons with SVG icons - match settings menu button style
+  // ============================================
+  // YouTube 2026 Control Bar Icons (Filled Style)
+  // ============================================
   .vjs-control-bar .vjs-control.vjs-button.vjs-svg-icon {
     cursor: pointer;
     display: flex;
@@ -90,30 +131,29 @@ $sceneTabWidth: 450px;
       justify-content: center;
 
       svg {
-        width: 20px;
-        height: 20px;
-        stroke: #fff;
-        fill: none;
-        transition: transform 0.2s ease;
+        width: 22px;
+        height: 22px;
+        fill: $player-text;
+        transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
       }
     }
 
     &:hover .vjs-icon-placeholder svg {
       transform: scale(1.1);
+      fill: #fff;
     }
   }
 
-  // Play button - filled icon
+  // Play button - slightly larger
   .vjs-control-bar .vjs-play-control.vjs-svg-icon {
-    .vjs-icon-placeholder svg polygon {
-      fill: #fff;
+    .vjs-icon-placeholder svg {
+      width: 26px;
+      height: 26px;
     }
-  }
 
-  // Volume button - filled polygon
-  .vjs-control-bar .vjs-mute-control.vjs-svg-icon {
-    .vjs-icon-placeholder svg polygon {
-      fill: #fff;
+    &:hover .vjs-icon-placeholder svg {
+      transform: scale(1.12);
     }
   }
 
@@ -155,11 +195,14 @@ $sceneTabWidth: 450px;
     /* Scales control size */
     font-size: 15px;
 
+    // YouTube 2026 style gradient - more refined
     &::before {
       background: linear-gradient(
-        0deg,
-        rgba(0, 0, 0, 0.4) 0%,
-        rgba(0, 0, 0, 0) 100%
+        to top,
+        rgba(0, 0, 0, 0.85) 0%,
+        rgba(0, 0, 0, 0.5) 40%,
+        rgba(0, 0, 0, 0.1) 70%,
+        transparent 100%
       );
       bottom: 0;
       content: "";
@@ -167,6 +210,248 @@ $sceneTabWidth: 450px;
       pointer-events: none;
       position: absolute;
       width: 100%;
+    }
+
+    // ============================================
+    // YouTube 2026 Control Bar Layout
+    // Hide unwanted buttons, reorder for YouTube layout
+    // ============================================
+
+    /* stylelint-disable declaration-no-important */
+    // Hide buttons we don't want - use !important to override video.js defaults
+    .vjs-skip-button.vjs-icon-previous-item,
+    .vjs-seek-button,
+    .vjs-seek-to-live-control,
+    .vjs-playback-rate,
+    .vjs-descriptions-button,
+    .vjs-subs-caps-button,
+    .vjs-audio-button {
+      display: none !important;
+    }
+    /* stylelint-enable declaration-no-important */
+
+    // Flex order for YouTube layout
+    // Left side: Play (1) → Next (2) → Volume (3) → Time (4-6)
+    // Right side: Spacer pushes → Autoplay (10) → Settings (11) → Fullscreen (12)
+
+    .vjs-play-control {
+      order: 1;
+    }
+
+    .vjs-skip-button.vjs-icon-next-item {
+      order: 2;
+    }
+
+    .vjs-volume-panel {
+      order: 3;
+    }
+
+    .vjs-current-time {
+      order: 4;
+    }
+
+    .vjs-time-divider {
+      order: 5;
+    }
+
+    .vjs-duration {
+      order: 6;
+      margin-right: 0; // Remove auto margin, use spacer instead
+    }
+
+    /* stylelint-disable declaration-no-important */
+    .vjs-custom-control-spacer {
+      order: 7;
+      flex: 1 1 auto !important; // Take up remaining space
+      display: flex !important; // Ensure it's visible
+    }
+    /* stylelint-enable declaration-no-important */
+
+    // Right-side buttons - grouped visually
+    .vjs-autostart-button {
+      order: 10;
+    }
+
+    .vjs-settings-button {
+      order: 11;
+    }
+
+    .vjs-settings-menu-container {
+      order: 11; // Same as settings button (it's a sibling container)
+    }
+
+    .vjs-fullscreen-control {
+      order: 12;
+    }
+
+    // Progress bar stays absolutely positioned
+    .vjs-progress-control {
+      order: 0;
+    }
+
+    // ============================================
+    // Right Panel Pill Grouping
+    // Creates visual pill container around right buttons
+    // ============================================
+
+    // Pseudo-element on autostart button creates pill background
+    // spanning autostart (42px) + settings (36px) + fullscreen (36px) + padding
+    .vjs-autostart-button.vjs-autostart-toggle {
+      position: relative;
+      margin-left: 8px;
+      width: 42px;
+      min-width: 42px;
+
+      // Pill background spanning all right buttons
+      &::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: -6px;
+        transform: translateY(-50%);
+        // Width: autostart (42px) + settings (36px) + fullscreen (36px) + padding (12px)
+        width: 126px;
+        height: 38px;
+        background: rgba(24, 30, 36, 0.9);
+        backdrop-filter: blur(16px);
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        z-index: -1;
+        pointer-events: none;
+      }
+    }
+
+    // ============================================
+    // Autoplay Toggle - Embedded Track Design
+    // YouTube 2026 style: 30×14px track with 18px sliding thumb
+    // ============================================
+    .vjs-autostart-toggle {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      background: transparent !important;
+      border: none;
+      cursor: pointer;
+
+      // Hide the default VideoJS icon placeholder - use !important to override video.js
+      .vjs-icon-placeholder {
+        display: none !important;
+      }
+
+      // The track (pill background that changes color)
+      .vjs-autostart-track {
+        position: relative;
+        width: 30px;
+        height: 14px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 7px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      // The sliding thumb
+      .vjs-autostart-thumb {
+        position: absolute;
+        top: 50%;
+        left: 1px;
+        width: 18px;
+        height: 18px;
+        transform: translateY(-50%);
+        background: $stash-text;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+
+        svg {
+          width: 10px;
+          height: 10px;
+          fill: $player-body-bg;
+          opacity: 0.85;
+        }
+      }
+
+      // OFF state (default)
+      &.vjs-autostart-off {
+        .vjs-autostart-track {
+          background: rgba(255, 255, 255, 0.2);
+        }
+
+        .vjs-autostart-thumb {
+          left: 1px;
+        }
+      }
+
+      // ON state - track fills with primary, thumb slides right
+      &.vjs-autostart-on {
+        .vjs-autostart-track {
+          background: $player-primary;
+          box-shadow: 0 0 12px rgba($player-primary, 0.4);
+        }
+
+        .vjs-autostart-thumb {
+          left: calc(100% - 18px - 1px);
+        }
+      }
+
+      // Hover states
+      &:hover {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border-radius: 8px;
+
+        .vjs-autostart-track {
+          background: rgba(255, 255, 255, 0.28);
+        }
+
+        .vjs-autostart-thumb {
+          transform: translateY(-50%) scale(1.08);
+        }
+
+        &.vjs-autostart-on .vjs-autostart-track {
+          background: lighten($player-primary, 10%);
+          box-shadow: 0 0 16px rgba($player-primary, 0.5);
+        }
+      }
+    }
+
+    // Settings and fullscreen buttons inside the pill
+    .vjs-settings-button,
+    .vjs-fullscreen-control {
+      z-index: 1;
+      background: transparent;
+      width: 36px;
+      min-width: 36px;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+      }
+
+      // Smaller icons inside the pill
+      svg,
+      .vjs-icon-placeholder svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    // Subtle dividers between buttons in the pill group
+    .vjs-autostart-toggle::after,
+    .vjs-settings-button::after {
+      content: "";
+      position: absolute;
+      right: -1px;
+      top: 25%;
+      height: 50%;
+      width: 1px;
+      background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 100%
+      );
     }
   }
 
@@ -183,22 +468,82 @@ $sceneTabWidth: 450px;
     }
   }
 
-  .vjs-duration {
-    margin-right: auto;
-  }
+  // Note: .vjs-duration margin handled in control bar layout section above
 
   .vjs-remaining-time {
     display: none;
   }
 
+  // ============================================
+  // YouTube 2026 Progress Bar
+  // ============================================
   .vjs-progress-control {
     bottom: 2.5em;
-    height: 3em;
+    height: 2em;
     position: absolute;
     width: 100%;
+    padding: 0.5em 0;
 
     .vjs-progress-holder {
       margin: 0 15px;
+      height: $progress-bar-height;
+      background: $progress-bg;
+      border-radius: 2px;
+      transition: height 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    // Expand on hover (YouTube style)
+    &:hover .vjs-progress-holder {
+      height: $progress-bar-height-hover;
+    }
+
+    // Buffer (loaded) bar
+    .vjs-load-progress {
+      background: $progress-buffer;
+      border-radius: 2px;
+
+      div {
+        background: $progress-buffer;
+      }
+    }
+
+    // Played progress bar - gradient fill with glow
+    .vjs-play-progress {
+      background: linear-gradient(90deg, $player-primary 0%, $player-primary-hover 100%);
+      border-radius: 2px;
+      transition: box-shadow 0.25s ease;
+
+      // Scrubber handle (appears on hover)
+      &::before {
+        content: "";
+        position: absolute;
+        right: -7px;
+        top: 50%;
+        width: 14px;
+        height: 14px;
+        background: $player-text;
+        border: 2px solid $player-primary;
+        border-radius: 50%;
+        transform: translateY(-50%) scale(0);
+        transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: $shadow-sm;
+        z-index: 2;
+      }
+    }
+
+    // Show scrubber on hover
+    &:hover .vjs-play-progress {
+      box-shadow: 0 0 12px $player-primary-glow, 0 0 4px $player-primary-glow;
+
+      &::before {
+        transform: translateY(-50%) scale(1);
+      }
+    }
+
+    // Scrubber hover state
+    .vjs-play-progress:hover::before {
+      transform: translateY(-50%) scale(1.15);
+      box-shadow: $shadow-glow;
     }
   }
 
@@ -207,6 +552,21 @@ $sceneTabWidth: 450px;
     display: none !important;
   }
   /* stylelint-enable declaration-no-important */
+
+  // Hover time tooltip
+  .vjs-mouse-display {
+    .vjs-time-tooltip {
+      background: rgba(14, 16, 20, 0.95);
+      backdrop-filter: blur(8px);
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      box-shadow: $shadow-md;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+  }
 
   .vjs-volume-control {
     z-index: 1;
@@ -391,12 +751,12 @@ $sceneTabWidth: 450px;
   }
 
   .vjs-settings-toggle-switch {
-    width: 40px;
+    width: 38px;
     height: 22px;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.18);
     border-radius: 11px;
     position: relative;
-    transition: background-color 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
 
     .vjs-toggle-slider {
@@ -405,18 +765,27 @@ $sceneTabWidth: 450px;
       left: 2px;
       width: 18px;
       height: 18px;
-      background: #fff;
+      background: $player-text;
       border-radius: 50%;
-      transition: transform 0.2s ease;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: $shadow-sm;
     }
 
     &.vjs-toggle-on {
-      background: #ffc107;
+      background: $player-primary;
+      box-shadow: 0 0 8px $player-primary-glow;
 
       .vjs-toggle-slider {
-        transform: translateX(18px);
-        background: #101010;
+        transform: translateX(16px);
       }
+    }
+
+    &:hover .vjs-toggle-slider {
+      transform: scale(1.05);
+    }
+
+    &.vjs-toggle-on:hover .vjs-toggle-slider {
+      transform: translateX(16px) scale(1.05);
     }
   }
 
@@ -454,23 +823,26 @@ $sceneTabWidth: 450px;
         appearance: none;
         width: 14px;
         height: 14px;
-        background: #4A9EFF;
+        background: $player-primary;
         border-radius: 50%;
         cursor: pointer;
-        transition: transform 0.1s ease;
+        transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 0 6px $player-primary-glow;
       }
 
       &::-webkit-slider-thumb:hover {
         transform: scale(1.2);
+        box-shadow: 0 0 10px $player-primary-glow;
       }
 
       &::-moz-range-thumb {
         width: 14px;
         height: 14px;
-        background: #4A9EFF;
+        background: $player-primary;
         border-radius: 50%;
         cursor: pointer;
         border: none;
+        box-shadow: 0 0 6px $player-primary-glow;
       }
     }
 
@@ -542,18 +914,19 @@ $sceneTabWidth: 450px;
   .vjs-settings-reset-btn {
     width: 100%;
     padding: 10px 16px;
-    background: rgba(255, 193, 7, 0.15);
-    border: 1px solid rgba(255, 193, 7, 0.3);
+    background: rgba(33, 150, 243, 0.15);
+    border: 1px solid rgba(33, 150, 243, 0.3);
     border-radius: 6px;
-    color: #ffc107;
+    color: $player-primary-hover;
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 
     &:hover:not(:disabled) {
-      background: rgba(255, 193, 7, 0.25);
-      border-color: rgba(255, 193, 7, 0.5);
+      background: rgba(33, 150, 243, 0.25);
+      border-color: rgba(33, 150, 243, 0.5);
+      box-shadow: 0 0 8px $player-primary-glow;
     }
 
     &:disabled {
@@ -604,17 +977,22 @@ $sceneTabWidth: 450px;
     align-items: center;
     padding: 10px 16px;
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 6px;
+    margin: 2px 6px;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
     }
 
     &.vjs-selected {
-      background: rgba(255, 193, 7, 0.15);
+      background: rgba(33, 150, 243, 0.12);
+      border-left: 3px solid $player-primary;
+      padding-left: 13px;
 
       .vjs-settings-submenu-label {
-        color: #ffc107;
+        color: $player-primary-hover;
+        font-weight: 500;
       }
 
       &.vjs-errored {
@@ -624,19 +1002,19 @@ $sceneTabWidth: 450px;
         }
       }
     }
-  
+
     .vjs-settings-check {
       width: 20px;
       font-size: 12px;
       color: transparent;
       margin-right: 8px;
     }
-  
+
     .vjs-settings-submenu-label {
       font-size: 13px;
       color: #fff;
     }
-  
+
     // Hide default playback rate and subs-caps buttons
     .vjs-playback-rate,
     .vjs-subs-caps-button {
@@ -659,49 +1037,110 @@ $sceneTabWidth: 450px;
     }
   }
 
+  // ============================================
+  // YouTube 2026 Markers (Hybrid Approach)
+  // Point markers: cyan tick marks
+  // Range markers: amber overlay segments
+  // ============================================
+
+  // Point Marker - cyan vertical tick
   .vjs-marker {
-    background-color: rgba(33, 33, 33, 0.8);
-    bottom: 0;
-    height: 100%;
-    left: 0;
-    opacity: 1;
     position: absolute;
-    transition: opacity 0.2s ease;
-    visibility: hidden;
-    width: 6px;
-    z-index: 100;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    height: 16px;
+    background: linear-gradient(180deg, $marker-cyan 0%, rgba(0, 229, 255, 0.7) 100%);
+    border-radius: 2px;
+    cursor: pointer;
+    z-index: 3;
+    box-shadow: 0 0 8px $marker-cyan-glow;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: marker-glow 2.5s ease-in-out infinite;
+    transform: translateY(-50%);
 
     &:hover {
-      cursor: pointer;
-      transform: scale(1.3, 1.3);
+      height: 20px;
+      width: 4px;
+      box-shadow: 0 0 16px $marker-cyan-glow, 0 0 6px $marker-cyan;
+      animation: none;
     }
   }
 
-  .vjs-marker-range {
-    background-color: rgba(255, 255, 255, 0.4);
-    border-radius: 2px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    height: 8px;
-    position: absolute;
-    transform: translateY(-28px);
-    transition: none;
+  @keyframes marker-glow {
+    0%, 100% { box-shadow: 0 0 6px $marker-cyan-glow; }
+    50% { box-shadow: 0 0 14px $marker-cyan-glow, 0 0 4px $marker-cyan; }
   }
 
-  .vjs-marker-tooltip {
-    background-color: #fff;
-    background-color: rgba(255, 255, 255, 0.8);
-    border-radius: 0.3em;
-    color: #000;
-    float: right;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 0.6em;
-    padding: 6px 8px 8px 8px;
-    pointer-events: none;
+  // Range Marker - amber overlay segment
+  // Note: Marker is child of .vjs-progress-control which has complex positioning
+  // Progress holder sits at 12.5px from control top - marker must align with it
+  .vjs-marker-range {
     position: absolute;
-    top: -3.4em;
-    visibility: hidden;
+    top: 12.5px !important; // Align with .vjs-progress-holder
+    transform: none !important; // Override any inherited transform
+    height: 3px !important; // Match progress bar height (3px default, 5px on hover)
+    background: linear-gradient(
+      90deg,
+      rgba(255, 171, 64, 0.2) 0%,
+      rgba(255, 171, 64, 0.45) 50%,
+      rgba(255, 171, 64, 0.2) 100%
+    ) !important;
+    border-left: 2px solid $marker-amber;
+    border-right: 2px solid $marker-amber;
+    cursor: pointer;
+    z-index: 2; // Above progress bar
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 2px;
+
+    &:hover {
+      background: linear-gradient(
+        90deg,
+        rgba(255, 171, 64, 0.25) 0%,
+        rgba(255, 171, 64, 0.5) 50%,
+        rgba(255, 171, 64, 0.25) 100%
+      );
+      box-shadow: 0 0 12px $marker-amber-glow;
+    }
+  }
+
+  // Marker tooltip - refined dark style
+  .vjs-marker-tooltip {
+    position: absolute;
+    bottom: 26px;
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: rgba(18, 18, 20, 0.95);
+    backdrop-filter: blur(12px);
+    color: $player-text;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 6px;
     white-space: nowrap;
-    z-index: 1;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
+    box-shadow: $shadow-md;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    // Tooltip arrow
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -7px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 7px solid transparent;
+      border-top-color: rgba(18, 18, 20, 0.95);
+    }
+  }
+
+  .vjs-marker:hover .vjs-marker-tooltip,
+  .vjs-marker-range:hover .vjs-marker-tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 
   .vjs-text-track-settings select {

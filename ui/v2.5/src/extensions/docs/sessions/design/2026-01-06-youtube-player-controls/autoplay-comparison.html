@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autoplay Toggle Design Comparison</title>
+  <style>
+    :root {
+      --stash-primary: #137cbd;
+      --stash-primary-hover: #48aff0;
+      --stash-text: #f5f8fa;
+      --stash-text-muted: rgba(245, 248, 250, 0.7);
+      --stash-text-dim: rgba(245, 248, 250, 0.5);
+      --stash-body-bg: #202b33;
+      --stash-card-bg: #30404d;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--stash-body-bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--stash-text);
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      color: var(--stash-text-muted);
+      font-size: 14px;
+      margin-bottom: 48px;
+    }
+
+    .comparison {
+      display: flex;
+      gap: 60px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .option {
+      background: var(--stash-card-bg);
+      border-radius: 12px;
+      padding: 32px;
+      min-width: 340px;
+    }
+
+    .option h2 {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .option h2 .badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .badge-current {
+      background: rgba(255, 170, 0, 0.2);
+      color: #ffaa00;
+    }
+
+    .badge-proposed {
+      background: rgba(19, 124, 189, 0.2);
+      color: var(--stash-primary-hover);
+    }
+
+    .option p {
+      color: var(--stash-text-muted);
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .demo-area {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .state-label {
+      font-size: 11px;
+      color: var(--stash-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      width: 32px;
+    }
+
+    /* ========================================
+       OPTION A: Form.Switch Style (Current)
+       ======================================== */
+
+    .switch-btn {
+      position: relative;
+      width: 48px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 50%;
+    }
+
+    .switch-btn .switch-track {
+      position: absolute;
+      width: 40px;
+      height: 18px;
+      background-color: rgba(255, 255, 255, 0.7);
+      border-radius: 9px;
+      z-index: 1;
+    }
+
+    .switch-btn .switch-thumb {
+      position: relative;
+      z-index: 2;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .switch-btn .switch-thumb svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* ON state */
+    .switch-btn.is-on .switch-thumb {
+      background: rgba(255, 255, 255, 0.95);
+      transform: translateX(8px);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .switch-btn.is-on .switch-thumb svg {
+      fill: rgba(60, 60, 60, 1);
+    }
+
+    /* OFF state */
+    .switch-btn:not(.is-on) .switch-thumb {
+      background: rgba(80, 80, 80, 0.95);
+      transform: translateX(-8px);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .switch-btn:not(.is-on) .switch-thumb svg {
+      fill: #fff;
+    }
+
+    /* ========================================
+       OPTION B: YouTube-Consistent (Proposed)
+       ======================================== */
+
+    .yt-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background 0.1s ease;
+      position: relative;
+    }
+
+    .yt-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .yt-btn svg {
+      width: 20px;
+      height: 20px;
+      transition: all 0.15s ease;
+    }
+
+    /* ON state - Blue filled circle with play icon */
+    .yt-btn.is-on {
+      background: var(--stash-primary);
+    }
+
+    .yt-btn.is-on:hover {
+      background: var(--stash-primary-hover);
+    }
+
+    .yt-btn.is-on svg {
+      fill: var(--stash-text);
+    }
+
+    /* OFF state - Transparent with muted icon */
+    .yt-btn:not(.is-on) svg {
+      fill: var(--stash-text-muted);
+    }
+
+    .yt-btn:not(.is-on):hover svg {
+      fill: var(--stash-text);
+    }
+
+    /* Context container to show in button group */
+    .button-group {
+      display: flex;
+      align-items: center;
+      background: rgba(32, 43, 51, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 0 4px;
+      gap: 0;
+    }
+
+    .button-group .other-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-radius: 50%;
+      transition: background 0.1s ease;
+    }
+
+    .button-group .other-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .button-group .other-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: var(--stash-text);
+    }
+
+    /* Divider between buttons */
+    .button-group > *:not(:last-child) {
+      position: relative;
+    }
+
+    .button-group > *:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 25%;
+      height: 50%;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .pros-cons {
+      margin-top: 16px;
+    }
+
+    .pros-cons h4 {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--stash-text-muted);
+      margin-bottom: 8px;
+    }
+
+    .pros-cons ul {
+      list-style: none;
+      font-size: 12px;
+    }
+
+    .pros-cons li {
+      padding: 4px 0;
+      color: var(--stash-text-muted);
+    }
+
+    .pros-cons li::before {
+      margin-right: 8px;
+    }
+
+    .pros-cons .pro::before {
+      content: '+';
+      color: #3dcc91;
+    }
+
+    .pros-cons .con::before {
+      content: '-';
+      color: #ff6b6b;
+    }
+
+    .recommendation {
+      margin-top: 48px;
+      max-width: 700px;
+      text-align: center;
+    }
+
+    .recommendation h3 {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .recommendation p {
+      color: var(--stash-text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>Autoplay Toggle Design Comparison</h1>
+  <p class="subtitle">Comparing Form.Switch style vs YouTube-consistent icon button</p>
+
+  <div class="comparison">
+    <!-- Option A: Current Form.Switch Style -->
+    <div class="option">
+      <h2>
+        Form.Switch Style
+        <span class="badge badge-current">Current</span>
+      </h2>
+      <p>Pill track with sliding thumb icon. Based on Stash PR #6368 Form.Switch component.</p>
+
+      <div class="demo-area">
+        <span class="state-label">ON</span>
+        <button class="switch-btn is-on" onclick="this.classList.toggle('is-on')">
+          <span class="switch-track"></span>
+          <span class="switch-thumb">
+            <svg viewBox="0 0 24 24"><polygon points="9,6 18,12 9,18"/></svg>
+          </span>
+        </button>
+      </div>
+
+      <div class="demo-area">
+        <span class="state-label">OFF</span>
+        <button class="switch-btn" onclick="this.classList.toggle('is-on')">
+          <span class="switch-track"></span>
+          <span class="switch-thumb">
+            <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          </span>
+        </button>
+      </div>
+
+      <div class="pros-cons">
+        <h4>Analysis</h4>
+        <ul>
+          <li class="pro">Clear toggle metaphor (slides left/right)</li>
+          <li class="pro">Matches Stash Form.Switch component</li>
+          <li class="con">Visually different from neighboring buttons</li>
+          <li class="con">Wider footprint (48px vs 32px)</li>
+          <li class="con">Not how YouTube does it</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Option B: YouTube-Consistent -->
+    <div class="option">
+      <h2>
+        YouTube Icon Button
+        <span class="badge badge-proposed">Proposed</span>
+      </h2>
+      <p>Standard circular button with color state. Matches CC, Settings, Fullscreen buttons exactly.</p>
+
+      <div class="demo-area">
+        <span class="state-label">ON</span>
+        <div class="button-group">
+          <button class="yt-btn is-on" onclick="this.classList.toggle('is-on')">
+            <svg viewBox="0 0 24 24"><polygon points="9,6 18,12 9,18"/></svg>
+          </button>
+          <button class="other-btn">
+            <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V6h14v12zm-8-6H9.5v-.5h-2v3h2v-.5H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2v-.5H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
+          </button>
+          <button class="other-btn">
+            <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+          </button>
+          <button class="other-btn">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="demo-area">
+        <span class="state-label">OFF</span>
+        <div class="button-group">
+          <button class="yt-btn" onclick="this.classList.toggle('is-on')">
+            <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          </button>
+          <button class="other-btn">
+            <svg viewBox="0 0 24 24"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H5V6h14v12zm-8-6H9.5v-.5h-2v3h2v-.5H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2v-.5H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z"/></svg>
+          </button>
+          <button class="other-btn">
+            <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+          </button>
+          <button class="other-btn">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="pros-cons">
+        <h4>Analysis</h4>
+        <ul>
+          <li class="pro">Identical size to neighboring buttons (32px)</li>
+          <li class="pro">Matches YouTube's actual implementation</li>
+          <li class="pro">Blue fill clearly indicates "on" state</li>
+          <li class="pro">Seamless visual integration</li>
+          <li class="con">Less obvious toggle metaphor</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="recommendation">
+    <h3>Recommendation: YouTube Icon Button</h3>
+    <p>
+      The YouTube-consistent design provides better visual consistency with the control bar.
+      The blue filled background when "on" is clear enough for state communication, and it
+      matches exactly how YouTube handles their autoplay toggle. The Form.Switch design,
+      while familiar from Stash's form components, looks out of place among circular icon buttons.
+    </p>
+  </div>
+
+  <script>
+    // Make buttons toggle on click
+    document.querySelectorAll('.switch-btn, .yt-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('is-on');
+      });
+    });
+  </script>
+</body>
+</html>
