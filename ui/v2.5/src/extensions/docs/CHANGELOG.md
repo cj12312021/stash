@@ -4,6 +4,53 @@ This document tracks what has been added/modified from the upstream Stash codeba
 
 ---
 
+## 2026-01-06: Filter Search UX Improvements
+
+Improved the UX when searching in sidebar filter dropdowns (Tags, Performers, Studios, Groups, PerformerTags).
+
+### Issues Fixed
+
+| Issue | Solution |
+|-------|----------|
+| Search results slow (~5+ seconds) | Skip `scenes_filter` when searching - counts come from facet cache |
+| No loading indicator during search | Return only modifier options when `hasSearchQuery && state.loading` |
+| Items without counts show blank | Display "n/a" indicator with dimmed styling |
+| Sort order inconsistent | Alphabetical sorting during search (predictable for name-based search) |
+
+### Performance Improvement
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Search query time | ~5+ seconds | ~100-500ms |
+| Cause | Full filter evaluation across all scenes | Simple name/alias search |
+
+### Files Modified
+
+**Filter Components (5):**
+- `TagsFilter.tsx` - Skip `scenes_filter` when searching, loading check, alphabetical sort
+- `PerformersFilter.tsx` - Skip `scenes_filter` when searching, loading check, alphabetical sort
+- `StudiosFilter.tsx` - Skip `scenes_filter` when searching, loading check, alphabetical sort
+- `GroupsFilter.tsx` - Skip `scenes_filter` when searching, loading check, alphabetical sort
+- `PerformerTagsFilter.tsx` - Skip `scenes_filter` when searching, loading check, alphabetical sort
+
+**UI Components:**
+- `SidebarListFilter.tsx` - Added "n/a" indicator for items without counts (count-unavailable class)
+- `_list-components.scss` - Added `.count-unavailable` styling (dimmed, italic)
+
+### How It Works
+
+When user types in filter search:
+1. `queryVariables()` skips the expensive `scenes_filter` (line ~35 in each filter)
+2. Search returns quickly with name/alias matches
+3. Results merge with facet cache to show counts for top 100 items
+4. Items outside facet cache show "n/a" indicator
+
+### Debug Documentation
+
+- `extensions/docs/debug/DEBUG_SESSION_filter_search_ux.md` - Full investigation and fix details
+
+---
+
 ## 2026-01-06: Facet Query Parallelization Fix
 
 Fixed transaction serialization that caused facet queries to timeout (~60s) instead of running in parallel (~10s).

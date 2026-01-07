@@ -24,6 +24,11 @@
       letter-spacing: 1px;
     }
   }
+
+  &.count-unavailable {
+    opacity: 0.35;
+    font-style: italic;
+  }
 }
 
 @keyframes pulse-loading {
@@ -113,6 +118,17 @@
       -moz-animation: cardLoadingAnimation 2s infinite ease-in-out;
       -o-animation: cardLoadingAnimation 2s infinite ease-in-out;
       animation: cardLoadingAnimation 2s infinite ease-in-out;
+    }
+
+    .object-count.count-unavailable {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.1rem 0.4rem;
+      border-radius: 0.75rem;
+      min-width: 1.5rem;
+      text-align: center;
+      font-style: italic;
     }
   }
 }

@@ -33,6 +33,14 @@ npm run test --run extensions   # Run extension tests only
 npm run gqlgen          # Regenerate GraphQL client code
 ```
 
+**Development Ports:**
+| Port | Server | Use Case |
+|------|--------|----------|
+| **3000** | Vite dev server (`npm run start`) | Development - hot reload, source maps, fast iteration |
+| **9999** | Stash Go binary | Production - embedded UI, requires rebuild + restart |
+
+**Recommended workflow:** Use port 3000 for development and debugging (hot reload, source maps). The Go binary on 9999 embeds UI at build time, so changes require `npm run build` + `mingw32-make stash` + server restart. Final verification should be done on 9999 before committing.
+
 ### Full Release Build
 ```bash
 make pre-ui             # Install UI dependencies
@@ -326,6 +334,27 @@ Use these phrases to redirect debugging:
 | "Check the scratchpad" | Re-read DEBUG_SESSION.md to regain context |
 | "We already tried that" | Note it and try something different |
 | "Time-box this" | If 3 more attempts fail, switch approaches |
+
+### Verification Requirements
+
+**NEVER mark anything as "FIXED" or "RESOLVED" until it has been verified.**
+
+This rule exists because:
+- Code that compiles may not work at runtime
+- Tests that pass locally may fail in production conditions
+- Cached bundles, stale data, or timing issues can mask whether a fix actually works
+
+Verification methods vary by fix type:
+
+| Fix Type | Verification Method |
+|----------|---------------------|
+| UI changes | Manual browser testing |
+| Performance | Benchmark tests with real data |
+| Backend logic | Unit/integration tests |
+| GraphQL | Query in GraphQL playground |
+| Database queries | EXPLAIN QUERY PLAN + timing |
+
+If verification cannot be completed in the current session, mark the fix as **"CODE WRITTEN - NEEDS VERIFICATION"** instead of "FIXED".
 
 ### After Solving Issues
 

@@ -33,7 +33,9 @@ interface IStudiosFilter {
 function queryVariables(query: string, f?: ListFilterModel) {
   const studioFilter: StudioFilterType = {};
 
-  if (f) {
+  // Only apply scenes_filter when NOT searching (query is empty)
+  // When searching, skip the expensive filter - counts come from facet cache
+  if (f && !query) {
     const filterOutput = f.makeFilter();
     delete filterOutput.studios;
     setObjectFilter(studioFilter, f.mode, filterOutput, "studios");
@@ -121,13 +123,18 @@ export const SidebarStudiosFilter: React.FC<{
   const candidatesWithCounts: Option[] = useMemo(() => {
     const hasValidFacets = facetCounts.studios.size > 0 && !facetsLoading;
     const hasSearchQuery = state.query && state.query.length > 0;
-    
+
     // Extract modifier options from candidates
     const modifierOptions = state.candidates.filter(c => c.className === "modifier-object");
-    
+
     // Get selected IDs to exclude from candidates
     const selectedIds = new Set(state.selected.map(s => s.id));
-    
+
+    // When search is in progress, return only modifiers to show loading indicator
+    if (hasSearchQuery && state.loading) {
+      return modifierOptions;
+    }
+
     if (hasValidFacets && !hasSearchQuery) {
       // No search query: Use facet results directly as candidates (with labels from facets)
       const facetCandidates: Option[] = [];
@@ -153,9 +160,16 @@ export const SidebarStudiosFilter: React.FC<{
           if (c.className === "modifier-object") return true;
           if (!hasValidFacets) return true;
           return c.count !== 0;
+        })
+        .sort((a, b) => {
+          // Modifiers stay at top
+          if (a.className === "modifier-object") return -1;
+          if (b.className === "modifier-object") return 1;
+          // Sort alphabetically by label during search
+          return a.label.localeCompare(b.label);
         });
     }
-  }, [state.candidates, state.selected, state.query, facetCounts.studios, facetsLoading]);
+  }, [state.candidates, state.selected, state.query, state.loading, facetCounts.studios, facetsLoading]);
 
   const onOpen = useCallback(() => {
     state.onOpen?.();

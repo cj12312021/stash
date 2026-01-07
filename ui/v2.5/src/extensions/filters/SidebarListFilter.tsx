@@ -143,6 +143,10 @@ const CandidateItem: React.FC<{
             <span className="object-count count-loading" title="Loading count...">
               <span className="count-loading-dots">···</span>
             </span>
+          ) : !modifier ? (
+            <span className="object-count count-unavailable" title="Count unavailable (outside top results)">
+              n/a
+            </span>
           ) : null}
           {canExclude && (
             <Button
