@@ -180,7 +180,9 @@ git push origin develop
 - `ui/v2.5/src/extensions/README.md` - Frontend extensions overview
 - `ui/v2.5/src/extensions/docs/ARCHITECTURE.md` - Full architecture guide
 - `ui/v2.5/src/extensions/docs/UPGRADE-GUIDE.md` - Upstream merge guide
+- `ui/v2.5/src/extensions/docs/sessions/` - Session logs for multi-conversation work
 - `docs/DEVELOPMENT.md` - General development setup
+- `.claude/skills/session-log/SKILL.md` - Session logging skill documentation
 
 ## Submodules
 
@@ -289,9 +291,30 @@ A Playwright MCP server is configured for browser automation and visual testing.
 
 For long debugging sessions, use these strategies to maintain focus and avoid spiraling.
 
-### Debugging Scratchpad
+### Session Logging (Preferred)
 
-Create a `DEBUG_SESSION.md` file in the working directory to track state:
+For complex work that may span multiple conversations, use the `/session-log` skill:
+
+```bash
+/session-log start debug filter-search-performance
+```
+
+This creates structured session documents in `ui/v2.5/src/extensions/docs/sessions/` with:
+- Dated folders for easy tracking
+- Type-specific templates (debug/design/feature/refactor)
+- Progress logs with timestamps
+- Hypothesis tracking
+
+**To resume a session**, point to the SESSION.md file:
+```
+Read docs/sessions/debug/2026-01-06-filter-performance/SESSION.md and continue
+```
+
+See `.claude/skills/session-log/SKILL.md` for full documentation.
+
+### Quick Debugging Scratchpad (Alternative)
+
+For quick debugging that won't span sessions, create a `DEBUG_SESSION.md` file in the working directory:
 
 ```markdown
 # Debug Session: [Brief Issue Description]

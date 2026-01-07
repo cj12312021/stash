@@ -4,6 +4,42 @@ This document tracks what has been added/modified from the upstream Stash codeba
 
 ---
 
+## 2026-01-06: Session Logging Infrastructure
+
+Added a structured session logging system for tracking multi-conversation work.
+
+### New Directory Structure
+
+```
+docs/sessions/
+├── debug/      # Bug investigation, performance issues
+├── design/     # Feature design, architecture decisions
+├── feature/    # Feature implementation spanning sessions
+└── refactor/   # Code restructuring, migration work
+```
+
+### Migrated Files
+
+Old debug session files have been reorganized into the new structure:
+
+| Old Location | New Location |
+|--------------|--------------|
+| `docs/FACET-CACHE-ISSUES.md` | `docs/sessions/debug/2026-01-06-facet-cache-issues/SESSION.md` |
+| `docs/FACETS-BENCHMARK-RESULTS.md` | `docs/sessions/feature/2025-12-facets-optimization/SESSION.md` |
+| `docs/FACET_IMPROVEMENTS_JAN_2026.md` | `docs/sessions/refactor/2026-01-05-facet-system-improvements/SESSION.md` |
+| `docs/debug/DEBUG_SESSION_*.md` | `docs/sessions/debug/2026-01-06-*/SESSION.md` |
+
+### Usage
+
+```bash
+/session-log start debug filter-performance  # Start new session
+/session-log resume docs/sessions/debug/...  # Resume existing session
+```
+
+See `.claude/skills/session-log/SKILL.md` for full documentation.
+
+---
+
 ## 2026-01-06: Filter Search UX Improvements
 
 Improved the UX when searching in sidebar filter dropdowns (Tags, Performers, Studios, Groups, PerformerTags).
