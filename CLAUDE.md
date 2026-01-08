@@ -121,6 +121,27 @@ go test ./...                                               # All unit tests
 ### Production Database
 A production database copy is at `test-data/stash-go.sqlite` (~700k scenes, ~800k galleries) for performance testing.
 
+### Test Modification Rules
+
+**NEVER remove or weaken tests without explicit justification.**
+
+Before modifying any test:
+1. **Identify the scenario** - What specific scenario was this test covering?
+2. **Check coverage impact** - Does modifying/removing this test reduce coverage for that scenario?
+3. **Preserve intent** - If a test fails, fix the test setup or the code, don't just remove the test
+4. **Ask if uncertain** - If a test seems wrong but you're not sure why it exists, ask before removing
+
+**Only modify tests when:**
+- The test is genuinely incorrect (tests wrong behavior)
+- The tested behavior has intentionally changed
+- The test is a true duplicate of another test
+- Improving the test to cover MORE scenarios
+
+**Red flags that suggest you should NOT modify a test:**
+- Test fails because mocking is complex → Fix the mock, don't remove the test
+- Test seems redundant → Check if it covers a different code path or edge case
+- Test is "too strict" → The strictness may be catching real bugs
+
 ## Architecture
 
 ### Backend Structure
