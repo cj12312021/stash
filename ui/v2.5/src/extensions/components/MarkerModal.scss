@@ -1,0 +1,675 @@
+/**
+ * MarkerModal Styles
+ *
+ * Aesthetic: Dark Cinema / Editorial Glass
+ * Matching chapter-indicator-proposals.html mockup exactly
+ *
+ * Design System:
+ * - Deep blacks with subtle elevation
+ * - Glass morphism with restrained backdrop blur
+ * - Space Grotesk typography (editorial, confident)
+ * - Blue accent with ethereal glow
+ */
+
+// ============================================
+// DESIGN TOKENS (from mockup)
+// ============================================
+
+// Core palette
+$bg-deep: #0a0c0e;
+$bg-surface: #12161a;
+$bg-elevated: #1a1f24;
+$bg-glass: rgba(18, 22, 26, 0.92);
+$bg-glass-light: rgba(255, 255, 255, 0.04);
+
+// Accent colors
+$accent-primary: #2196f3;
+$accent-primary-dim: rgba(33, 150, 243, 0.15);
+$accent-primary-glow: rgba(33, 150, 243, 0.4);
+
+// Text hierarchy
+$text-primary: #f0f4f8;
+$text-secondary: rgba(240, 244, 248, 0.7);
+$text-muted: rgba(240, 244, 248, 0.5);
+
+// Borders & shadows
+$border-subtle: rgba(255, 255, 255, 0.08);
+$border-hover: rgba(255, 255, 255, 0.15);
+$shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.4);
+$shadow-glow: 0 0 32px $accent-primary-glow;
+
+// Danger color
+$danger: #ef4444;
+$danger-dim: rgba(239, 68, 68, 0.15);
+
+// Animation
+$ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+$ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+// ============================================
+// FONT IMPORTS
+// ============================================
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+// ============================================
+// BACKDROP
+// ============================================
+.marker-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+
+  // Exact mockup values
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+
+  animation: marker-modal-fade-in 0.25s $ease-out forwards;
+}
+
+@keyframes marker-modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+// ============================================
+// MODAL CONTAINER
+// ============================================
+.marker-modal {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+
+  // Exact mockup values
+  background: $bg-elevated;
+  border: 1px solid $border-subtle;
+  border-radius: 16px;
+  box-shadow: $shadow-lg, $shadow-glow;
+
+  // Typography base
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: $text-primary;
+  line-height: 1.5;
+
+  // Entrance animation
+  animation: marker-modal-enter 0.35s $ease-spring forwards;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+@keyframes marker-modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// ============================================
+// HEADER
+// ============================================
+.marker-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px;
+  border-bottom: 1px solid $border-subtle;
+}
+
+.marker-modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: $text-primary;
+  letter-spacing: -0.02em;
+}
+
+.marker-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: $text-muted;
+  cursor: pointer;
+  transition: all 0.15s $ease-out;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: $text-primary;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $accent-primary;
+    outline-offset: 2px;
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// ============================================
+// BODY - Contains MarkerForm
+// ============================================
+.marker-modal-body {
+  padding: 28px;
+  overflow-y: auto;
+  max-height: calc(100vh - 150px);
+}
+
+// ============================================
+// MARKER FORM - Custom Layout
+// ============================================
+.marker-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+// ----------------------------------------
+// Field Container (label + input stacked)
+// ----------------------------------------
+.marker-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// ----------------------------------------
+// Labels (uppercase editorial style)
+// ----------------------------------------
+.marker-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: $text-secondary;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+// ----------------------------------------
+// Time Fields Row (side by side)
+// ----------------------------------------
+.marker-time-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.marker-time-field-wrapper {
+  flex: 1;
+  min-width: 0; // Allow grid item to shrink below content width
+}
+
+// ----------------------------------------
+// Custom Time Input (mockup design)
+// ----------------------------------------
+.marker-time-input {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+
+  &.has-error {
+    .marker-time-field {
+      border-color: $danger !important;
+    }
+  }
+}
+
+.marker-time-field {
+  flex: 1;
+  padding: 12px 16px;
+  padding-right: 48px; // Space for sync button
+  background: $bg-glass-light;
+  border: 1px solid $border-subtle;
+  border-radius: 8px;
+  color: $text-primary;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  transition: all 0.15s $ease-out;
+  min-width: 0;
+
+  &:focus {
+    outline: none;
+    border-color: $accent-primary;
+    box-shadow: 0 0 0 3px $accent-primary-dim;
+  }
+
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+.marker-time-sync {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: $accent-primary;
+  color: white;
+  cursor: pointer;
+  transition: all 0.15s $ease-out;
+
+  &:hover {
+    background: #1976d2;
+    box-shadow: 0 4px 12px $accent-primary-glow;
+  }
+
+  &:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.marker-time-error {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  font-size: 12px;
+  color: $danger;
+}
+
+// ----------------------------------------
+// Tag Container
+// ----------------------------------------
+.marker-tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  background: $bg-glass-light;
+  border: 1px solid $border-subtle;
+  border-radius: 8px;
+  min-height: 48px;
+  align-items: center;
+
+  // When showing just the select (no pills)
+  &:not(.marker-tag-multi) {
+    padding: 0;
+    background: transparent;
+    border: none;
+  }
+
+  // Override react-select container styles
+  .react-select-container,
+  .tag-select {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+.marker-tag-multi {
+
+  .tag-select {
+    
+    .react-select__control {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .react-select__control--is-focused {
+      border: none !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+// ----------------------------------------
+// Tag Pill (removable)
+// ----------------------------------------
+.marker-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: $accent-primary-dim;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+  border-radius: 6px;
+  color: $accent-primary;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.marker-tag-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: $accent-primary;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 0.15s $ease-out;
+
+  &:hover {
+    opacity: 1;
+    background: rgba(33, 150, 243, 0.2);
+  }
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+// ----------------------------------------
+// Field Error Message
+// ----------------------------------------
+.marker-field-error {
+  font-size: 12px;
+  color: $danger;
+  margin-top: 4px;
+}
+
+// ----------------------------------------
+// React Select Overrides (inside modal)
+// ----------------------------------------
+.marker-modal-body {
+  .react-select__control {
+    background: $bg-glass-light !important;
+    border: 1px solid $border-subtle !important;
+    border-radius: 8px !important;
+    min-height: 48px !important;
+    transition: all 0.15s $ease-out !important;
+    font-family: 'Space Grotesk', sans-serif !important;
+
+    &:hover {
+      border-color: $border-hover !important;
+    }
+
+    &--is-focused {
+      border-color: $accent-primary !important;
+      box-shadow: 0 0 0 3px $accent-primary-dim !important;
+    }
+  }
+
+  .react-select__menu {
+    background: $bg-elevated !important;
+    border: 1px solid $border-subtle !important;
+    border-radius: 8px !important;
+    box-shadow: $shadow-lg !important;
+    overflow: hidden;
+    z-index: 10001 !important;
+  }
+
+  .react-select__menu-list {
+    padding: 0 !important;
+  }
+
+  .react-select__option {
+    padding: 10px 16px !important;
+    color: $text-primary !important;
+    font-family: 'Space Grotesk', sans-serif !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    transition: background 0.1s $ease-out !important;
+
+    &--is-focused {
+      background: rgba(255, 255, 255, 0.06) !important;
+    }
+
+    &--is-selected {
+      background: $accent-primary-dim !important;
+      color: $accent-primary !important;
+    }
+  }
+
+  .react-select__placeholder {
+    color: $text-muted !important;
+  }
+
+  .react-select__single-value {
+    color: $text-primary !important;
+  }
+
+  .react-select__input-container {
+    color: $text-primary !important;
+  }
+
+  // Hide multi-value pills (we show our own)
+  .react-select__multi-value {
+    display: none !important;
+  }
+
+  .react-select__value-container--is-multi {
+    padding: 2px 8px !important;
+  }
+
+  // MarkerTitleSuggest input styling
+  .marker-title-suggest,
+  .autosuggest-input {
+    width: 100%;
+
+    input {
+      width: 100%;
+      padding: 12px 16px !important;
+      background: $bg-glass-light !important;
+      border: 1px solid $border-subtle !important;
+      border-radius: 8px !important;
+      color: $text-primary !important;
+      font-family: 'Space Grotesk', sans-serif !important;
+      font-size: 14px !important;
+      transition: all 0.15s $ease-out !important;
+
+      &:focus {
+        outline: none !important;
+        border-color: $accent-primary !important;
+        box-shadow: 0 0 0 3px $accent-primary-dim !important;
+      }
+
+      &::placeholder {
+        color: $text-muted !important;
+      }
+    }
+  }
+
+  // Autosuggest dropdown
+  .react-autosuggest__suggestions-container--open {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: $bg-elevated !important;
+    border: 1px solid $border-subtle !important;
+    border-radius: 8px !important;
+    box-shadow: $shadow-lg !important;
+    overflow: hidden;
+    z-index: 10001 !important;
+  }
+
+  .react-autosuggest__suggestions-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .react-autosuggest__suggestion {
+    padding: 10px 16px !important;
+    color: $text-primary !important;
+    font-family: 'Space Grotesk', sans-serif !important;
+    font-size: 14px !important;
+    cursor: pointer !important;
+    transition: background 0.1s $ease-out !important;
+
+    &--highlighted {
+      background: rgba(255, 255, 255, 0.06) !important;
+    }
+  }
+}
+
+// ----------------------------------------
+// Form Footer with Buttons
+// ----------------------------------------
+.marker-form-footer {
+  display: flex;
+  gap: 12px;
+  padding-top: 20px;
+  margin-top: 8px;
+  border-top: 1px solid $border-subtle;
+
+  .btn {
+    padding: 12px 24px !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-family: 'Space Grotesk', sans-serif !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.15s $ease-out !important;
+
+    &:focus-visible {
+      outline: 2px solid $accent-primary !important;
+      outline-offset: 2px !important;
+    }
+
+    &:active {
+      transform: scale(0.98) !important;
+    }
+  }
+
+  .btn-primary {
+    background: $accent-primary !important;
+    color: white !important;
+
+    &:hover:not(:disabled) {
+      background: #1976d2 !important;
+      box-shadow: 0 4px 16px $accent-primary-glow !important;
+    }
+
+    &:disabled {
+      opacity: 0.5 !important;
+      cursor: not-allowed !important;
+    }
+  }
+
+  .btn-secondary {
+    background: $bg-glass-light !important;
+    color: $text-secondary !important;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1) !important;
+      color: $text-primary !important;
+    }
+  }
+
+  .btn-danger {
+    background: $danger-dim !important;
+    color: $danger !important;
+    margin-left: auto !important;
+
+    &:hover {
+      background: rgba(239, 68, 68, 0.25) !important;
+    }
+  }
+}
+
+// ============================================
+// RESPONSIVE - Mobile slide-up
+// ============================================
+@media (max-width: 576px) {
+  .marker-modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .marker-modal {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 16px 16px 0 0;
+    animation: marker-modal-slide-up 0.35s $ease-spring forwards;
+  }
+
+  @keyframes marker-modal-slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .marker-modal-body {
+    max-height: calc(90vh - 80px);
+    padding: 20px;
+  }
+
+  .marker-time-row {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+// ============================================
+// REDUCED MOTION
+// ============================================
+@media (prefers-reduced-motion: reduce) {
+  .marker-modal-backdrop,
+  .marker-modal {
+    animation: none;
+  }
+
+  .marker-modal-close,
+  .btn,
+  .marker-time-field,
+  .marker-time-sync,
+  .react-select__control {
+    transition: none !important;
+  }
+}
+
+// ============================================
+// HIGH CONTRAST MODE
+// ============================================
+@media (prefers-contrast: high) {
+  .marker-modal {
+    border-width: 2px;
+    border-color: $text-primary;
+  }
+
+  .marker-time-field,
+  .marker-tag-container {
+    border-width: 2px !important;
+  }
+}

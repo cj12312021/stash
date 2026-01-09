@@ -174,6 +174,11 @@ $sceneTabWidth: 450px;
       position: absolute;
       width: 100%;
     }
+
+    .vjs-time-tooltip,
+    .vjs-marker-tooltip {
+      font-size: 1rem !important;
+    }
   }
 
   .vjs-time-control {

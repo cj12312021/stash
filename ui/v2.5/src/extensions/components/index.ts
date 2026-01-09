@@ -9,4 +9,6 @@ export { QueueViewer, type IPlaylistViewer, type IDiscoverOptions } from "./Queu
 export { SceneDetailPanel } from "./SceneDetailPanel";
 export { GalleryDetailPanel } from "./GalleryDetailPanel";
 export { ImageDetailPanel } from "./ImageDetailPanel";
+export { MarkerModal } from "./MarkerModal";
+export { MarkerForm } from "./MarkerForm";
 

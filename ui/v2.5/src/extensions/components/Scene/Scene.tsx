@@ -18,7 +18,6 @@ import React, {
   useEffect,
   useState,
   useMemo,
-  useContext,
   useRef,
   useLayoutEffect,
   useCallback,
@@ -48,7 +47,7 @@ import SceneQueue, { QueuedScene } from "src/models/sceneQueue";
 import { ListFilterModel } from "src/models/list-filter/filter";
 import Mousetrap from "mousetrap";
 import { OrganizedButton } from "src/components/Scenes/SceneDetails/OrganizedButton";
-import { ConfigurationContext, useConfigurationContext } from "src/hooks/Config";
+import { useConfigurationContext } from "src/hooks/Config";
 import { getPlayerPosition } from "src/components/ScenePlayer/util";
 import {
   faEllipsisV,
@@ -83,7 +82,7 @@ const ExternalPlayerButton = lazyComponent(
 );
 
 const QueueViewer = lazyComponent(() => import("src/extensions/components/QueueViewer"));
-const SceneMarkersPanel = lazyComponent(() => import("src/components/Scenes/SceneDetails/SceneMarkersPanel"));
+// SceneMarkersPanel removed - marker CRUD now available via chapter indicator in player controls
 const SceneFileInfoPanel = lazyComponent(() => import("src/components/Scenes/SceneDetails/SceneFileInfoPanel"));
 const SceneDetailPanel = lazyComponent(() => import("src/extensions/components/SceneDetailPanel"));
 const SceneHistoryPanel = lazyComponent(() => import("src/components/Scenes/SceneDetails/SceneHistoryPanel"));
@@ -173,7 +172,7 @@ const ScenePageTabContent = PatchContainerComponent<IProps>(
 const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
   const {
     scene,
-    setTimestamp,
+    // setTimestamp removed - chapter indicator now handles marker navigation
     queueScenes,
     onQueueNext,
     onQueuePrevious,
@@ -316,7 +315,7 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
     Mousetrap.bind("a", () => setActiveTabKey("scene-details-panel"));
     Mousetrap.bind("q", () => setActiveTabKey("scene-queue-panel"));
     Mousetrap.bind("e", () => setActiveTabKey("scene-edit-panel"));
-    Mousetrap.bind("k", () => setActiveTabKey("scene-markers-panel"));
+    // 'k' shortcut removed - markers now accessed via chapter indicator in player
     Mousetrap.bind("i", () => setActiveTabKey("scene-file-info-panel"));
     Mousetrap.bind("h", () => setActiveTabKey("scene-history-panel"));
     Mousetrap.bind("o", () => {
@@ -331,7 +330,6 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
       Mousetrap.unbind("a");
       Mousetrap.unbind("q");
       Mousetrap.unbind("e");
-      Mousetrap.unbind("k");
       Mousetrap.unbind("i");
       Mousetrap.unbind("h");
       Mousetrap.unbind("o");
@@ -377,9 +375,7 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
     }
   };
 
-  function onClickMarker(marker: GQL.SceneMarkerDataFragment) {
-    setTimestamp(marker.seconds);
-  }
+  // onClickMarker removed - marker seeking now handled by chapter indicator
 
   async function onRescan() {
     await mutateMetadataScan({
@@ -667,11 +663,7 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
             ) : (
               ""
             )}
-            <Nav.Item>
-              <Nav.Link eventKey="scene-markers-panel">
-                <FormattedMessage id="markers" />
-              </Nav.Link>
-            </Nav.Item>
+            {/* Markers tab removed - now accessible via chapter indicator in player controls */}
             <Nav.Item>
               <Nav.Link eventKey="scene-file-info-panel">
                 <FormattedMessage id="file_info" />
@@ -730,13 +722,7 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
               setDiscoverQueue={setDiscoverQueue}
             />
           </Tab.Pane>
-          <Tab.Pane eventKey="scene-markers-panel">
-            <SceneMarkersPanel
-              sceneId={scene.id}
-              onClickMarker={onClickMarker}
-              isVisible={activeTabKey === "scene-markers-panel"}
-            />
-          </Tab.Pane>
+          {/* Markers Tab.Pane removed - chapter indicator provides marker CRUD */}
           <Tab.Pane
             className="file-info-panel"
             eventKey="scene-file-info-panel"

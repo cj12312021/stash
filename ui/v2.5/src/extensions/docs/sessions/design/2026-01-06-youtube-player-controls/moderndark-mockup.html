@@ -1,0 +1,2476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ModernDark Player Controls - Plex Cinema Gold</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /*
+     * ModernDark Theme - Plex Cinema Gold
+     * ====================================
+     * A cinematic dark theme with warm gold accents
+     * Inspired by Plex Media Server's premium aesthetic
+     */
+
+    :root {
+      /* === MODERNDARK CORE PALETTE === */
+      --md-body: #191919;
+      --md-card: #242424;
+      --md-nav: #212121;
+      --md-border: #383838;
+      --md-elevated: #2a2a2a;
+
+      /* === GOLD ACCENT SYSTEM === */
+      --md-gold: #e5a00d;
+      --md-gold-bright: #f7c600;
+      --md-gold-dim: #cc8a00;
+      --md-gold-glow: rgba(229, 160, 13, 0.4);
+      --md-gold-surface: rgba(229, 160, 13, 0.12);
+
+      /* === SEMANTIC COLORS === */
+      --md-success: #4db288;
+      --md-error: #c72c05;
+      --md-warning: #c14f30;
+      --md-info: #15a9fc;
+
+      /* === TEXT HIERARCHY === */
+      --md-text-100: #ffffff;
+      --md-text-80: rgba(255, 255, 255, 0.80);
+      --md-text-60: rgba(255, 255, 255, 0.60);
+      --md-text-40: rgba(255, 255, 255, 0.40);
+      --md-text-20: rgba(255, 255, 255, 0.20);
+
+      /* === SURFACE OVERLAYS === */
+      --md-glass: rgba(25, 25, 25, 0.92);
+      --md-glass-light: rgba(255, 255, 255, 0.06);
+      --md-glass-border: rgba(255, 255, 255, 0.08);
+
+      /* === MARKER COLORS === */
+      --marker-cyan: #00e5ff;
+      --marker-cyan-glow: rgba(0, 229, 255, 0.5);
+      /* Magenta for range markers - contrasts with gold progress bar */
+      --marker-magenta: #ff4081;
+      --marker-magenta-glow: rgba(255, 64, 129, 0.4);
+
+      /* === TYPOGRAPHY === */
+      --font-display: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+      /* === SHADOWS === */
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+      --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
+      --shadow-gold: 0 0 24px var(--md-gold-glow);
+
+      /* === TRANSITIONS === */
+      --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--md-body);
+      font-family: var(--font-display);
+      color: var(--md-text-80);
+      padding: 40px 24px;
+      line-height: 1.5;
+    }
+
+    /* === HEADER === */
+    .header {
+      max-width: 960px;
+      margin: 0 auto 48px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--md-text-100);
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .header h1 span {
+      color: var(--md-gold);
+    }
+
+    .header p {
+      color: var(--md-text-60);
+      font-size: 14px;
+    }
+
+    /* === COMPONENT GRID === */
+    .component-grid {
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      gap: 32px;
+    }
+
+    .component-section {
+      background: var(--md-card);
+      border: 1px solid var(--md-border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .section-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--md-border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-header h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--md-text-100);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .section-header .tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: var(--md-gold-surface);
+      color: var(--md-gold);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .section-content {
+      padding: 24px;
+    }
+
+    /* =============================================
+       COMPONENT 1: VIDEO PLAYER
+       ============================================= */
+    .video-container {
+      aspect-ratio: 16 / 9;
+      background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 50%, #0f0f0f 100%);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .video-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--md-text-40);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    /* Big play button */
+    .big-play {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 72px;
+      height: 50px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s var(--ease-out);
+    }
+
+    .big-play:hover {
+      background: var(--md-gold);
+      border-color: var(--md-gold-bright);
+      transform: translate(-50%, -50%) scale(1.08);
+      box-shadow: var(--shadow-gold);
+    }
+
+    .big-play svg {
+      width: 28px;
+      height: 28px;
+      fill: var(--md-text-100);
+      transition: transform 0.2s var(--ease-out);
+    }
+
+    .big-play:hover svg {
+      fill: var(--md-body);
+    }
+
+    /* Control bar wrapper */
+    .control-bar-wrapper {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 50%, transparent 100%);
+      padding-top: 60px;
+    }
+
+    /* Progress bar */
+    .progress-container {
+      position: relative;
+      height: 24px;
+      padding: 0 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    .progress-bar-wrapper {
+      position: relative;
+      width: 100%;
+      height: 3px;
+      transition: height 0.15s var(--ease-out);
+    }
+
+    .progress-container:hover .progress-bar-wrapper {
+      height: 5px;
+    }
+
+    .progress-bg {
+      position: absolute;
+      inset: 0;
+      background: var(--md-text-20);
+      border-radius: 2px;
+    }
+
+    .progress-buffer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 55%;
+      background: var(--md-text-40);
+      border-radius: 2px;
+    }
+
+    .progress-played {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 35%;
+      background: linear-gradient(90deg, var(--md-gold-dim) 0%, var(--md-gold) 100%);
+      border-radius: 2px;
+      box-shadow: 0 0 8px var(--md-gold-glow);
+    }
+
+    /* Scrubber handle */
+    .scrubber-handle {
+      position: absolute;
+      top: 50%;
+      left: 35%;
+      transform: translate(-50%, -50%) scale(0);
+      width: 14px;
+      height: 14px;
+      background: var(--md-text-100);
+      border: 2px solid var(--md-gold);
+      border-radius: 50%;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.15s var(--ease-spring);
+    }
+
+    .progress-container:hover .scrubber-handle {
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* Markers on progress bar */
+    .marker-point {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 14px;
+      background: linear-gradient(180deg, var(--marker-cyan) 0%, rgba(0, 229, 255, 0.6) 100%);
+      border-radius: 1px;
+      box-shadow: 0 0 6px var(--marker-cyan-glow);
+      cursor: pointer;
+      transition: height 0.15s var(--ease-out);
+    }
+
+    .marker-point:hover {
+      height: 18px;
+    }
+
+    .marker-range {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, rgba(255, 64, 129, 0.25), rgba(255, 64, 129, 0.35), rgba(255, 64, 129, 0.25));
+      border-left: 2px solid var(--marker-magenta);
+      border-right: 2px solid var(--marker-magenta);
+      cursor: pointer;
+      transition: background 0.15s var(--ease-out);
+    }
+
+    .marker-range:hover {
+      background: linear-gradient(90deg, rgba(255, 64, 129, 0.35), rgba(255, 64, 129, 0.5), rgba(255, 64, 129, 0.35));
+    }
+
+    /* Control bar */
+    .control-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 12px 12px;
+    }
+
+    /* Control buttons */
+    .ctrl-btn {
+      width: 36px;
+      height: 36px;
+      background: transparent;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s var(--ease-out);
+    }
+
+    .ctrl-btn:hover {
+      background: var(--md-glass-light);
+    }
+
+    .ctrl-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: var(--md-text-100);
+    }
+
+    .ctrl-btn.play svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    /* Volume group */
+    .volume-group {
+      display: flex;
+      align-items: center;
+      margin-left: 4px;
+    }
+
+    .volume-slider {
+      width: 0;
+      height: 3px;
+      background: var(--md-text-20);
+      border-radius: 2px;
+      overflow: hidden;
+      transition: width 0.2s var(--ease-out);
+      margin-left: 4px;
+    }
+
+    .volume-group:hover .volume-slider {
+      width: 52px;
+    }
+
+    .volume-fill {
+      height: 100%;
+      width: 70%;
+      background: var(--md-gold);
+      border-radius: 2px;
+    }
+
+    /* Time display */
+    .time-display {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--md-text-80);
+      margin-left: 12px;
+      white-space: nowrap;
+      font-feature-settings: 'tnum' 1;
+    }
+
+    .time-display .separator {
+      margin: 0 4px;
+      color: var(--md-text-40);
+    }
+
+    /* Chapter indicator */
+    .chapter-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 8px;
+      padding: 4px 10px;
+      background: var(--md-glass-light);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s var(--ease-out);
+    }
+
+    .chapter-indicator:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .chapter-indicator .dot {
+      width: 6px;
+      height: 6px;
+      background: var(--marker-magenta);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--marker-magenta-glow);
+    }
+
+    .chapter-indicator .title {
+      font-size: 12px;
+      color: var(--md-text-80);
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chapter-indicator .chevron {
+      width: 12px;
+      height: 12px;
+      fill: var(--md-text-60);
+      transition: transform 0.2s var(--ease-out);
+    }
+
+    .chapter-indicator.open .chevron {
+      transform: rotate(180deg);
+    }
+
+    /* Spacer */
+    .spacer {
+      flex: 1;
+    }
+
+    /* Right panel pill */
+    .right-panel {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: var(--md-glass);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--md-glass-border);
+      border-radius: 22px;
+      padding: 3px 6px;
+    }
+
+    .right-panel .ctrl-btn {
+      width: 34px;
+      height: 34px;
+    }
+
+    .right-panel .ctrl-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Dividers between buttons */
+    .right-panel .divider {
+      width: 1px;
+      height: 16px;
+      background: linear-gradient(180deg, transparent, var(--md-text-20), transparent);
+    }
+
+    /* Autoplay toggle */
+    .autoplay-toggle {
+      width: 42px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .autoplay-track {
+      width: 30px;
+      height: 14px;
+      background: var(--md-text-20);
+      border-radius: 7px;
+      position: relative;
+      transition: all 0.25s var(--ease-out);
+    }
+
+    .autoplay-toggle.on .autoplay-track {
+      background: var(--md-gold);
+      box-shadow: 0 0 12px var(--md-gold-glow);
+    }
+
+    .autoplay-thumb {
+      position: absolute;
+      top: 50%;
+      left: 2px;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      background: var(--md-text-100);
+      border-radius: 50%;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: left 0.25s var(--ease-spring);
+    }
+
+    .autoplay-toggle.on .autoplay-thumb {
+      left: 12px;
+    }
+
+    .autoplay-thumb svg {
+      width: 10px;
+      height: 10px;
+      fill: var(--md-body);
+    }
+
+    /* Quick add button */
+    .quick-add-btn {
+      width: 36px;
+      height: 36px;
+      border: 2px dashed var(--md-text-40);
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 8px;
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .quick-add-btn:hover {
+      border-color: var(--md-gold);
+      background: var(--md-gold-surface);
+    }
+
+    .quick-add-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: var(--md-text-60);
+      transition: fill 0.2s var(--ease-out);
+    }
+
+    .quick-add-btn:hover svg {
+      fill: var(--md-gold);
+    }
+
+    /* =============================================
+       COMPONENT 2: CHAPTER DROPDOWN
+       ============================================= */
+    .chapter-dropdown {
+      background: var(--md-glass);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--md-glass-border);
+      border-radius: 12px;
+      min-width: 280px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    .chapter-dropdown-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--md-glass-border);
+    }
+
+    .chapter-dropdown-header h3 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--md-text-60);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .chapter-dropdown-header .add-btn {
+      width: 24px;
+      height: 24px;
+      background: var(--md-gold-surface);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .chapter-dropdown-header .add-btn:hover {
+      background: var(--md-gold);
+    }
+
+    .chapter-dropdown-header .add-btn svg {
+      width: 12px;
+      height: 12px;
+      fill: var(--md-gold);
+      transition: fill 0.15s var(--ease-out);
+    }
+
+    .chapter-dropdown-header .add-btn:hover svg {
+      fill: var(--md-body);
+    }
+
+    .chapter-list {
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .chapter-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.15s var(--ease-out);
+      border-left: 3px solid transparent;
+    }
+
+    .chapter-item:hover {
+      background: var(--md-glass-light);
+    }
+
+    .chapter-item.active {
+      background: var(--md-gold-surface);
+      border-left-color: var(--md-gold);
+    }
+
+    .chapter-item .marker-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .chapter-item .marker-dot.point {
+      background: var(--marker-cyan);
+      box-shadow: 0 0 8px var(--marker-cyan-glow);
+    }
+
+    .chapter-item .marker-dot.range {
+      background: var(--marker-magenta);
+      box-shadow: 0 0 8px var(--marker-magenta-glow);
+    }
+
+    .chapter-item-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .chapter-item .name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--md-text-80);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chapter-item.active .name {
+      color: var(--md-gold);
+    }
+
+    .chapter-item .time {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--md-text-40);
+      margin-top: 2px;
+    }
+
+    .chapter-item .actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s var(--ease-out);
+    }
+
+    .chapter-item:hover .actions {
+      opacity: 1;
+    }
+
+    .chapter-item .action-btn {
+      width: 24px;
+      height: 24px;
+      background: var(--md-glass-light);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .chapter-item .action-btn:hover {
+      background: var(--md-text-20);
+    }
+
+    .chapter-item .action-btn.delete:hover {
+      background: rgba(199, 44, 5, 0.3);
+    }
+
+    .chapter-item .action-btn svg {
+      width: 12px;
+      height: 12px;
+      fill: var(--md-text-60);
+    }
+
+    .chapter-item .action-btn.delete svg {
+      fill: var(--md-error);
+    }
+
+    /* =============================================
+       COMPONENT 3: SETTINGS MENU
+       ============================================= */
+    .settings-menu {
+      background: var(--md-glass);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--md-glass-border);
+      border-radius: 12px;
+      min-width: 260px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    .settings-section {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--md-glass-border);
+    }
+
+    .settings-section:last-child {
+      border-bottom: none;
+    }
+
+    .settings-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.15s var(--ease-out);
+    }
+
+    .settings-item:hover {
+      background: var(--md-glass-light);
+    }
+
+    .settings-item .label {
+      font-size: 13px;
+      color: var(--md-text-80);
+    }
+
+    .settings-item .value {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--md-text-60);
+    }
+
+    .settings-item .chevron {
+      width: 14px;
+      height: 14px;
+      fill: var(--md-text-40);
+    }
+
+    /* Toggle switch */
+    .toggle-switch {
+      width: 36px;
+      height: 20px;
+      background: var(--md-text-20);
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.25s var(--ease-out);
+    }
+
+    .toggle-switch.on {
+      background: var(--md-gold);
+      box-shadow: 0 0 12px var(--md-gold-glow);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      background: var(--md-text-100);
+      border-radius: 50%;
+      box-shadow: var(--shadow-sm);
+      transition: left 0.25s var(--ease-spring);
+    }
+
+    .toggle-switch.on::after {
+      left: 18px;
+    }
+
+    /* Speed submenu */
+    .speed-submenu {
+      padding: 12px 16px;
+    }
+
+    .speed-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .speed-option {
+      padding: 6px 12px;
+      background: var(--md-glass-light);
+      border: 1px solid transparent;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--md-text-60);
+      cursor: pointer;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .speed-option:hover {
+      background: var(--md-text-20);
+      color: var(--md-text-80);
+    }
+
+    .speed-option.active {
+      background: var(--md-gold-surface);
+      border-color: var(--md-gold);
+      color: var(--md-gold);
+    }
+
+    .speed-slider-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .speed-slider-label {
+      font-size: 11px;
+      color: var(--md-text-40);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .speed-slider {
+      flex: 1;
+      height: 4px;
+      background: var(--md-text-20);
+      border-radius: 2px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .speed-slider-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 50%;
+      background: linear-gradient(90deg, var(--md-gold-dim), var(--md-gold));
+      border-radius: 2px;
+    }
+
+    .speed-slider-thumb {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 14px;
+      height: 14px;
+      background: var(--md-text-100);
+      border-radius: 50%;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .speed-value {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--md-gold);
+      min-width: 40px;
+      text-align: right;
+    }
+
+    /* =============================================
+       COMPONENT 4: FILTER SLIDERS
+       ============================================= */
+    .filter-panel {
+      padding: 16px;
+    }
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+    }
+
+    .filter-row .label {
+      font-size: 12px;
+      color: var(--md-text-60);
+      min-width: 80px;
+    }
+
+    .filter-slider {
+      flex: 1;
+      height: 4px;
+      background: var(--md-text-20);
+      border-radius: 2px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .filter-slider-thumb {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 14px;
+      height: 14px;
+      background: var(--md-text-100);
+      border-radius: 50%;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.1s var(--ease-out);
+    }
+
+    .filter-slider:hover .filter-slider-thumb {
+      transform: translate(-50%, -50%) scale(1.15);
+    }
+
+    .filter-value {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--md-text-60);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    .filter-reset {
+      padding: 6px 12px;
+      background: var(--md-glass-light);
+      border: none;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--md-text-60);
+      cursor: pointer;
+      transition: all 0.15s var(--ease-out);
+      margin-top: 12px;
+    }
+
+    .filter-reset:hover {
+      background: var(--md-text-20);
+      color: var(--md-text-80);
+    }
+
+    .filter-reset:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* =============================================
+       COMPONENT 5: MARKER MODAL
+       ============================================= */
+    .marker-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      /* For demo purposes, position relative */
+      position: relative;
+      padding: 40px;
+      border-radius: 8px;
+    }
+
+    .marker-modal {
+      background: var(--md-card);
+      border: 1px solid var(--md-border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow-lg), var(--shadow-gold);
+      overflow: hidden;
+    }
+
+    .marker-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--md-border);
+    }
+
+    .marker-modal-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--md-text-100);
+    }
+
+    .marker-modal-header .close-btn {
+      width: 32px;
+      height: 32px;
+      background: var(--md-glass-light);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s var(--ease-out);
+    }
+
+    .marker-modal-header .close-btn:hover {
+      background: var(--md-text-20);
+    }
+
+    .marker-modal-header .close-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: var(--md-text-60);
+    }
+
+    .marker-modal-body {
+      padding: 24px;
+    }
+
+    .form-field {
+      margin-bottom: 20px;
+    }
+
+    .form-field:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--md-text-40);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--md-glass-light);
+      border: 1px solid var(--md-glass-border);
+      border-radius: 8px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      color: var(--md-text-100);
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--md-gold);
+      box-shadow: 0 0 0 3px var(--md-gold-surface);
+    }
+
+    .form-input::placeholder {
+      color: var(--md-text-40);
+    }
+
+    /* Time inputs row */
+    .time-inputs-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .time-input-wrapper {
+      position: relative;
+    }
+
+    .time-input {
+      width: 100%;
+      padding: 12px 44px 12px 14px;
+      background: var(--md-glass-light);
+      border: 1px solid var(--md-glass-border);
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--md-text-100);
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .time-input:focus {
+      outline: none;
+      border-color: var(--md-gold);
+      box-shadow: 0 0 0 3px var(--md-gold-surface);
+    }
+
+    .time-sync-btn {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      background: var(--md-gold);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .time-sync-btn:hover {
+      background: var(--md-gold-bright);
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    .time-sync-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: var(--md-body);
+    }
+
+    /* Tag pills */
+    .tag-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 12px;
+      background: var(--md-glass-light);
+      border: 1px solid var(--md-glass-border);
+      border-radius: 8px;
+      min-height: 48px;
+    }
+
+    .tag-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: var(--md-gold-surface);
+      border: 1px solid var(--md-gold);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--md-gold);
+    }
+
+    .tag-pill .remove {
+      width: 14px;
+      height: 14px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.7;
+      transition: opacity 0.15s var(--ease-out);
+    }
+
+    .tag-pill .remove:hover {
+      opacity: 1;
+    }
+
+    .tag-pill .remove svg {
+      width: 10px;
+      height: 10px;
+      fill: var(--md-gold);
+    }
+
+    .tag-input {
+      flex: 1;
+      min-width: 100px;
+      background: none;
+      border: none;
+      font-size: 13px;
+      color: var(--md-text-100);
+    }
+
+    .tag-input:focus {
+      outline: none;
+    }
+
+    .tag-input::placeholder {
+      color: var(--md-text-40);
+    }
+
+    .marker-modal-footer {
+      display: flex;
+      gap: 12px;
+      padding: 20px 24px;
+      border-top: 1px solid var(--md-border);
+      background: rgba(0, 0, 0, 0.15);
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .btn-primary {
+      background: var(--md-gold);
+      color: var(--md-body);
+    }
+
+    .btn-primary:hover {
+      background: var(--md-gold-bright);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-secondary {
+      background: var(--md-glass-light);
+      color: var(--md-text-80);
+    }
+
+    .btn-secondary:hover {
+      background: var(--md-text-20);
+    }
+
+    .btn-danger {
+      background: rgba(199, 44, 5, 0.15);
+      color: var(--md-error);
+      flex: 0 0 auto;
+      padding: 12px 16px;
+    }
+
+    .btn-danger:hover {
+      background: rgba(199, 44, 5, 0.25);
+    }
+
+    /* =============================================
+       COMPONENT 6: QUALITY MENU
+       ============================================= */
+    .quality-menu {
+      min-width: 200px;
+    }
+
+    .quality-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.15s var(--ease-out);
+    }
+
+    .quality-option:hover {
+      background: var(--md-glass-light);
+    }
+
+    .quality-option.active {
+      background: var(--md-gold-surface);
+    }
+
+    .quality-option .label {
+      font-size: 13px;
+      color: var(--md-text-80);
+    }
+
+    .quality-option.active .label {
+      color: var(--md-gold);
+      font-weight: 600;
+    }
+
+    .quality-option .badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .quality-option .badge.hd {
+      background: var(--md-gold);
+      color: var(--md-body);
+    }
+
+    .quality-option .badge.fourk {
+      background: linear-gradient(135deg, var(--md-gold), var(--md-gold-bright));
+      color: var(--md-body);
+    }
+
+    .quality-option .checkmark {
+      width: 16px;
+      height: 16px;
+      fill: var(--md-gold);
+    }
+
+    /* =============================================
+       UTILITIES
+       ============================================= */
+    .flex-row {
+      display: flex;
+      gap: 24px;
+    }
+
+    .flex-row > * {
+      flex: 1;
+    }
+
+    @media (max-width: 768px) {
+      .flex-row {
+        flex-direction: column;
+      }
+    }
+
+    /* Demo layout adjustments */
+    .section-content.demo-player {
+      padding: 0;
+    }
+
+    .section-content.demo-components {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .section-content.demo-components > * {
+      flex: 1;
+      min-width: 260px;
+    }
+
+    /* =============================================
+       COMPONENT 7: SCRUBBER (Thumbnail Timeline)
+       ============================================= */
+    .scrubber-comparison {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    .scrubber-version {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .scrubber-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--md-text-60);
+    }
+
+    .scrubber-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--md-border) 0%, transparent 100%);
+    }
+
+    .scrubber-badge {
+      font-size: 9px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .scrubber-badge-old {
+      background: var(--md-glass-light);
+      color: var(--md-text-40);
+    }
+
+    .scrubber-badge-new {
+      background: linear-gradient(135deg, var(--md-gold) 0%, var(--md-gold-bright) 100%);
+      color: var(--md-body);
+      box-shadow: 0 2px 12px var(--md-gold-glow);
+    }
+
+    /* Old scrubber style */
+    .scrubber-old {
+      display: flex;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .scrubber-old .scrubber-nav-btn {
+      width: 32px;
+      min-width: 32px;
+      height: 120px;
+      background: transparent;
+      border: none;
+      border-right: 1px solid #555;
+      color: var(--md-gold);
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scrubber-old .scrubber-nav-btn:last-child {
+      border-right: none;
+      border-left: 1px solid #555;
+    }
+
+    .scrubber-old .scrubber-nav-btn:hover {
+      background: #333;
+    }
+
+    .scrubber-old .scrubber-content {
+      flex: 1;
+      height: 120px;
+      position: relative;
+      background: #222;
+      overflow: hidden;
+    }
+
+    .scrubber-old .scrubber-tags-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 20px;
+      background: #555;
+    }
+
+    .scrubber-old .scrubber-tag {
+      position: absolute;
+      top: 0;
+      height: 20px;
+      background: #000;
+      color: #fff;
+      font-size: 10px;
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    .scrubber-old .scrubber-tag::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #000;
+    }
+
+    .scrubber-old .scrubber-position {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      background: #fff;
+      z-index: 10;
+    }
+
+    .scrubber-old .scrubber-sprites {
+      position: absolute;
+      top: 30px;
+      left: 0;
+      display: flex;
+      height: 90px;
+    }
+
+    .scrubber-old .scrubber-sprite {
+      width: 140px;
+      height: 90px;
+      background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+      border-right: 1px solid #333;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 4px;
+      font-size: 10px;
+      color: #999;
+      text-shadow: 1px 1px 2px #000;
+    }
+
+    /* New scrubber style (ModernDark Gold) */
+    .scrubber-new {
+      display: flex;
+      background: var(--md-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--md-glass-border);
+      border-radius: 14px;
+      box-shadow: var(--shadow-md), 0 0 0 1px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Subtle inner glow */
+    .scrubber-new::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      padding: 1px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 50%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .scrubber-new .scrubber-nav-btn {
+      width: 44px;
+      min-width: 44px;
+      height: 130px;
+      background: transparent;
+      border: none;
+      color: var(--md-text-100);
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s var(--ease-out);
+      position: relative;
+    }
+
+    .scrubber-new .scrubber-nav-btn::after {
+      content: '';
+      position: absolute;
+      top: 20%;
+      height: 60%;
+      width: 1px;
+      background: linear-gradient(180deg, transparent 0%, var(--md-text-20) 50%, transparent 100%);
+    }
+
+    .scrubber-new .scrubber-nav-btn:first-child::after {
+      right: 0;
+    }
+
+    .scrubber-new .scrubber-nav-btn:last-child::after {
+      left: 0;
+    }
+
+    .scrubber-new .scrubber-nav-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.2s var(--ease-spring);
+    }
+
+    .scrubber-new .scrubber-nav-btn:hover {
+      background: var(--md-glass-light);
+      color: var(--md-gold);
+    }
+
+    .scrubber-new .scrubber-nav-btn:hover svg {
+      transform: scale(1.15);
+    }
+
+    .scrubber-new .scrubber-content {
+      flex: 1;
+      height: 130px;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    .scrubber-new .scrubber-content:active {
+      cursor: grabbing;
+    }
+
+    /* Tags area with glass effect */
+    .scrubber-new .scrubber-tags-area {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 28px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .scrubber-new .scrubber-tag {
+      position: absolute;
+      top: 4px;
+      height: 20px;
+      background: rgba(0, 229, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      color: var(--marker-cyan);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 0 10px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-out);
+      box-shadow: 0 2px 8px rgba(0, 229, 255, 0.15);
+      transform: translateX(-50%);
+    }
+
+    .scrubber-new .scrubber-tag:hover {
+      background: rgba(0, 229, 255, 0.25);
+      border-color: var(--marker-cyan);
+      box-shadow: 0 0 16px var(--marker-cyan-glow);
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    .scrubber-new .scrubber-tag::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--marker-cyan);
+      border-radius: 50%;
+      margin-right: 6px;
+      box-shadow: 0 0 6px var(--marker-cyan);
+    }
+
+    /* Position indicator - gold line */
+    .scrubber-new .scrubber-position {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 3px;
+      height: 100%;
+      background: linear-gradient(180deg, var(--md-gold) 0%, var(--md-gold-bright) 100%);
+      z-index: 20;
+      box-shadow:
+        0 0 12px var(--md-gold-glow),
+        0 0 24px var(--md-gold-glow);
+      transform: translateX(-50%);
+    }
+
+    /* Scrubber head at top */
+    .scrubber-new .scrubber-position::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 12px;
+      background: var(--md-text-100);
+      border: 2px solid var(--md-gold);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--md-gold-glow);
+      animation: scrubber-head-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes scrubber-head-pulse {
+      0%, 100% { box-shadow: 0 0 8px var(--md-gold-glow); }
+      50% { box-shadow: 0 0 16px var(--md-gold-glow), 0 0 4px var(--md-gold); }
+    }
+
+    /* Progress fill (left of indicator) */
+    .scrubber-new .scrubber-progress {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(229, 160, 13, 0.08) 0%, rgba(229, 160, 13, 0.03) 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Heatmap */
+    .scrubber-new .scrubber-heatmap {
+      position: absolute;
+      top: 28px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg,
+        rgba(229, 160, 13, 0.6) 0%,
+        rgba(229, 160, 13, 0.8) 15%,
+        rgba(229, 160, 13, 0.4) 30%,
+        rgba(255, 171, 64, 0.7) 45%,
+        rgba(255, 171, 64, 0.9) 50%,
+        rgba(255, 171, 64, 0.5) 60%,
+        rgba(229, 160, 13, 0.6) 75%,
+        rgba(229, 160, 13, 0.3) 100%
+      );
+      opacity: 0.8;
+      z-index: 2;
+    }
+
+    /* Sprites container */
+    .scrubber-new .scrubber-sprites {
+      position: absolute;
+      top: 32px;
+      left: 0;
+      display: flex;
+      height: 98px;
+    }
+
+    .scrubber-new .scrubber-sprite {
+      width: 140px;
+      height: 90px;
+      background: linear-gradient(135deg, #1e2020 0%, #141414 100%);
+      border-right: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 6px;
+      position: relative;
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .scrubber-new .scrubber-sprite::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.6) 100%);
+      pointer-events: none;
+    }
+
+    .scrubber-new .scrubber-sprite:hover {
+      background: linear-gradient(135deg, #282828 0%, #1a1a1a 100%);
+    }
+
+    .scrubber-new .scrubber-sprite:hover::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(229, 160, 13, 0.3);
+      pointer-events: none;
+    }
+
+    .scrubber-new .scrubber-sprite-time {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--md-text-100);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      z-index: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .scrubber-new .scrubber-sprite-range {
+      font-size: 9px;
+      color: var(--md-text-60);
+      margin-top: 2px;
+      z-index: 1;
+    }
+
+    /* Current time tooltip */
+    .scrubber-new .scrubber-tooltip {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(12, 12, 12, 0.95);
+      backdrop-filter: blur(12px);
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 30;
+      text-align: center;
+    }
+
+    .scrubber-new .scrubber-tooltip-value {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--md-text-100);
+      letter-spacing: -0.02em;
+    }
+
+    .scrubber-new .scrubber-tooltip-label {
+      font-size: 10px;
+      color: var(--md-text-60);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 4px;
+    }
+
+    /* Feature highlights */
+    .scrubber-features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .scrubber-feature {
+      background: var(--md-glass-light);
+      border: 1px solid var(--md-glass-border);
+      border-radius: 10px;
+      padding: 14px;
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .scrubber-feature:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(229, 160, 13, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .scrubber-feature-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--md-gold) 0%, var(--md-gold-bright) 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 12px var(--md-gold-glow);
+    }
+
+    .scrubber-feature-icon svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--md-body);
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .scrubber-feature-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--md-text-100);
+      margin-bottom: 4px;
+    }
+
+    .scrubber-feature-desc {
+      font-size: 11px;
+      color: var(--md-text-60);
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <h1>ModernDark <span>Player Controls</span></h1>
+    <p>Plex Cinema Gold theme for YouTube-style video player</p>
+  </header>
+
+  <div class="component-grid">
+
+    <!-- PLAYER COMPONENT -->
+    <section class="component-section">
+      <div class="section-header">
+        <h2>Video Player</h2>
+        <span class="tag">Full Component</span>
+      </div>
+      <div class="section-content demo-player">
+        <div class="video-container">
+          <div class="video-placeholder">Video Content</div>
+
+          <div class="big-play">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+
+          <div class="control-bar-wrapper">
+            <div class="progress-container">
+              <div class="progress-bar-wrapper">
+                <div class="progress-bg"></div>
+                <div class="progress-buffer"></div>
+
+                <!-- Range marker -->
+                <div class="marker-range" style="left: 5%; width: 15%;"></div>
+
+                <div class="progress-played"></div>
+
+                <!-- Point markers -->
+                <div class="marker-point" style="left: 25%;"></div>
+                <div class="marker-point" style="left: 60%;"></div>
+                <div class="marker-point" style="left: 85%;"></div>
+
+                <div class="scrubber-handle"></div>
+              </div>
+            </div>
+
+            <div class="control-bar">
+              <!-- Play button -->
+              <button class="ctrl-btn play">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+
+              <!-- Skip next -->
+              <button class="ctrl-btn">
+                <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+              </button>
+
+              <!-- Volume -->
+              <div class="volume-group">
+                <button class="ctrl-btn">
+                  <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                </button>
+                <div class="volume-slider">
+                  <div class="volume-fill"></div>
+                </div>
+              </div>
+
+              <!-- Time -->
+              <div class="time-display">
+                <span>14:23</span>
+                <span class="separator">/</span>
+                <span>40:08</span>
+              </div>
+
+              <!-- Chapter indicator -->
+              <div class="chapter-indicator">
+                <div class="dot"></div>
+                <span class="title">Massage</span>
+                <svg class="chevron" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+              </div>
+
+              <div class="spacer"></div>
+
+              <!-- Quick add marker -->
+              <button class="quick-add-btn">
+                <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              </button>
+
+              <!-- Right panel pill -->
+              <div class="right-panel">
+                <!-- Autoplay toggle -->
+                <div class="autoplay-toggle on">
+                  <div class="autoplay-track">
+                    <div class="autoplay-thumb">
+                      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Settings -->
+                <button class="ctrl-btn">
+                  <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+                </button>
+
+                <div class="divider"></div>
+
+                <!-- Fullscreen -->
+                <button class="ctrl-btn">
+                  <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCRUBBER COMPONENT -->
+    <section class="component-section">
+      <div class="section-header">
+        <h2>Thumbnail Scrubber</h2>
+        <span class="tag">Timeline</span>
+      </div>
+      <div class="section-content">
+        <div class="scrubber-comparison">
+          <!-- Current/Old Version -->
+          <div class="scrubber-version">
+            <div class="scrubber-label">
+              <span class="scrubber-badge scrubber-badge-old">CURRENT</span>
+              Original Scrubber
+            </div>
+            <div class="scrubber-old">
+              <button class="scrubber-nav-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <div class="scrubber-content">
+                <div class="scrubber-tags-bg"></div>
+                <div class="scrubber-tag" style="left: 20%;">Intro</div>
+                <div class="scrubber-tag" style="left: 55%;">Main Scene</div>
+                <div class="scrubber-position"></div>
+                <div class="scrubber-sprites">
+                  <div class="scrubber-sprite">0:00 - 0:30</div>
+                  <div class="scrubber-sprite">0:30 - 1:00</div>
+                  <div class="scrubber-sprite">1:00 - 1:30</div>
+                  <div class="scrubber-sprite">1:30 - 2:00</div>
+                  <div class="scrubber-sprite">2:00 - 2:30</div>
+                  <div class="scrubber-sprite">2:30 - 3:00</div>
+                </div>
+              </div>
+              <button class="scrubber-nav-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- New ModernDark Gold Version -->
+          <div class="scrubber-version">
+            <div class="scrubber-label">
+              <span class="scrubber-badge scrubber-badge-new">NEW</span>
+              ModernDark Gold Style
+            </div>
+            <div class="scrubber-new">
+              <button class="scrubber-nav-btn">
+                <svg viewBox="0 0 24 24">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <div class="scrubber-content">
+                <div class="scrubber-tags-area"></div>
+                <div class="scrubber-tag" style="left: 20%;">Intro</div>
+                <div class="scrubber-tag" style="left: 55%;">Main Scene</div>
+                <div class="scrubber-heatmap"></div>
+                <div class="scrubber-progress"></div>
+                <div class="scrubber-position"></div>
+                <div class="scrubber-sprites">
+                  <div class="scrubber-sprite">
+                    <span class="scrubber-sprite-time">0:00</span>
+                    <span class="scrubber-sprite-range">0:00 - 0:30</span>
+                  </div>
+                  <div class="scrubber-sprite">
+                    <span class="scrubber-sprite-time">0:30</span>
+                    <span class="scrubber-sprite-range">0:30 - 1:00</span>
+                  </div>
+                  <div class="scrubber-sprite">
+                    <span class="scrubber-sprite-time">1:00</span>
+                    <span class="scrubber-sprite-range">1:00 - 1:30</span>
+                  </div>
+                  <div class="scrubber-sprite">
+                    <span class="scrubber-sprite-time">1:30</span>
+                    <span class="scrubber-sprite-range">1:30 - 2:00</span>
+                  </div>
+                  <div class="scrubber-sprite">
+                    <span class="scrubber-sprite-time">2:00</span>
+                    <span class="scrubber-sprite-range">2:00 - 2:30</span>
+                  </div>
+                  <div class="scrubber-sprite">
+                    <span class="scrubber-sprite-time">2:30</span>
+                    <span class="scrubber-sprite-range">2:30 - 3:00</span>
+                  </div>
+                </div>
+                <div class="scrubber-tooltip">
+                  <div class="scrubber-tooltip-value">1:15</div>
+                  <div class="scrubber-tooltip-label">Current Position</div>
+                </div>
+              </div>
+              <button class="scrubber-nav-btn">
+                <svg viewBox="0 0 24 24">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature highlights -->
+        <div class="scrubber-features">
+          <div class="scrubber-feature">
+            <div class="scrubber-feature-icon">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <div class="scrubber-feature-title">Glass Morphism</div>
+            <div class="scrubber-feature-desc">Frosted glass with backdrop blur</div>
+          </div>
+          <div class="scrubber-feature">
+            <div class="scrubber-feature-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+            </div>
+            <div class="scrubber-feature-title">Cyan Marker Pills</div>
+            <div class="scrubber-feature-desc">Glowing marker tags with hover</div>
+          </div>
+          <div class="scrubber-feature">
+            <div class="scrubber-feature-icon">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div class="scrubber-feature-title">Gold Position Line</div>
+            <div class="scrubber-feature-desc">Animated head with pulse glow</div>
+          </div>
+          <div class="scrubber-feature">
+            <div class="scrubber-feature-icon">
+              <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            <div class="scrubber-feature-title">Activity Heatmap</div>
+            <div class="scrubber-feature-desc">Gold/amber engagement overlay</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DROPDOWNS & MENUS -->
+    <section class="component-section">
+      <div class="section-header">
+        <h2>Dropdowns & Menus</h2>
+        <span class="tag">Overlays</span>
+      </div>
+      <div class="section-content demo-components">
+
+        <!-- Chapter Dropdown -->
+        <div class="chapter-dropdown">
+          <div class="chapter-dropdown-header">
+            <h3>Markers (4)</h3>
+            <button class="add-btn">
+              <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            </button>
+          </div>
+          <div class="chapter-list">
+            <div class="chapter-item active">
+              <div class="marker-dot range"></div>
+              <div class="chapter-item-content">
+                <div class="name">Massage</div>
+                <div class="time">0:00 - 5:57</div>
+              </div>
+              <div class="actions">
+                <button class="action-btn">
+                  <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button class="action-btn delete">
+                  <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="chapter-item">
+              <div class="marker-dot point"></div>
+              <div class="chapter-item-content">
+                <div class="name">Blowjob</div>
+                <div class="time">10:15</div>
+              </div>
+              <div class="actions">
+                <button class="action-btn">
+                  <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button class="action-btn delete">
+                  <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="chapter-item">
+              <div class="marker-dot point"></div>
+              <div class="chapter-item-content">
+                <div class="name">Cowgirl</div>
+                <div class="time">24:30</div>
+              </div>
+              <div class="actions">
+                <button class="action-btn">
+                  <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button class="action-btn delete">
+                  <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="chapter-item">
+              <div class="marker-dot point"></div>
+              <div class="chapter-item-content">
+                <div class="name">Facial</div>
+                <div class="time">38:45</div>
+              </div>
+              <div class="actions">
+                <button class="action-btn">
+                  <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+                <button class="action-btn delete">
+                  <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Menu -->
+        <div class="settings-menu">
+          <div class="settings-section">
+            <div class="settings-item">
+              <span class="label">Loop video</span>
+              <div class="toggle-switch"></div>
+            </div>
+            <div class="settings-item">
+              <span class="label">Show scrubber</span>
+              <div class="toggle-switch on"></div>
+            </div>
+          </div>
+          <div class="settings-section">
+            <div class="settings-item">
+              <span class="label">Quality</span>
+              <span class="value">
+                1080p
+                <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+              </span>
+            </div>
+            <div class="settings-item">
+              <span class="label">Playback speed</span>
+              <span class="value">
+                1x
+                <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+              </span>
+            </div>
+          </div>
+          <div class="settings-section">
+            <div class="settings-item">
+              <span class="label">Video filters</span>
+              <span class="value">
+                <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+              </span>
+            </div>
+            <div class="settings-item">
+              <span class="label">Video transforms</span>
+              <span class="value">
+                <svg class="chevron" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quality Menu -->
+        <div class="settings-menu quality-menu">
+          <div class="settings-section">
+            <div class="quality-option active">
+              <span class="label">1080p</span>
+              <span class="badge hd">HD</span>
+              <svg class="checkmark" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            </div>
+            <div class="quality-option">
+              <span class="label">720p</span>
+              <span class="badge hd">HD</span>
+            </div>
+            <div class="quality-option">
+              <span class="label">480p</span>
+            </div>
+            <div class="quality-option">
+              <span class="label">360p</span>
+            </div>
+            <div class="quality-option">
+              <span class="label">Direct stream</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SPEED & FILTERS -->
+    <section class="component-section">
+      <div class="section-header">
+        <h2>Submenus</h2>
+        <span class="tag">Sliders</span>
+      </div>
+      <div class="section-content demo-components">
+
+        <!-- Speed Submenu -->
+        <div class="settings-menu">
+          <div class="speed-submenu">
+            <div class="speed-options">
+              <button class="speed-option">0.25x</button>
+              <button class="speed-option">0.5x</button>
+              <button class="speed-option">0.75x</button>
+              <button class="speed-option active">1x</button>
+              <button class="speed-option">1.25x</button>
+              <button class="speed-option">1.5x</button>
+              <button class="speed-option">2x</button>
+            </div>
+            <div class="speed-slider-container">
+              <span class="speed-slider-label">Custom</span>
+              <div class="speed-slider">
+                <div class="speed-slider-fill"></div>
+                <div class="speed-slider-thumb"></div>
+              </div>
+              <span class="speed-value">1.00x</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Panel -->
+        <div class="settings-menu">
+          <div class="filter-panel">
+            <div class="filter-row">
+              <span class="label">Brightness</span>
+              <div class="filter-slider">
+                <div class="filter-slider-thumb" style="left: 50%;"></div>
+              </div>
+              <span class="filter-value">100%</span>
+            </div>
+            <div class="filter-row">
+              <span class="label">Contrast</span>
+              <div class="filter-slider">
+                <div class="filter-slider-thumb" style="left: 60%;"></div>
+              </div>
+              <span class="filter-value">120%</span>
+            </div>
+            <div class="filter-row">
+              <span class="label">Saturation</span>
+              <div class="filter-slider">
+                <div class="filter-slider-thumb" style="left: 50%;"></div>
+              </div>
+              <span class="filter-value">100%</span>
+            </div>
+            <div class="filter-row">
+              <span class="label">Hue</span>
+              <div class="filter-slider">
+                <div class="filter-slider-thumb" style="left: 50%;"></div>
+              </div>
+              <span class="filter-value">0°</span>
+            </div>
+            <button class="filter-reset" disabled>Reset All</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- MARKER MODAL -->
+    <section class="component-section">
+      <div class="section-header">
+        <h2>Marker Modal</h2>
+        <span class="tag">Create / Edit</span>
+      </div>
+      <div class="section-content">
+        <div class="marker-modal-backdrop">
+          <div class="marker-modal">
+            <div class="marker-modal-header">
+              <h3>Edit Marker</h3>
+              <button class="close-btn">
+                <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+              </button>
+            </div>
+            <div class="marker-modal-body">
+              <div class="form-field">
+                <label class="form-label">Title</label>
+                <input type="text" class="form-input" value="Massage" placeholder="Enter marker title...">
+              </div>
+
+              <div class="form-field">
+                <label class="form-label">Primary Tag</label>
+                <div class="tag-container">
+                  <span class="tag-pill">
+                    Massage
+                    <button class="remove">
+                      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    </button>
+                  </span>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <div class="time-inputs-row">
+                  <div class="time-input-wrapper">
+                    <label class="form-label">Start Time</label>
+                    <input type="text" class="time-input" value="0:00">
+                    <button class="time-sync-btn">
+                      <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                    </button>
+                  </div>
+                  <div class="time-input-wrapper">
+                    <label class="form-label">End Time (optional)</label>
+                    <input type="text" class="time-input" value="5:57">
+                    <button class="time-sync-btn">
+                      <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label class="form-label">Additional Tags</label>
+                <div class="tag-container">
+                  <span class="tag-pill">
+                    Oil
+                    <button class="remove">
+                      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    </button>
+                  </span>
+                  <input type="text" class="tag-input" placeholder="Add tag...">
+                </div>
+              </div>
+            </div>
+            <div class="marker-modal-footer">
+              <button class="btn btn-danger">Delete</button>
+              <button class="btn btn-secondary">Cancel</button>
+              <button class="btn btn-primary">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // Interactive demo: toggle switches
+    document.querySelectorAll('.toggle-switch').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('on');
+      });
+    });
+
+    // Interactive demo: autoplay toggle
+    document.querySelectorAll('.autoplay-toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('on');
+      });
+    });
+
+    // Interactive demo: speed options
+    document.querySelectorAll('.speed-option').forEach(option => {
+      option.addEventListener('click', () => {
+        document.querySelectorAll('.speed-option').forEach(o => o.classList.remove('active'));
+        option.classList.add('active');
+      });
+    });
+
+    // Interactive demo: quality options
+    document.querySelectorAll('.quality-option').forEach(option => {
+      option.addEventListener('click', () => {
+        document.querySelectorAll('.quality-option').forEach(o => o.classList.remove('active'));
+        option.classList.add('active');
+      });
+    });
+
+    // Interactive demo: chapter indicator
+    document.querySelectorAll('.chapter-indicator').forEach(indicator => {
+      indicator.addEventListener('click', () => {
+        indicator.classList.toggle('open');
+      });
+    });
+
+    // Interactive demo: big play button
+    document.querySelectorAll('.big-play').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.closest('.video-container').classList.toggle('playing');
+      });
+    });
+  </script>
+
+</body>
+</html>

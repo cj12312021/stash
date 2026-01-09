@@ -1,0 +1,1797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced Chapter Indicator - Design Proposals</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================
+       DESIGN SYSTEM
+       Aesthetic: Dark Cinema / Editorial Glass
+       ============================================ */
+
+    :root {
+      /* Core palette */
+      --bg-deep: #0a0c0e;
+      --bg-surface: #12161a;
+      --bg-elevated: #1a1f24;
+      --bg-glass: rgba(18, 22, 26, 0.92);
+      --bg-glass-light: rgba(255, 255, 255, 0.04);
+
+      /* Accent colors */
+      --accent-primary: #2196f3;
+      --accent-primary-dim: rgba(33, 150, 243, 0.15);
+      --accent-primary-glow: rgba(33, 150, 243, 0.4);
+      --marker-cyan: #00e5ff;
+      --marker-cyan-glow: rgba(0, 229, 255, 0.4);
+      --marker-amber: #ffab40;
+      --marker-amber-glow: rgba(255, 171, 64, 0.4);
+
+      /* Text */
+      --text-primary: #f0f4f8;
+      --text-secondary: rgba(240, 244, 248, 0.7);
+      --text-muted: rgba(240, 244, 248, 0.5);
+
+      /* Borders & shadows */
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.4);
+      --shadow-glow: 0 0 32px var(--accent-primary-glow);
+
+      /* Animation */
+      --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 40px;
+    }
+
+    /* ============================================
+       PAGE LAYOUT
+       ============================================ */
+
+    .page-header {
+      max-width: 1200px;
+      margin: 0 auto 60px;
+      text-align: center;
+    }
+
+    .page-header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--text-primary), var(--accent-primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .page-header p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .proposals {
+      display: flex;
+      flex-direction: column;
+      gap: 80px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .proposal {
+      background: var(--bg-surface);
+      border-radius: 24px;
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+    }
+
+    .proposal-header {
+      padding: 32px 40px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .proposal-badge {
+      background: var(--accent-primary);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 6px 14px;
+      border-radius: 100px;
+      text-transform: uppercase;
+    }
+
+    .proposal-badge.recommended {
+      background: linear-gradient(135deg, var(--marker-cyan), var(--accent-primary));
+      box-shadow: 0 4px 16px var(--accent-primary-glow);
+    }
+
+    .proposal-header h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .proposal-header p {
+      color: var(--text-secondary);
+      margin-left: auto;
+      font-size: 0.9rem;
+    }
+
+    .proposal-content {
+      padding: 40px;
+    }
+
+    .proposal-description {
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    /* ============================================
+       MOCK VIDEO PLAYER
+       ============================================ */
+
+    .player-container {
+      background: var(--bg-elevated);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .video-area {
+      aspect-ratio: 16/9;
+      background: linear-gradient(135deg, #1a1f24 0%, #0d1117 100%);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .video-placeholder {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    /* ============================================
+       CONTROL BAR
+       ============================================ */
+
+    .control-bar {
+      height: 48px;
+      background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 8px;
+    }
+
+    .control-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: transparent;
+      color: var(--text-primary);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .control-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .control-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .time-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding: 0 8px;
+    }
+
+    .spacer {
+      flex: 1;
+    }
+
+    /* ============================================
+       CHAPTER INDICATOR (Shared)
+       ============================================ */
+
+    .chapter-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--bg-glass-light);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s var(--ease-out);
+      position: relative;
+    }
+
+    .chapter-indicator:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .chapter-title {
+      font-size: 13px;
+      color: var(--text-primary);
+      font-weight: 500;
+      max-width: 120px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chapter-chevron {
+      width: 16px;
+      height: 16px;
+      fill: var(--text-muted);
+      transition: transform 0.2s var(--ease-out);
+    }
+
+    .chapter-indicator.is-open .chapter-chevron {
+      transform: rotate(90deg);
+    }
+
+    /* Quick add button */
+    .quick-add-btn {
+      width: 32px;
+      height: 32px;
+      border: 2px dashed var(--border-hover);
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s var(--ease-out);
+      margin-left: 4px;
+    }
+
+    .quick-add-btn:hover {
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+      background: var(--accent-primary-dim);
+    }
+
+    .quick-add-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    /* ============================================
+       OPTION A: DROPDOWN + MODAL
+       ============================================ */
+
+    .dropdown-a {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 0;
+      width: 320px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      z-index: 100;
+    }
+
+    .dropdown-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dropdown-header h4 {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .dropdown-header-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: var(--accent-primary-dim);
+      color: var(--accent-primary);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .dropdown-header-btn:hover {
+      background: var(--accent-primary);
+      color: white;
+    }
+
+    .dropdown-header-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .dropdown-items {
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .marker-item {
+      padding: 14px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.15s var(--ease-out);
+      position: relative;
+    }
+
+    .marker-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .marker-item.is-active {
+      background: var(--accent-primary-dim);
+      border-left: 3px solid var(--accent-primary);
+      padding-left: 17px;
+    }
+
+    .marker-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .marker-dot.point {
+      background: var(--marker-cyan);
+      box-shadow: 0 0 8px var(--marker-cyan-glow);
+    }
+
+    .marker-dot.range {
+      background: var(--marker-amber);
+      box-shadow: 0 0 8px var(--marker-amber-glow);
+    }
+
+    .marker-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .marker-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .marker-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .marker-duration {
+      color: var(--text-secondary);
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .marker-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s var(--ease-out);
+    }
+
+    .marker-item:hover .marker-actions {
+      opacity: 1;
+    }
+
+    .marker-action-btn {
+      width: 26px;
+      height: 26px;
+      border: none;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-secondary);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .marker-action-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--text-primary);
+    }
+
+    .marker-action-btn.delete:hover {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .marker-action-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-a {
+      width: 480px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg), var(--shadow-glow);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 24px 28px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .modal-close:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+    }
+
+    .modal-body {
+      padding: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-glass-light);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px var(--accent-primary-dim);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .time-input-wrapper {
+      position: relative;
+    }
+
+    .time-input-wrapper .form-input {
+      padding-right: 40px;
+    }
+
+    .time-sync-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: var(--accent-primary-dim);
+      color: var(--accent-primary);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .time-sync-btn:hover {
+      background: var(--accent-primary);
+      color: white;
+    }
+
+    .time-sync-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .tag-select {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--bg-glass-light);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      min-height: 48px;
+    }
+
+    .tag-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: var(--accent-primary-dim);
+      border: 1px solid rgba(33, 150, 243, 0.3);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--accent-primary);
+    }
+
+    .tag-chip-remove {
+      width: 14px;
+      height: 14px;
+      border: none;
+      background: transparent;
+      color: var(--accent-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.7;
+    }
+
+    .tag-chip-remove:hover {
+      opacity: 1;
+    }
+
+    .modal-footer {
+      padding: 20px 28px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .btn-primary {
+      background: var(--accent-primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1976d2;
+      box-shadow: 0 4px 16px var(--accent-primary-glow);
+    }
+
+    .btn-secondary {
+      background: var(--bg-glass-light);
+      color: var(--text-secondary);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      margin-left: auto;
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* ============================================
+       OPTION B: EXPANDED PANEL
+       ============================================ */
+
+    .expanded-panel {
+      background: var(--bg-glass);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      margin-top: 16px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-header h3 span {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .panel-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .panel-btn {
+      padding: 8px 16px;
+      border: none;
+      background: var(--accent-primary);
+      color: white;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .panel-btn:hover {
+      background: #1976d2;
+    }
+
+    .panel-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .panel-collapse-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: var(--bg-glass-light);
+      color: var(--text-muted);
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .panel-collapse-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+    }
+
+    .marker-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      padding: 24px;
+    }
+
+    .marker-card {
+      background: var(--bg-glass-light);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .marker-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-hover);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .marker-card.is-active {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 1px var(--accent-primary), 0 8px 24px var(--accent-primary-glow);
+    }
+
+    .marker-card-thumb {
+      aspect-ratio: 16/9;
+      background: linear-gradient(135deg, #1a1f24 0%, #0d1117 100%);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .marker-card-thumb::before {
+      content: '🖼';
+      font-size: 24px;
+      opacity: 0.3;
+    }
+
+    .marker-card-play {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s var(--ease-out);
+    }
+
+    .marker-card:hover .marker-card-play {
+      opacity: 1;
+    }
+
+    .marker-card-play svg {
+      width: 40px;
+      height: 40px;
+      fill: white;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+    }
+
+    .marker-card-body {
+      padding: 14px 16px;
+    }
+
+    .marker-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .marker-card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .marker-card-dot.point {
+      background: var(--marker-cyan);
+      box-shadow: 0 0 6px var(--marker-cyan-glow);
+    }
+
+    .marker-card-dot.range {
+      background: var(--marker-amber);
+      box-shadow: 0 0 6px var(--marker-amber-glow);
+    }
+
+    .marker-card-title {
+      font-size: 14px;
+      font-weight: 500;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .marker-card-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .marker-card-progress {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .marker-card-progress-fill {
+      height: 100%;
+      background: var(--accent-primary);
+      border-radius: 2px;
+    }
+
+    .marker-card-actions {
+      display: flex;
+      gap: 6px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-subtle);
+      opacity: 0;
+      transition: opacity 0.15s var(--ease-out);
+    }
+
+    .marker-card:hover .marker-card-actions {
+      opacity: 1;
+    }
+
+    .marker-card-btn {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-secondary);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s var(--ease-out);
+    }
+
+    .marker-card-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+    }
+
+    .marker-card-btn.delete:hover {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .marker-card-btn svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
+
+    /* Inline form in panel */
+    .panel-form {
+      padding: 24px;
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .panel-form-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .panel-form-header h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .panel-form-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 16px;
+      align-items: end;
+    }
+
+    .panel-form-grid .form-group {
+      margin-bottom: 0;
+    }
+
+    .panel-form-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* ============================================
+       OPTION C: SIDEBAR PANEL
+       ============================================ */
+
+    .layout-with-sidebar {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 20px;
+    }
+
+    .sidebar-panel {
+      background: var(--bg-glass);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      overflow: hidden;
+      height: fit-content;
+      max-height: 600px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .sidebar-markers {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .sidebar-marker {
+      padding: 16px 24px;
+      display: flex;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.15s var(--ease-out);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .sidebar-marker:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .sidebar-marker.is-active {
+      background: var(--accent-primary-dim);
+      border-left: 3px solid var(--accent-primary);
+      padding-left: 21px;
+    }
+
+    .sidebar-marker-thumb {
+      width: 80px;
+      height: 45px;
+      background: var(--bg-elevated);
+      border-radius: 6px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      opacity: 0.3;
+    }
+
+    .sidebar-marker-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .sidebar-marker-title {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sidebar-marker-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .sidebar-marker-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .sidebar-form {
+      padding: 20px 24px;
+      border-top: 1px solid var(--border-subtle);
+      background: rgba(0, 0, 0, 0.2);
+      flex-shrink: 0;
+    }
+
+    .sidebar-form-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+
+    .sidebar-form .form-group {
+      margin-bottom: 14px;
+    }
+
+    .sidebar-form .form-label {
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-form .form-input {
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .sidebar-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .sidebar-form-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .sidebar-form-actions .btn {
+      flex: 1;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    /* ============================================
+       COMPARISON TABLE
+       ============================================ */
+
+    .comparison {
+      margin-top: 80px;
+      background: var(--bg-surface);
+      border-radius: 24px;
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+    }
+
+    .comparison-header {
+      padding: 32px 40px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .comparison-header h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+      padding: 16px 24px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .comparison-table th {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .comparison-table td {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .comparison-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .check {
+      color: #22c55e;
+    }
+
+    .partial {
+      color: var(--marker-amber);
+    }
+
+    .cross {
+      color: #ef4444;
+    }
+
+    .recommendation {
+      padding: 32px 40px;
+      background: linear-gradient(135deg, var(--accent-primary-dim), transparent);
+      border-top: 1px solid var(--accent-primary);
+    }
+
+    .recommendation h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent-primary);
+      margin-bottom: 8px;
+    }
+
+    .recommendation p {
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Enhanced Chapter Indicator</h1>
+  <p>Three design proposals for replacing the SceneMarkersPanel with an integrated chapter indicator that supports full marker CRUD operations.</p>
+</div>
+
+<div class="proposals">
+
+  <!-- ============================================
+       OPTION A: DROPDOWN + MODAL
+       ============================================ -->
+  <div class="proposal">
+    <div class="proposal-header">
+      <span class="proposal-badge recommended">Recommended</span>
+      <h2>Option A: Dropdown + Modal Form</h2>
+      <p>Minimal disruption, familiar pattern</p>
+    </div>
+    <div class="proposal-content">
+      <p class="proposal-description">
+        Keep the chapter indicator compact in the control bar. Add quick action buttons (edit/delete) on hover for each marker in the dropdown. Create/Edit operations open a modal dialog with the full marker form. This approach reuses the existing SceneMarkerForm component wrapped in a styled modal.
+      </p>
+
+      <div class="player-container">
+        <div class="video-area">
+          <span class="video-placeholder">Video Player</span>
+        </div>
+        <div class="control-bar">
+          <button class="control-btn">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="control-btn">
+            <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          </button>
+          <button class="control-btn">
+            <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+          </button>
+          <span class="time-display">5:54 / 40:08</span>
+
+          <div class="chapter-indicator is-open">
+            <span class="chapter-title">Massage</span>
+            <svg class="chapter-chevron" viewBox="0 0 24 24"><path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.41 1.41l4.59-4.59a1 1 0 0 0 0-1.41l-4.59-4.59a1 1 0 0 0-1.41 0z"/></svg>
+
+            <div class="dropdown-a">
+              <div class="dropdown-header">
+                <h4>Markers (3)</h4>
+                <button class="dropdown-header-btn" title="Add Marker">
+                  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </button>
+              </div>
+              <div class="dropdown-items">
+                <div class="marker-item is-active">
+                  <div class="marker-dot range"></div>
+                  <div class="marker-info">
+                    <div class="marker-title">Massage</div>
+                    <div class="marker-meta">
+                      <span>0:00 – 5:57</span>
+                      <span class="marker-duration">5:57 duration</span>
+                    </div>
+                  </div>
+                  <div class="marker-actions">
+                    <button class="marker-action-btn" title="Edit">
+                      <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    </button>
+                    <button class="marker-action-btn delete" title="Delete">
+                      <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="marker-item">
+                  <div class="marker-dot point"></div>
+                  <div class="marker-info">
+                    <div class="marker-title">Blowjob</div>
+                    <div class="marker-meta">
+                      <span>12:34</span>
+                    </div>
+                  </div>
+                  <div class="marker-actions">
+                    <button class="marker-action-btn" title="Edit">
+                      <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    </button>
+                    <button class="marker-action-btn delete" title="Delete">
+                      <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="marker-item">
+                  <div class="marker-dot range"></div>
+                  <div class="marker-info">
+                    <div class="marker-title">Cowgirl</div>
+                    <div class="marker-meta">
+                      <span>18:00 – 26:30</span>
+                      <span class="marker-duration">8:30 duration</span>
+                    </div>
+                  </div>
+                  <div class="marker-actions">
+                    <button class="marker-action-btn" title="Edit">
+                      <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    </button>
+                    <button class="marker-action-btn delete" title="Delete">
+                      <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button class="quick-add-btn" title="Quick Add Marker">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          </button>
+
+          <div class="spacer"></div>
+
+          <button class="control-btn">
+            <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+          </button>
+          <button class="control-btn">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Preview -->
+      <div style="margin-top: 32px;">
+        <h4 style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">Modal Form (opened on Edit/Create)</h4>
+        <div class="modal-a" style="position: relative;">
+          <div class="modal-header">
+            <h3>Edit Marker</h3>
+            <button class="modal-close">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label">Title</label>
+              <input type="text" class="form-input" value="Massage" placeholder="Enter marker title...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Primary Tag</label>
+              <div class="tag-select">
+                <div class="tag-chip">
+                  Massage
+                  <button class="tag-chip-remove">×</button>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Start Time</label>
+                <div class="time-input-wrapper">
+                  <input type="text" class="form-input" value="0:00:00">
+                  <button class="time-sync-btn" title="Use current position">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">End Time (Optional)</label>
+                <div class="time-input-wrapper">
+                  <input type="text" class="form-input" value="0:05:57">
+                  <button class="time-sync-btn" title="Use current position">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Additional Tags</label>
+              <div class="tag-select">
+                <div class="tag-chip">
+                  Oil
+                  <button class="tag-chip-remove">×</button>
+                </div>
+                <div class="tag-chip">
+                  Sensual
+                  <button class="tag-chip-remove">×</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-primary">Save</button>
+            <button class="btn btn-secondary">Cancel</button>
+            <button class="btn btn-danger">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       OPTION B: EXPANDED PANEL
+       ============================================ -->
+  <div class="proposal">
+    <div class="proposal-header">
+      <span class="proposal-badge">Option B</span>
+      <h2>Expanded Panel Below Player</h2>
+      <p>Visual grid, inline form</p>
+    </div>
+    <div class="proposal-content">
+      <p class="proposal-description">
+        The chapter indicator expands into a full panel below the video player (replacing/augmenting the scrubber area). Shows markers as visual cards with thumbnails. Includes an inline form at the bottom for quick create/edit without leaving the context.
+      </p>
+
+      <div class="player-container">
+        <div class="video-area">
+          <span class="video-placeholder">Video Player</span>
+        </div>
+        <div class="control-bar">
+          <button class="control-btn">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="control-btn">
+            <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          </button>
+          <button class="control-btn">
+            <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+          </button>
+          <span class="time-display">5:54 / 40:08</span>
+
+          <div class="chapter-indicator">
+            <span class="chapter-title">Massage</span>
+            <svg class="chapter-chevron" viewBox="0 0 24 24"><path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.41 1.41l4.59-4.59a1 1 0 0 0 0-1.41l-4.59-4.59a1 1 0 0 0-1.41 0z"/></svg>
+          </div>
+
+          <div class="spacer"></div>
+
+          <button class="control-btn">
+            <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+          </button>
+          <button class="control-btn">
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="expanded-panel">
+        <div class="panel-header">
+          <h3>Scene Markers <span>(3 markers)</span></h3>
+          <div class="panel-actions">
+            <button class="panel-btn">
+              <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+              New Marker
+            </button>
+            <button class="panel-collapse-btn" title="Collapse">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="marker-cards">
+          <div class="marker-card is-active">
+            <div class="marker-card-thumb">
+              <div class="marker-card-play">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+            </div>
+            <div class="marker-card-body">
+              <div class="marker-card-header">
+                <div class="marker-card-dot range"></div>
+                <div class="marker-card-title">Massage</div>
+              </div>
+              <div class="marker-card-time">0:00 – 5:57</div>
+              <div class="marker-card-progress">
+                <div class="marker-card-progress-fill" style="width: 78%;"></div>
+              </div>
+            </div>
+            <div class="marker-card-actions">
+              <button class="marker-card-btn">
+                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                Edit
+              </button>
+              <button class="marker-card-btn delete">
+                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                Delete
+              </button>
+            </div>
+          </div>
+
+          <div class="marker-card">
+            <div class="marker-card-thumb">
+              <div class="marker-card-play">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+            </div>
+            <div class="marker-card-body">
+              <div class="marker-card-header">
+                <div class="marker-card-dot point"></div>
+                <div class="marker-card-title">Blowjob</div>
+              </div>
+              <div class="marker-card-time">12:34</div>
+              <div class="marker-card-progress" style="opacity: 0;"></div>
+            </div>
+            <div class="marker-card-actions">
+              <button class="marker-card-btn">
+                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                Edit
+              </button>
+              <button class="marker-card-btn delete">
+                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                Delete
+              </button>
+            </div>
+          </div>
+
+          <div class="marker-card">
+            <div class="marker-card-thumb">
+              <div class="marker-card-play">
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+            </div>
+            <div class="marker-card-body">
+              <div class="marker-card-header">
+                <div class="marker-card-dot range"></div>
+                <div class="marker-card-title">Cowgirl</div>
+              </div>
+              <div class="marker-card-time">18:00 – 26:30</div>
+              <div class="marker-card-progress" style="opacity: 0;"></div>
+            </div>
+            <div class="marker-card-actions">
+              <button class="marker-card-btn">
+                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                Edit
+              </button>
+              <button class="marker-card-btn delete">
+                <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-form">
+          <div class="panel-form-header">
+            <h4>Quick Add Marker</h4>
+          </div>
+          <div class="panel-form-grid">
+            <div class="form-group">
+              <label class="form-label">Title</label>
+              <input type="text" class="form-input" placeholder="Enter title...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Primary Tag</label>
+              <input type="text" class="form-input" placeholder="Select tag...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Start Time</label>
+              <input type="text" class="form-input" value="5:54">
+            </div>
+            <div class="form-group">
+              <label class="form-label">&nbsp;</label>
+              <div class="panel-form-actions">
+                <button class="btn btn-primary" style="padding: 12px 20px;">Add</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       OPTION C: SIDEBAR PANEL
+       ============================================ -->
+  <div class="proposal">
+    <div class="proposal-header">
+      <span class="proposal-badge">Option C</span>
+      <h2>Slide-out Sidebar Panel</h2>
+      <p>Always visible, doesn't cover video</p>
+    </div>
+    <div class="proposal-content">
+      <p class="proposal-description">
+        A sidebar panel that slides out from the right side of the player. The video remains visible while browsing and editing markers. The form is embedded in the sidebar for quick editing without modals. Best for power users who frequently work with markers.
+      </p>
+
+      <div class="layout-with-sidebar">
+        <div class="player-container">
+          <div class="video-area">
+            <span class="video-placeholder">Video Player</span>
+          </div>
+          <div class="control-bar">
+            <button class="control-btn">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button class="control-btn">
+              <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+            </button>
+            <button class="control-btn">
+              <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+            </button>
+            <span class="time-display">5:54 / 40:08</span>
+
+            <div class="chapter-indicator">
+              <span class="chapter-title">Massage</span>
+              <svg class="chapter-chevron" viewBox="0 0 24 24"><path d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.41 1.41l4.59-4.59a1 1 0 0 0 0-1.41l-4.59-4.59a1 1 0 0 0-1.41 0z"/></svg>
+            </div>
+
+            <div class="spacer"></div>
+
+            <button class="control-btn">
+              <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+            </button>
+            <button class="control-btn">
+              <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="sidebar-panel">
+          <div class="sidebar-header">
+            <h3>Scene Markers</h3>
+            <button class="dropdown-header-btn" title="Add Marker">
+              <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            </button>
+          </div>
+
+          <div class="sidebar-markers">
+            <div class="sidebar-marker is-active">
+              <div class="sidebar-marker-thumb">🖼</div>
+              <div class="sidebar-marker-info">
+                <div class="sidebar-marker-title">
+                  <div class="marker-dot range" style="width: 8px; height: 8px; margin-top: 0;"></div>
+                  Massage
+                </div>
+                <div class="sidebar-marker-time">0:00 – 5:57</div>
+                <div class="sidebar-marker-actions">
+                  <button class="marker-action-btn" title="Edit">
+                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                  </button>
+                  <button class="marker-action-btn delete" title="Delete">
+                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="sidebar-marker">
+              <div class="sidebar-marker-thumb">🖼</div>
+              <div class="sidebar-marker-info">
+                <div class="sidebar-marker-title">
+                  <div class="marker-dot point" style="width: 8px; height: 8px; margin-top: 0;"></div>
+                  Blowjob
+                </div>
+                <div class="sidebar-marker-time">12:34</div>
+                <div class="sidebar-marker-actions">
+                  <button class="marker-action-btn" title="Edit">
+                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                  </button>
+                  <button class="marker-action-btn delete" title="Delete">
+                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="sidebar-marker">
+              <div class="sidebar-marker-thumb">🖼</div>
+              <div class="sidebar-marker-info">
+                <div class="sidebar-marker-title">
+                  <div class="marker-dot range" style="width: 8px; height: 8px; margin-top: 0;"></div>
+                  Cowgirl
+                </div>
+                <div class="sidebar-marker-time">18:00 – 26:30</div>
+                <div class="sidebar-marker-actions">
+                  <button class="marker-action-btn" title="Edit">
+                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                  </button>
+                  <button class="marker-action-btn delete" title="Delete">
+                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-form">
+            <div class="sidebar-form-title">Edit Marker</div>
+            <div class="form-group">
+              <label class="form-label">Title</label>
+              <input type="text" class="form-input" value="Massage">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Primary Tag</label>
+              <input type="text" class="form-input" value="Massage">
+            </div>
+            <div class="sidebar-form-row">
+              <div class="form-group">
+                <label class="form-label">Start</label>
+                <input type="text" class="form-input" value="0:00:00">
+              </div>
+              <div class="form-group">
+                <label class="form-label">End</label>
+                <input type="text" class="form-input" value="0:05:57">
+              </div>
+            </div>
+            <div class="sidebar-form-actions">
+              <button class="btn btn-primary">Save</button>
+              <button class="btn btn-secondary">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================
+     COMPARISON TABLE
+     ============================================ -->
+<div class="comparison">
+  <div class="comparison-header">
+    <h2>Feature Comparison</h2>
+  </div>
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Option A: Modal</th>
+        <th>Option B: Panel</th>
+        <th>Option C: Sidebar</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Player visibility during edit</td>
+        <td class="partial">Partial (dimmed)</td>
+        <td class="check">✓ Full</td>
+        <td class="check">✓ Full</td>
+      </tr>
+      <tr>
+        <td>Code reuse (existing form)</td>
+        <td class="check">✓ High</td>
+        <td class="partial">Medium</td>
+        <td class="partial">Medium</td>
+      </tr>
+      <tr>
+        <td>Mobile-friendly</td>
+        <td class="check">✓ Yes</td>
+        <td class="partial">Needs adaptation</td>
+        <td class="cross">✗ No</td>
+      </tr>
+      <tr>
+        <td>Implementation complexity</td>
+        <td class="check">✓ Low</td>
+        <td class="partial">Medium</td>
+        <td class="partial">Medium-High</td>
+      </tr>
+      <tr>
+        <td>Thumbnail previews</td>
+        <td class="cross">✗ Optional</td>
+        <td class="check">✓ Yes</td>
+        <td class="check">✓ Yes</td>
+      </tr>
+      <tr>
+        <td>Progress within range marker</td>
+        <td class="cross">✗ No</td>
+        <td class="check">✓ Yes</td>
+        <td class="partial">Partial</td>
+      </tr>
+      <tr>
+        <td>Quick add while watching</td>
+        <td class="check">✓ Yes (hotkey)</td>
+        <td class="check">✓ Yes (inline)</td>
+        <td class="check">✓ Yes (sidebar)</td>
+      </tr>
+      <tr>
+        <td>Keyboard shortcut friendly</td>
+        <td class="check">✓ Yes (N key)</td>
+        <td class="check">✓ Yes</td>
+        <td class="check">✓ Yes</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="recommendation">
+    <h4>Recommendation: Option A (Modal Form)</h4>
+    <p>
+      Option A provides the best balance of functionality, implementation simplicity, and user familiarity.
+      It reuses the existing SceneMarkerForm component, works well on all screen sizes, and follows
+      established UX patterns for CRUD operations. The compact dropdown keeps the player interface clean
+      while providing quick access to all marker management features. Options B and C can be considered
+      for future enhancements if users request more visual marker management.
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

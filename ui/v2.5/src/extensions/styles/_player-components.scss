@@ -29,8 +29,8 @@ $player-text-muted: rgba(245, 248, 250, 0.7);
 $player-text-dim: rgba(245, 248, 250, 0.45);
 
 // Progress bar
-$progress-bar-height: 3px;
-$progress-bar-height-hover: 5px;
+$progress-bar-height: .3em;
+$progress-bar-height-hover: .4em;
 $progress-bg: rgba(255, 255, 255, 0.18);
 $progress-buffer: rgba(255, 255, 255, 0.38);
 
@@ -43,6 +43,10 @@ $shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
 $shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
 $shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
 $shadow-glow: 0 0 20px $player-primary-glow;
+
+// Typography
+$stash-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+$stash-mono: 'JetBrains Mono', 'SF Mono', monospace;
 
 // Aliases for consistency
 $stash-text: $player-text;
@@ -86,7 +90,7 @@ $stash-text: $player-text;
   width: 100%;
 
   &:not(.vjs-has-started) .vjs-control-bar {
-    display: flex;
+    display: none;
   }
 
   // show controls even when an error is displayed
@@ -120,7 +124,13 @@ $stash-text: $player-text;
     align-items: center;
     justify-content: center;
 
-    // Hide the font icon pseudo-element
+    // Hide VideoJS font icon pseudo-elements (both on button and placeholder)
+    // This prevents double-icons when our SVG icons are injected
+    &::before {
+      display: none !important;
+      content: none !important;
+    }
+
     .vjs-icon-placeholder::before {
       display: none;
     }
@@ -131,8 +141,8 @@ $stash-text: $player-text;
       justify-content: center;
 
       svg {
-        width: 22px;
-        height: 22px;
+        width: 25px;
+        height: 25px;
         fill: $player-text;
         transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
@@ -191,6 +201,7 @@ $stash-text: $player-text;
 
   .vjs-control-bar {
     background: none;
+    margin-bottom: 5px;
 
     /* Scales control size */
     font-size: 15px;
@@ -210,6 +221,7 @@ $stash-text: $player-text;
       pointer-events: none;
       position: absolute;
       width: 100%;
+      margin-bottom: -5px;
     }
 
     // ============================================
@@ -248,6 +260,7 @@ $stash-text: $player-text;
 
     .vjs-current-time {
       order: 4;
+      color: $player-text !important;
     }
 
     .vjs-time-divider {
@@ -256,7 +269,7 @@ $stash-text: $player-text;
 
     .vjs-duration {
       order: 6;
-      margin-right: 0; // Remove auto margin, use spacer instead
+      margin-right: 0 !important; // Override upstream margin-right: auto - use spacer instead
     }
 
     /* stylelint-disable declaration-no-important */
@@ -295,37 +308,41 @@ $stash-text: $player-text;
     // ============================================
 
     // Pseudo-element on autostart button creates pill background
-    // spanning autostart (42px) + settings (36px) + fullscreen (36px) + padding
+    // Mockup specs: autostart (42px) + settings (34px) + fullscreen (34px) + padding (12px) = 122px
     .vjs-autostart-button.vjs-autostart-toggle {
-      position: relative;
-      margin-left: 8px;
-      width: 42px;
-      min-width: 42px;
+      // position: relative;
+      // margin-left: 8px;
+      // width: 42px;
+      // min-width: 42px;
 
       // Pill background spanning all right buttons
-      &::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: -6px;
-        transform: translateY(-50%);
-        // Width: autostart (42px) + settings (36px) + fullscreen (36px) + padding (12px)
-        width: 126px;
-        height: 38px;
-        background: rgba(24, 30, 36, 0.9);
-        backdrop-filter: blur(16px);
-        border-radius: 22px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-        z-index: -1;
-        pointer-events: none;
-      }
+      // NOTE: z-index: 0 keeps pill above control bar gradient but below buttons
+      // &::before {
+      //   content: "";
+      //   position: absolute;
+      //   top: 50%;
+      //   left: -6px;
+      //   transform: translateY(-50%);
+      //   // Width: autostart (42px) + settings (34px) + fullscreen (34px) + padding (12px) = 122px
+      //   width: 122px;
+      //   height: 38px;
+      //   background: rgba(24, 30, 36, 0.9);
+      //   backdrop-filter: blur(16px);
+      //   -webkit-backdrop-filter: blur(16px); // Safari support
+      //   border-radius: 22px;
+      //   border: 1px solid rgba(255, 255, 255, 0.08);
+      //   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      //   z-index: 0; // Changed from -1 to appear above control bar gradient
+      //   pointer-events: none;
+      // }
     }
 
     // ============================================
     // Autoplay Toggle - Embedded Track Design
     // YouTube 2026 style: 30×14px track with 18px sliding thumb
     // ============================================
+    // IMPORTANT: Must override upstream ScenePlayer/styles.scss which has
+    // ::before and ::after pseudo-elements for old icon-based design
     .vjs-autostart-toggle {
       display: flex !important;
       align-items: center;
@@ -338,15 +355,32 @@ $stash-text: $player-text;
       .vjs-icon-placeholder {
         display: none !important;
       }
+    }
+
+    // CRITICAL: Hide upstream pseudo-elements that create old icon-based design
+    // Upstream ScenePlayer/styles.scss uses .vjs-icon-play-circle and .vjs-icon-cancel
+    // for the old toggle design with ::before (icon) and ::after (pill background)
+    // Note: We must NOT hide .vjs-autostart-toggle::before because that's our right panel pill
+    .vjs-autostart-button.vjs-icon-play-circle::before,
+    .vjs-autostart-button.vjs-icon-play-circle::after,
+    .vjs-autostart-button.vjs-icon-cancel::before,
+    .vjs-autostart-button.vjs-icon-cancel::after {
+      display: none !important;
+      content: none !important;
+    }
+
+    .vjs-autostart-toggle {
 
       // The track (pill background that changes color)
       .vjs-autostart-track {
         position: relative;
+        z-index: 1; // Above pill background
         width: 30px;
         height: 14px;
         background: rgba(255, 255, 255, 0.2);
         border-radius: 7px;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: scale(1.2);
       }
 
       // The sliding thumb
@@ -398,8 +432,6 @@ $stash-text: $player-text;
 
       // Hover states
       &:hover {
-        background: rgba(255, 255, 255, 0.06) !important;
-        border-radius: 8px;
 
         .vjs-autostart-track {
           background: rgba(255, 255, 255, 0.28);
@@ -417,41 +449,18 @@ $stash-text: $player-text;
     }
 
     // Settings and fullscreen buttons inside the pill
+    // Mockup spec: 34×34px with 18px icons
     .vjs-settings-button,
     .vjs-fullscreen-control {
       z-index: 1;
       background: transparent;
-      width: 36px;
-      min-width: 36px;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 50%;
-      }
-
-      // Smaller icons inside the pill
+      // 18px icons inside the pill (mockup spec)
       svg,
       .vjs-icon-placeholder svg {
-        width: 18px;
-        height: 18px;
+        width: 25px;
+        height: 25px;
+        fill: transparent !important;
       }
-    }
-
-    // Subtle dividers between buttons in the pill group
-    .vjs-autostart-toggle::after,
-    .vjs-settings-button::after {
-      content: "";
-      position: absolute;
-      right: -1px;
-      top: 25%;
-      height: 50%;
-      width: 1px;
-      background: linear-gradient(
-        180deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.1) 50%,
-        transparent 100%
-      );
     }
   }
 
@@ -460,8 +469,15 @@ $stash-text: $player-text;
     display: flex;
     justify-content: center;
     min-width: 0;
-    padding: 0 4px;
+    padding: 0 2px;
     pointer-events: none;
+    font-family: $stash-mono;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    user-select: none;
+    color: $player-text-muted;
 
     .vjs-control-text {
       display: none;
@@ -478,11 +494,6 @@ $stash-text: $player-text;
   // YouTube 2026 Progress Bar
   // ============================================
   .vjs-progress-control {
-    bottom: 2.5em;
-    height: 2em;
-    position: absolute;
-    width: 100%;
-    padding: 0.5em 0;
 
     .vjs-progress-holder {
       margin: 0 15px;
@@ -490,11 +501,19 @@ $stash-text: $player-text;
       background: $progress-bg;
       border-radius: 2px;
       transition: height 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      // font-size: inherit !important;
     }
 
     // Expand on hover (YouTube style)
-    &:hover .vjs-progress-holder {
-      height: $progress-bar-height-hover;
+    &:hover {
+      .vjs-progress-holder {
+        height: $progress-bar-height-hover;
+        font-size: inherit !important;
+      }
+
+      .vjs-marker-range {
+        height: $progress-bar-height-hover !important;
+      }
     }
 
     // Buffer (loaded) bar
@@ -531,40 +550,31 @@ $stash-text: $player-text;
       }
     }
 
-    // Show scrubber on hover
+    // Show scrubber on hover with pulse animation
     &:hover .vjs-play-progress {
       box-shadow: 0 0 12px $player-primary-glow, 0 0 4px $player-primary-glow;
 
       &::before {
         transform: translateY(-50%) scale(1);
+        animation: scrubber-pulse 2s ease-in-out infinite;
       }
     }
 
-    // Scrubber hover state
+    // Scrubber hover state (direct hover on handle)
     .vjs-play-progress:hover::before {
       transform: translateY(-50%) scale(1.15);
       box-shadow: $shadow-glow;
+      animation: none; // Stop pulse when directly hovering
     }
   }
 
-  /* stylelint-disable declaration-no-important */
-  .vjs-play-progress .vjs-time-tooltip {
-    display: none !important;
-  }
-  /* stylelint-enable declaration-no-important */
-
-  // Hover time tooltip
-  .vjs-mouse-display {
-    .vjs-time-tooltip {
-      background: rgba(14, 16, 20, 0.95);
-      backdrop-filter: blur(8px);
-      border-radius: 6px;
-      padding: 8px 14px;
-      font-size: 13px;
-      font-weight: 600;
-      font-family: 'JetBrains Mono', monospace;
-      box-shadow: $shadow-md;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+  // Scrubber pulse animation (YouTube-style breathing effect)
+  @keyframes scrubber-pulse {
+    0%, 100% {
+      box-shadow: $shadow-sm, 0 0 0 0 $player-primary-glow;
+    }
+    50% {
+      box-shadow: $shadow-sm, 0 0 0 8px transparent;
     }
   }
 
@@ -659,32 +669,6 @@ $stash-text: $player-text;
     &.vjs-settings-menu-open {
       display: block;
       pointer-events: auto;
-    }
-  }
-
-  .vjs-settings-menu {
-    background: rgba(28, 28, 28, 0.95);
-    border-radius: 8px;
-    min-width: 260px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-  }
-
-  .vjs-settings-menu-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.1);
     }
   }
 
@@ -1044,54 +1028,58 @@ $stash-text: $player-text;
   // ============================================
 
   // Point Marker - cyan vertical tick
+  // IMPORTANT: Must override upstream ScenePlayer/styles.scss which sets:
+  //   background-color: rgba(33, 33, 33, 0.8), width: 6px, height: 100%, visibility: hidden
+  /* stylelint-disable declaration-no-important */
   .vjs-marker {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 3px;
-    height: 16px;
-    background: linear-gradient(180deg, $marker-cyan 0%, rgba(0, 229, 255, 0.7) 100%);
-    border-radius: 2px;
+    background: linear-gradient(180deg, $marker-cyan 0%, rgba(0, 229, 255, 0.7) 100%) !important;
+    background-color: transparent !important; // Override upstream rgba(33,33,33,0.8)
+    border-radius: 2px !important;
     cursor: pointer;
-    z-index: 3;
+    z-index: 3 !important;
     box-shadow: 0 0 8px $marker-cyan-glow;
-    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
     animation: marker-glow 2.5s ease-in-out infinite;
-    transform: translateY(-50%);
+    width: 4px !important;
+    transform: scaleY(3) !important; // Override upstream scale transform
+    visibility: visible !important; // Override upstream visibility: hidden
+    opacity: 1 !important;
 
     &:hover {
-      height: 20px;
-      width: 4px;
       box-shadow: 0 0 16px $marker-cyan-glow, 0 0 6px $marker-cyan;
       animation: none;
     }
   }
+  /* stylelint-enable declaration-no-important */
 
   @keyframes marker-glow {
     0%, 100% { box-shadow: 0 0 6px $marker-cyan-glow; }
     50% { box-shadow: 0 0 14px $marker-cyan-glow, 0 0 4px $marker-cyan; }
   }
 
-  // Range Marker - amber overlay segment
-  // Note: Marker is child of .vjs-progress-control which has complex positioning
-  // Progress holder sits at 12.5px from control top - marker must align with it
+  // Range Marker - amber overlay segment (YouTube 2026 / Mockup style)
+  // IMPORTANT: Must override upstream ScenePlayer/styles.scss which sets:
+  //   background-color: rgba(255, 255, 255, 0.4), transform: translateY(-28px), height: 8px
+  // MOCKUP SPEC: top: 0; bottom: 0 (fills full progress bar height)
+  /* stylelint-disable declaration-no-important */
   .vjs-marker-range {
-    position: absolute;
-    top: 12.5px !important; // Align with .vjs-progress-holder
-    transform: none !important; // Override any inherited transform
-    height: 3px !important; // Match progress bar height (3px default, 5px on hover)
+    top: 50%;
+    transform: translateY(-50%);
+    height: $progress-bar-height;
     background: linear-gradient(
       90deg,
-      rgba(255, 171, 64, 0.2) 0%,
-      rgba(255, 171, 64, 0.45) 50%,
-      rgba(255, 171, 64, 0.2) 100%
+      rgba(255, 171, 64, 0.15) 0%,
+      rgba(255, 171, 64, 0.35) 50%,
+      rgba(255, 171, 64, 0.15) 100%
     ) !important;
-    border-left: 2px solid $marker-amber;
-    border-right: 2px solid $marker-amber;
+    background-color: transparent !important; // Override upstream rgba(255,255,255,0.4)
+    border-left: 2px solid $marker-amber !important;
+    border-right: 2px solid $marker-amber !important;
     cursor: pointer;
-    z-index: 2; // Above progress bar
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 2px;
+    z-index: 1 !important; // Below scrubber (z-index: 3) but above progress bar
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border-radius: 2px !important;
+    box-shadow: none !important; // Override upstream box-shadow
 
     &:hover {
       background: linear-gradient(
@@ -1099,48 +1087,10 @@ $stash-text: $player-text;
         rgba(255, 171, 64, 0.25) 0%,
         rgba(255, 171, 64, 0.5) 50%,
         rgba(255, 171, 64, 0.25) 100%
-      );
-      box-shadow: 0 0 12px $marker-amber-glow;
+      ) !important;
+      box-shadow: 0 0 12px $marker-amber-glow !important;
+      height: $progress-bar-height-hover !important;
     }
-  }
-
-  // Marker tooltip - refined dark style
-  .vjs-marker-tooltip {
-    position: absolute;
-    bottom: 26px;
-    left: 50%;
-    transform: translateX(-50%) translateY(4px);
-    background: rgba(18, 18, 20, 0.95);
-    backdrop-filter: blur(12px);
-    color: $player-text;
-    font-size: 12px;
-    font-weight: 500;
-    padding: 8px 12px;
-    border-radius: 6px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 100;
-    box-shadow: $shadow-md;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-
-    // Tooltip arrow
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -7px;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 7px solid transparent;
-      border-top-color: rgba(18, 18, 20, 0.95);
-    }
-  }
-
-  .vjs-marker:hover .vjs-marker-tooltip,
-  .vjs-marker-range:hover .vjs-marker-tooltip {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
   }
 
   .vjs-text-track-settings select {
@@ -1240,10 +1190,6 @@ $stash-text: $player-text;
       bottom: 3em;
     }
 
-    .vjs-settings-menu {
-      min-width: 220px;
-    }
-
     .vjs-settings-menu-item {
       padding: 10px 12px;
     }
@@ -1285,12 +1231,50 @@ $stash-text: $player-text;
   padding-right: 15px;
 }
 
+// ============================================
+// ScenePlayerScrubber - YouTube 2026 Redesign
+// Dark Cinema Glass Aesthetic
+// ============================================
+
+// Scrubber-specific design tokens
+$scrubber-bg: rgb(18 22 26 / 92%);
+$scrubber-bg-hover: rgba(255, 255, 255, 0.06);
+$scrubber-border: rgba(255, 255, 255, 0.08);
+$scrubber-divider: rgba(255, 255, 255, 0.12);
+$scrubber-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.2);
+$scrubber-easing: cubic-bezier(0.4, 0, 0.2, 1);
+$scrubber-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
 .scrubber-wrapper {
   display: flex;
   flex-shrink: 0;
-  margin: 5px 0;
+  margin: 8px 0;
   overflow: hidden;
   position: relative;
+
+  // Glass morphism container
+  background: $scrubber-bg;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid $scrubber-border;
+  border-radius: 14px;
+  box-shadow: $scrubber-shadow;
+
+  // Subtle inner glow
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    padding: 1px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 10;
+  }
 }
 
 #scrubber-back {
@@ -1301,53 +1285,134 @@ $stash-text: $player-text;
   float: right;
 }
 
+// Navigation buttons - frosted glass style
 .scrubber-button {
-  background-color: transparent;
-  border: 1px solid #555;
-  color: $link-color;
+  background: transparent;
+  border: none;
+  color: $player-text;
   cursor: pointer;
   font-size: 1.1rem;
-  font-weight: 800;
+  font-weight: 600;
   height: 100%;
-  line-height: $scrubberHeight;
+  min-height: $scrubberHeight + 10px;
+  line-height: $scrubberHeight + 10px;
   padding: 0;
   text-align: center;
-  width: 1.8rem;
+  width: 44px;
+  min-width: 44px;
+  transition: all 0.2s $scrubber-easing;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  // Subtle divider lines
+  &::after {
+    content: '';
+    position: absolute;
+    top: 20%;
+    height: 60%;
+    width: 1px;
+    background: linear-gradient(180deg, transparent 0%, $scrubber-divider 50%, transparent 100%);
+  }
+
+  &#scrubber-back::after {
+    right: 0;
+  }
+
+  &#scrubber-forward::after {
+    left: 0;
+  }
+
+  svg,
+  .svg-inline--fa {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.2s $scrubber-spring;
+  }
+
+  &:hover {
+    background: $scrubber-bg-hover;
+    color: $player-primary-hover;
+
+    svg,
+    .svg-inline--fa {
+      transform: scale(1.15);
+    }
+  }
+
+  &:active {
+    svg,
+    .svg-inline--fa {
+      transform: scale(0.9);
+    }
+  }
 }
 
 .scrubber-content {
-  cursor: pointer;
+  cursor: grab;
   display: inline-block;
   flex-grow: 1;
-  height: $scrubberHeight;
-  margin: 0 7px;
+  height: $scrubberHeight + 10px;
+  margin: 0;
   overflow: hidden;
   -webkit-overflow-scrolling: touch;
   position: relative;
   -webkit-user-select: none;
   user-select: none;
 
+  // Film grain texture
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+
   &.dragging {
     cursor: grabbing;
   }
 }
 
+// Position indicator (progress fill) - blue gradient
 #scrubber-position-indicator {
-  background-color: rgba(255, 255, 255, 0.7);
-  height: 20px;
+  background: linear-gradient(90deg, rgba($player-primary, 0.15) 0%, rgba($player-primary, 0.05) 100%);
+  height: 28px;
   left: -100%;
   position: absolute;
   width: 100%;
   z-index: 0;
+  pointer-events: none;
 }
 
+// Current position line - prominent blue with glow
 #scrubber-current-position {
-  background-color: #fff;
-  height: 30px;
+  background: linear-gradient(180deg, $player-primary 0%, $player-primary-hover 100%);
+  height: 100%;
   left: 50%;
   position: absolute;
-  width: 2px;
-  z-index: 1;
+  width: 3px;
+  z-index: 20;
+  transform: translateX(-50%);
+  box-shadow:
+    0 0 12px $player-primary-glow,
+    0 0 24px $player-primary-glow;
+
+  // Scrubber head at top
+  &::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    background: $player-text;
+    border: 2px solid $player-primary;
+    border-radius: 50%;
+    box-shadow: 0 0 8px $player-primary-glow;
+    animation: scrubber-head-pulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes scrubber-head-pulse {
+  0%, 100% { box-shadow: 0 0 8px $player-primary-glow; }
+  50% { box-shadow: 0 0 16px $player-primary-glow, 0 0 4px $player-primary; }
 }
 
 .scrubber-viewport {
@@ -1363,71 +1428,132 @@ $stash-text: $player-text;
   width: 100%;
 }
 
+// Tags area with glass effect
 .scrubber-tags {
-  height: 20px;
-  margin-bottom: 10px;
+  height: 28px;
+  margin-bottom: 4px;
   position: relative;
 
   &-background {
-    background-color: #555;
-    height: 20px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.1) 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    height: 28px;
     left: 0;
     position: absolute;
     right: 0;
   }
 }
 
+// Heatmap overlay with gradient
 .scrubber-heatmap {
   background-size: 100% 100%;
-  height: 20px;
+  height: 4px;
   left: 0;
   position: absolute;
   right: 0;
+  top: 28px;
+  opacity: 0.8;
+  z-index: 2;
 }
 
+// Marker tags - cyan glass pills
 .scrubber-tag {
-  background-color: #000;
+  background: rgba($marker-cyan, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba($marker-cyan, 0.3);
+  border-radius: 10px;
+  color: $marker-cyan;
   cursor: pointer;
-  font-size: 10px;
+  font-family: $stash-font;
+  font-size: 11px;
+  font-weight: 500;
   height: 20px;
-  padding: 0 10px;
+  line-height: 18px;
+  padding: 0 10px 0 8px;
   position: absolute;
+  top: 4px;
   transform: translateX(-50%);
   white-space: nowrap;
+  transition: all 0.2s $scrubber-easing;
+  box-shadow: 0 2px 8px rgba($marker-cyan, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  // Cyan dot indicator
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: $marker-cyan;
+    border-radius: 50%;
+    box-shadow: 0 0 6px $marker-cyan;
+    flex-shrink: 0;
+  }
+
+  // Remove the old arrow
+  &::after {
+    display: none;
+  }
 
   &:hover {
-    background-color: #444;
-    z-index: 1;
-  }
-
-  &:hover::after {
-    border-top: solid 5px #444;
-    z-index: 1;
-  }
-
-  &::after {
-    border-left: solid 5px transparent;
-    border-right: solid 5px transparent;
-    border-top: solid 5px #000;
-    bottom: -5px;
-    content: "";
-    left: 50%;
-    margin-left: -5px;
-    position: absolute;
+    background: rgba($marker-cyan, 0.25);
+    border-color: $marker-cyan;
+    box-shadow: 0 0 16px $marker-cyan-glow;
+    transform: translateX(-50%) scale(1.05);
+    z-index: 10;
   }
 }
 
+// Sprite items - enhanced with glass effect
 .scrubber-item {
-  color: white;
+  color: $player-text;
   display: flex;
-  font-size: 10px;
-  margin: 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0;
   position: absolute;
   text-align: center;
-  text-shadow: 1px 1px black;
+  padding-bottom: 6px;
+  transition: all 0.2s $scrubber-easing;
+  top: 32px;
+  height: calc(100% - 32px);
+
+  // Gradient overlay for better text readability
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 60%, rgba(0, 0, 0, 0.6) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  // Subtle border between sprites
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+
+  &:hover {
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba($player-primary, 0.3);
+      pointer-events: none;
+      z-index: 2;
+    }
+  }
 
   &-time {
-    align-self: flex-end;
+    font-family: $stash-mono;
+    font-size: 11px;
+    font-weight: 500;
+    color: $player-text;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    z-index: 3;
+    letter-spacing: -0.02em;
+    align-self: center;
     display: inline-block;
     width: 100%;
   }
@@ -1502,5 +1628,476 @@ $stash-text: $player-text;
       flex: 0 0 calc(100% - 15px);
       max-width: calc(100% - 15px);
     }
+  }
+}
+
+// ============================================
+// Chapter Indicator Component
+// YouTube-style marker indicator with dropdown
+// ============================================
+
+.vjs-chapter-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  margin-left: 8px;
+  cursor: pointer;
+  position: relative;
+  border-radius: 6px;
+  transition: background 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  order: 7; // After time display, before spacer
+  z-index: 10;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $player-primary;
+    outline-offset: 2px;
+  }
+}
+
+.vjs-chapter-title {
+  color: $player-text;
+  font-family: $stash-font;
+  font-size: 13px;
+  font-weight: 500;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s ease;
+  letter-spacing: -0.01em;
+}
+
+.vjs-chapter-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  svg {
+    width: 16px;
+    height: 16px;
+    fill: $player-text-muted;
+    transition: fill 0.15s ease;
+  }
+}
+
+.vjs-chapter-indicator:hover .vjs-chapter-title {
+  color: #fff;
+}
+
+.vjs-chapter-indicator:hover .vjs-chapter-chevron svg {
+  fill: $player-text;
+}
+
+.vjs-chapter-indicator.is-open .vjs-chapter-chevron {
+  transform: rotate(90deg);
+}
+
+// ============================================
+// Chapter Dropdown Panel
+// Glass morphism with backdrop blur
+// ============================================
+
+.vjs-chapter-dropdown {
+  position: absolute;
+  bottom: 44px;
+  left: 0;
+  background: rgb(18 22 26 / 60%);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  min-width: 240px;
+  max-width: 320px;
+  max-height: 320px;
+  overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.95);
+  transform-origin: bottom left;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 200;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.vjs-chapter-indicator.is-open .vjs-chapter-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+// ============================================
+// Dropdown Items with Staggered Animation
+// ============================================
+
+.vjs-chapter-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(-8px);
+  margin: 0;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &:focus-visible {
+    outline: none;
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+// Staggered slide-in animation
+.vjs-chapter-indicator.is-open .vjs-chapter-dropdown-item {
+  animation: vjs-chapter-slide-in 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes vjs-chapter-slide-in {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Active marker styling
+.vjs-chapter-dropdown-item.is-active {
+  background: rgba($player-primary, 0.12);
+  border-left: 3px solid $player-primary;
+  padding-left: 11px;
+
+  .vjs-chapter-item-title {
+    color: $player-primary-hover;
+    font-weight: 500;
+  }
+}
+
+// ============================================
+// Marker Type Dots
+// ============================================
+
+.vjs-chapter-item-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+  box-shadow: 0 0 8px currentColor;
+
+  &.point {
+    background: $marker-cyan;
+    box-shadow: 0 0 8px $marker-cyan-glow;
+  }
+
+  &.range {
+    background: $marker-amber;
+    box-shadow: 0 0 8px $marker-amber-glow;
+  }
+}
+
+.vjs-chapter-dropdown-item:hover .vjs-chapter-item-dot {
+  transform: scale(1.2);
+}
+
+// ============================================
+// Marker Info
+// ============================================
+
+.vjs-chapter-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.vjs-chapter-item-title {
+  color: $player-text;
+  font-family: $stash-font;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+// ============================================
+// Scrollbar Styling
+// ============================================
+
+.vjs-chapter-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.vjs-chapter-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vjs-chapter-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.vjs-chapter-dropdown::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+// ============================================
+// Chapter Dropdown Header with Add Button
+// ============================================
+
+.vjs-chapter-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 4px;
+
+  h4 {
+    color: $player-text;
+    font-family: $stash-font;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0;
+    opacity: 0.7;
+  }
+}
+
+.vjs-chapter-header-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: rgba($player-primary, 0.15);
+  color: $player-primary;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+
+  &:hover {
+    background: $player-primary;
+    color: white;
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// ============================================
+// Quick Add Button (Control Bar)
+// ============================================
+
+.vjs-chapter-quick-add {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  margin: auto !important;
+  margin-left: 8px !important;
+  border: 2px dashed rgba(255, 255, 255, 0.25) !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: $player-text-muted !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  order: 7; // After chapter indicator
+
+  svg {
+    width: 16px !important;
+    height: 16px !important;
+    fill: currentColor !important;
+    transition: transform 0.2s ease !important;
+  }
+
+  &:hover {
+    border-color: $player-primary !important;
+    color: $player-primary !important;
+    background: rgba($player-primary, 0.1) !important;
+
+    svg {
+      transform: scale(1.1) !important;
+    }
+  }
+
+  &:active {
+    transform: scale(0.95) !important;
+    background: rgba($player-primary, 0.2) !important;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $player-primary !important;
+    outline-offset: 2px !important;
+  }
+}
+
+// ============================================
+// Action Buttons (Edit/Delete) on Items
+// ============================================
+
+.vjs-chapter-item-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.vjs-chapter-dropdown-item:hover .vjs-chapter-item-actions {
+  opacity: 1;
+}
+
+.vjs-chapter-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: $player-text-muted;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: $player-text;
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  // Delete button danger state
+  &.vjs-chapter-delete-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+}
+
+// ============================================
+// Item Meta (Time + Duration)
+// ============================================
+
+.vjs-chapter-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.vjs-chapter-item-time {
+  color: $player-text-dim;
+  font-family: $stash-mono;
+  font-size: 11px;
+  letter-spacing: -0.02em;
+  font-feature-settings: "tnum" 1;
+}
+
+.vjs-chapter-item-duration {
+  color: $player-text-dim;
+  font-family: $stash-font;
+  font-size: 10px;
+  opacity: 0.7;
+
+  &::before {
+    content: "•";
+    margin-right: 8px;
+    opacity: 0.5;
+  }
+}
+
+// ============================================
+// Empty State
+// ============================================
+
+.vjs-chapter-empty {
+  padding: 24px 16px;
+  text-align: center;
+
+  p {
+    color: $player-text-muted;
+    font-size: 13px;
+    margin: 0 0 12px;
+  }
+}
+
+.vjs-chapter-empty-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: $player-primary;
+  color: white;
+  font-family: $stash-font;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+
+  &:hover {
+    background: lighten($player-primary, 5%);
+    box-shadow: 0 4px 16px rgba($player-primary, 0.4);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// ============================================
+// Responsive: Hide on small screens
+// ============================================
+
+@media (max-width: 600px) {
+  .vjs-chapter-indicator,
+  .vjs-chapter-quick-add {
+    display: none !important;
   }
 }

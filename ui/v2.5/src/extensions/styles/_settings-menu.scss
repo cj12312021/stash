@@ -1,0 +1,757 @@
+// =============================================================================
+// SETTINGS MENU - YouTube 2026 Glass Morphism Design
+// =============================================================================
+//
+// This stylesheet provides all styling for the SettingsMenuPlugin.
+// Design based on mockup.html from the YouTube player controls redesign.
+//
+// Features:
+// - Glass morphism with backdrop blur
+// - Smooth cubic-bezier animations
+// - YouTube 2026-style toggle switches
+// - Custom slider styling with gradient fill
+// - HD/4K quality badges
+// - Inter + JetBrains Mono typography
+//
+
+// -----------------------------------------------------------------------------
+// Design Tokens
+// -----------------------------------------------------------------------------
+
+$settings-bg: rgb(18 22 26 / 60%);
+$settings-bg-hover: rgba(255, 255, 255, 0.08);
+$settings-border: rgba(255, 255, 255, 0.1);
+$settings-divider: rgba(255, 255, 255, 0.1);
+$settings-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.3);
+
+$settings-text: #f5f8fa;
+$settings-text-muted: rgba(245, 248, 250, 0.7);
+$settings-text-dim: rgba(245, 248, 250, 0.45);
+
+$settings-primary: #2196f3;
+$settings-primary-hover: #64b5f6;
+$settings-primary-glow: rgba(33, 150, 243, 0.4);
+
+$settings-radius: 14px;
+$settings-radius-sm: 6px;
+
+$settings-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+$settings-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+$settings-easing: cubic-bezier(0.4, 0, 0.2, 1);
+
+// -----------------------------------------------------------------------------
+// Settings Button (Gear)
+// -----------------------------------------------------------------------------
+
+.vjs-settings-button {
+  order: 11 !important;
+  z-index: 1;
+
+  .vjs-icon-placeholder svg {
+    width: 20px;
+    height: 20px;
+    fill: $settings-text;
+    transition: transform 0.3s $settings-easing;
+  }
+
+  &:hover .vjs-icon-placeholder svg,
+  &.is-active .vjs-icon-placeholder svg {
+    transform: rotate(30deg);
+  }
+
+  &.is-active .vjs-icon-placeholder svg {
+    fill: $settings-primary;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Menu Container
+// -----------------------------------------------------------------------------
+
+.vjs-settings-menu {
+  position: absolute;
+  bottom: 52px;
+  right: 12px;
+  z-index: 300;
+
+  // Glass morphism
+  background: $settings-bg;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+
+  // Shape
+  border-radius: $settings-radius;
+  border: 1px solid $settings-border;
+  box-shadow: $settings-shadow;
+
+  // Size
+  min-width: 290px;
+  max-width: 340px;
+  overflow: hidden;
+
+  // Hidden by default
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.96);
+  transform-origin: bottom right;
+  transition:
+    opacity 0.25s $settings-easing,
+    visibility 0.25s $settings-easing,
+    transform 0.25s $settings-easing;
+
+  // Open state
+  &.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Menu Panel (inner container)
+// -----------------------------------------------------------------------------
+
+.settings-menu-panel {
+  font-family: $settings-font;
+  color: $settings-text;
+}
+
+// -----------------------------------------------------------------------------
+// Menu Items Container
+// -----------------------------------------------------------------------------
+
+.settings-menu-items {
+  padding: 8px 0;
+  max-height: 360px;
+  overflow-y: auto;
+
+  // Custom scrollbar
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Divider
+// -----------------------------------------------------------------------------
+
+.settings-menu-divider {
+  height: 1px;
+  background: $settings-divider;
+  margin: 8px 0;
+}
+
+// -----------------------------------------------------------------------------
+// Toggle Item (Loop, Scrubber)
+// -----------------------------------------------------------------------------
+
+.settings-menu-toggle {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.15s $settings-easing;
+
+  &:hover {
+    background: $settings-bg-hover;
+  }
+
+  // Icon
+  .menu-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    svg {
+      width: 18px;
+      height: 18px;
+      color: $settings-text-muted;
+      stroke: $settings-text-muted;
+      fill: none;
+    }
+  }
+
+  // Label
+  .menu-label {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 400;
+    color: $settings-text;
+  }
+
+  // Toggle switch
+  .toggle-switch {
+    width: 38px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 11px;
+    position: relative;
+    transition: all 0.25s $settings-easing;
+    flex-shrink: 0;
+  }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: $settings-text;
+    border-radius: 50%;
+    transition: all 0.25s $settings-easing;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  // ON state
+  &.is-on {
+    .toggle-switch {
+      background: $settings-primary;
+      box-shadow: 0 0 12px $settings-primary-glow;
+    }
+
+    .toggle-thumb {
+      transform: translateX(16px);
+    }
+  }
+
+  // Hover effects
+  &:hover .toggle-thumb {
+    transform: scale(1.08);
+  }
+
+  &.is-on:hover .toggle-thumb {
+    transform: translateX(16px) scale(1.08);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Menu Item (Submenu link)
+// -----------------------------------------------------------------------------
+
+.settings-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.15s $settings-easing;
+
+  &:hover {
+    background: $settings-bg-hover;
+  }
+
+  // Icon
+  .menu-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    svg {
+      width: 18px;
+      height: 18px;
+      color: $settings-text-muted;
+      stroke: $settings-text-muted;
+      fill: none;
+    }
+  }
+
+  // Label
+  .menu-label {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 400;
+    color: $settings-text;
+  }
+
+  // Value (e.g., "720p", "Normal")
+  .menu-value {
+    font-size: 12px;
+    color: $settings-text-muted;
+    margin-right: 4px;
+    flex-shrink: 0;
+  }
+
+  // Chevron
+  .menu-chevron {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    svg {
+      width: 14px;
+      height: 14px;
+      color: $settings-text-dim;
+      stroke: $settings-text-dim;
+      fill: none;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Submenu Header (Back button + title)
+// -----------------------------------------------------------------------------
+
+.settings-menu-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid $settings-border;
+  cursor: pointer;
+  transition: background 0.15s $settings-easing;
+
+  &:hover {
+    background: $settings-bg-hover;
+  }
+
+  .header-back {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      width: 18px;
+      height: 18px;
+      color: $settings-text;
+      stroke: $settings-text;
+      fill: none;
+    }
+  }
+
+  h3 {
+    font-size: 14px;
+    font-weight: 500;
+    color: $settings-text;
+    margin: 0;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Option Item (Radio-style selection)
+// -----------------------------------------------------------------------------
+
+.settings-option {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.15s $settings-easing;
+
+  &:hover {
+    background: $settings-bg-hover;
+  }
+
+  &.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+
+    &:hover {
+      background: transparent;
+    }
+  }
+
+  // Checkmark
+  .option-check {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    svg {
+      width: 14px;
+      height: 14px;
+      color: $settings-primary;
+      stroke: $settings-primary;
+      fill: none;
+    }
+  }
+
+  // Label
+  .option-label {
+    flex: 1;
+    font-size: 13px;
+    color: $settings-text;
+  }
+
+  // Badge (HD, 4K)
+  .option-badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: $settings-primary;
+    background: rgba(33, 150, 243, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    flex-shrink: 0;
+  }
+
+  // Selected state
+  &.is-selected {
+    .option-label {
+      color: $settings-primary-hover;
+      font-weight: 500;
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Custom Speed Control (Slider at top of speed submenu)
+// -----------------------------------------------------------------------------
+
+.custom-speed-control {
+  padding: 12px 16px;
+  border-bottom: 1px solid $settings-border;
+}
+
+.custom-speed-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+
+  .option-check {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    svg {
+      width: 14px;
+      height: 14px;
+      color: $settings-primary;
+      stroke: $settings-primary;
+      fill: none;
+    }
+  }
+
+  > span:not(.option-check):not(.custom-speed-value) {
+    flex: 1;
+    font-size: 13px;
+    color: $settings-text;
+  }
+}
+
+.custom-speed-value {
+  font-size: 12px;
+  font-family: $settings-mono;
+  color: $settings-text-muted;
+  font-variant-numeric: tabular-nums;
+}
+
+.custom-speed-slider {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 2px;
+  cursor: pointer;
+  outline: none;
+  background: rgba(255, 255, 255, 0.2);
+
+  // Track styling - override global blue rule
+  &::-webkit-slider-runnable-track {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-radius: 2px;
+  }
+
+  &::-moz-range-track {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-radius: 2px;
+  }
+
+  &:hover::-webkit-slider-runnable-track {
+    background: rgba(255, 255, 255, 0.3) !important;
+  }
+
+  &:hover::-moz-range-track {
+    background: rgba(255, 255, 255, 0.3) !important;
+  }
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px !important;
+    height: 14px !important;
+    background: $settings-text !important;
+    border: none !important;
+    border-radius: 50% !important;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+    transition: transform 0.15s $settings-easing, box-shadow 0.15s $settings-easing;
+  }
+
+  &:hover::-webkit-slider-thumb {
+    transform: scale(1.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  &::-moz-range-thumb {
+    width: 14px !important;
+    height: 14px !important;
+    background: $settings-text !important;
+    border: none !important;
+    border-radius: 50% !important;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  &:hover::-moz-range-thumb {
+    transform: scale(1.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Slider Items (Filters, Transforms)
+// -----------------------------------------------------------------------------
+
+.settings-sliders {
+  padding: 4px 0 !important;
+}
+
+.settings-slider-item {
+  padding: 10px 16px;
+
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .slider-label {
+    font-size: 12px;
+    color: $settings-text-muted;
+  }
+
+  .slider-value {
+    font-size: 12px;
+    font-family: $settings-mono;
+    color: $settings-text-muted;
+    font-variant-numeric: tabular-nums;
+    min-width: 48px;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 2px;
+    cursor: pointer;
+    outline: none;
+    background: rgba(255, 255, 255, 0.2);
+    transition: background 0.2s $settings-easing;
+
+    // Track styling - override global blue rule
+    &::-webkit-slider-runnable-track {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2) !important;
+      border-radius: 2px;
+    }
+
+    &::-moz-range-track {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.2) !important;
+      border-radius: 2px;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+
+      &::-webkit-slider-runnable-track {
+        background: rgba(255, 255, 255, 0.3) !important;
+      }
+
+      &::-moz-range-track {
+        background: rgba(255, 255, 255, 0.3) !important;
+      }
+    }
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      background: $settings-text;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      transition: transform 0.15s $settings-easing, box-shadow 0.15s $settings-easing;
+    }
+
+    &:hover::-webkit-slider-thumb {
+      transform: scale(1.15);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    &::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: $settings-text;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    &:hover::-moz-range-thumb {
+      transform: scale(1.15);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Quick Action Buttons (Rotate -90, +90)
+// -----------------------------------------------------------------------------
+
+.settings-quick-actions {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+}
+
+.settings-quick-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: $settings-radius-sm;
+  color: $settings-text;
+  font-size: 12px;
+  font-family: $settings-font;
+  cursor: pointer;
+  transition: all 0.15s $settings-easing;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Reset Button
+// -----------------------------------------------------------------------------
+
+.settings-reset-btn {
+  width: calc(100% - 32px);
+  margin: 8px 16px 12px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: $settings-radius-sm;
+  color: $settings-text;
+  font-size: 12px;
+  font-family: $settings-font;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s $settings-easing;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Accessibility
+// -----------------------------------------------------------------------------
+
+// Reduced motion
+@media (prefers-reduced-motion: reduce) {
+  .vjs-settings-menu,
+  .settings-menu-toggle,
+  .settings-menu-item,
+  .settings-option,
+  .toggle-switch,
+  .toggle-thumb,
+  .settings-reset-btn,
+  .settings-quick-btn,
+  input[type="range"]::-webkit-slider-thumb {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// High contrast mode
+@media (prefers-contrast: high) {
+  .vjs-settings-menu {
+    background: rgba(0, 0, 0, 0.95);
+    border: 2px solid #fff;
+  }
+
+  .settings-menu-toggle.is-on .toggle-switch {
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .settings-option.is-selected .option-label {
+    color: #fff;
+    text-decoration: underline;
+  }
+}
+
+// Focus visible for keyboard navigation
+.settings-menu-toggle:focus-visible,
+.settings-menu-item:focus-visible,
+.settings-option:focus-visible,
+.settings-menu-header:focus-visible,
+.settings-quick-btn:focus-visible,
+.settings-reset-btn:focus-visible {
+  outline: 2px solid $settings-primary;
+  outline-offset: -2px;
+  background: $settings-bg-hover;
+}
+
+input[type="range"]:focus-visible {
+  outline: 2px solid $settings-primary;
+  outline-offset: 2px;
+}

@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ScenePlayerScrubber - YouTube 2026 Redesign</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Stash Blueprint Dark - Enhanced */
+      --stash-primary: #2196f3;
+      --stash-primary-hover: #64b5f6;
+      --stash-primary-glow: rgba(33, 150, 243, 0.4);
+      --stash-primary-intense: #42a5f5;
+
+      --stash-text: #f5f8fa;
+      --stash-text-muted: rgba(245, 248, 250, 0.7);
+      --stash-text-dim: rgba(245, 248, 250, 0.45);
+
+      --stash-body-bg: #181e24;
+      --stash-card-bg: #242d35;
+      --stash-secondary: #2d3940;
+
+      /* Scrubber specific */
+      --scrubber-bg: rgb(18 22 26 / 92%);
+      --scrubber-bg-hover: rgba(255, 255, 255, 0.06);
+      --scrubber-border: rgba(255, 255, 255, 0.08);
+      --scrubber-divider: rgba(255, 255, 255, 0.12);
+      --scrubber-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.2);
+
+      /* Marker colors */
+      --marker-cyan: #00e5ff;
+      --marker-cyan-glow: rgba(0, 229, 255, 0.5);
+      --marker-amber: #ffab40;
+
+      /* Typography */
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+      /* Animation */
+      --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--stash-body-bg);
+      background-image:
+        radial-gradient(ellipse at 30% 70%, rgba(33, 150, 243, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 30%, rgba(0, 229, 255, 0.04) 0%, transparent 40%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 40px;
+      font-family: var(--font-sans);
+      color: var(--stash-text);
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--stash-text) 0%, var(--stash-text-muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--stash-text-dim);
+      font-size: 14px;
+      margin-bottom: 50px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .comparison {
+      display: flex;
+      flex-direction: column;
+      gap: 60px;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .version {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .version-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--stash-text-muted);
+    }
+
+    .version-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--scrubber-divider) 0%, transparent 100%);
+    }
+
+    .badge {
+      font-size: 10px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-old {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--stash-text-dim);
+    }
+
+    .badge-new {
+      background: linear-gradient(135deg, var(--stash-primary) 0%, var(--stash-primary-intense) 100%);
+      color: white;
+      box-shadow: 0 2px 12px var(--stash-primary-glow);
+    }
+
+    /* =========================================
+       CURRENT SCRUBBER (Basic/Original)
+       ========================================= */
+
+    .scrubber-old {
+      display: flex;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .scrubber-old .nav-btn {
+      width: 32px;
+      min-width: 32px;
+      height: 120px;
+      background: transparent;
+      border: none;
+      border-right: 1px solid #555;
+      color: #4a9eff;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scrubber-old .nav-btn:last-child {
+      border-right: none;
+      border-left: 1px solid #555;
+    }
+
+    .scrubber-old .nav-btn:hover {
+      background: #333;
+    }
+
+    .scrubber-old .content {
+      flex: 1;
+      height: 120px;
+      position: relative;
+      background: #222;
+      overflow: hidden;
+    }
+
+    .scrubber-old .tags-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 20px;
+      background: #555;
+    }
+
+    .scrubber-old .tag {
+      position: absolute;
+      top: 0;
+      height: 20px;
+      background: #000;
+      color: #fff;
+      font-size: 10px;
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    .scrubber-old .tag::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid #000;
+    }
+
+    .scrubber-old .position-indicator {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      background: #fff;
+      z-index: 10;
+    }
+
+    .scrubber-old .sprites {
+      position: absolute;
+      top: 30px;
+      left: 0;
+      display: flex;
+      height: 90px;
+    }
+
+    .scrubber-old .sprite {
+      width: 160px;
+      height: 90px;
+      background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+      border-right: 1px solid #333;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 4px;
+      font-size: 10px;
+      color: #999;
+      text-shadow: 1px 1px 2px #000;
+    }
+
+    /* =========================================
+       NEW SCRUBBER (YouTube 2026 Style)
+       ========================================= */
+
+    .scrubber-new {
+      display: flex;
+      background: var(--scrubber-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--scrubber-border);
+      border-radius: 14px;
+      box-shadow: var(--scrubber-shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Subtle inner glow */
+    .scrubber-new::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      padding: 1px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 50%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .scrubber-new .nav-btn {
+      width: 44px;
+      min-width: 44px;
+      height: 130px;
+      background: transparent;
+      border: none;
+      color: var(--stash-text);
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s var(--ease-out);
+      position: relative;
+    }
+
+    .scrubber-new .nav-btn::after {
+      content: '';
+      position: absolute;
+      top: 20%;
+      height: 60%;
+      width: 1px;
+      background: linear-gradient(180deg, transparent 0%, var(--scrubber-divider) 50%, transparent 100%);
+    }
+
+    .scrubber-new .nav-btn:first-child::after {
+      right: 0;
+    }
+
+    .scrubber-new .nav-btn:last-child::after {
+      left: 0;
+    }
+
+    .scrubber-new .nav-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform 0.2s var(--ease-spring);
+    }
+
+    .scrubber-new .nav-btn:hover {
+      background: var(--scrubber-bg-hover);
+      color: var(--stash-primary-hover);
+    }
+
+    .scrubber-new .nav-btn:hover svg {
+      transform: scale(1.15);
+    }
+
+    .scrubber-new .nav-btn:active svg {
+      transform: scale(0.9);
+    }
+
+    .scrubber-new .content {
+      flex: 1;
+      height: 130px;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      /* Film grain texture */
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+    }
+
+    .scrubber-new .content:active {
+      cursor: grabbing;
+    }
+
+    /* Tags area with glass effect */
+    .scrubber-new .tags-area {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 28px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .scrubber-new .tag {
+      position: absolute;
+      top: 4px;
+      height: 20px;
+      background: rgba(0, 229, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      color: var(--marker-cyan);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 0 10px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-out);
+      box-shadow: 0 2px 8px rgba(0, 229, 255, 0.15);
+      transform: translateX(-50%);
+    }
+
+    .scrubber-new .tag:hover {
+      background: rgba(0, 229, 255, 0.25);
+      border-color: var(--marker-cyan);
+      box-shadow: 0 0 16px var(--marker-cyan-glow);
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    .scrubber-new .tag::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--marker-cyan);
+      border-radius: 50%;
+      margin-right: 6px;
+      box-shadow: 0 0 6px var(--marker-cyan);
+    }
+
+    /* Position indicator - prominent blue line */
+    .scrubber-new .position-indicator {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 3px;
+      height: 100%;
+      background: linear-gradient(180deg, var(--stash-primary) 0%, var(--stash-primary-intense) 100%);
+      z-index: 20;
+      box-shadow:
+        0 0 12px var(--stash-primary-glow),
+        0 0 24px var(--stash-primary-glow);
+      transform: translateX(-50%);
+    }
+
+    /* Scrubber head at top of indicator */
+    .scrubber-new .position-indicator::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 12px;
+      background: var(--stash-text);
+      border: 2px solid var(--stash-primary);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--stash-primary-glow);
+      animation: pulse-head 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-head {
+      0%, 100% { box-shadow: 0 0 8px var(--stash-primary-glow); }
+      50% { box-shadow: 0 0 16px var(--stash-primary-glow), 0 0 4px var(--stash-primary); }
+    }
+
+    /* Progress fill (left of indicator) */
+    .scrubber-new .progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(33, 150, 243, 0.08) 0%, rgba(33, 150, 243, 0.03) 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Sprites container */
+    .scrubber-new .sprites {
+      position: absolute;
+      top: 32px;
+      left: 0;
+      display: flex;
+      height: 98px;
+    }
+
+    .scrubber-new .sprite {
+      width: 160px;
+      height: 90px;
+      background: linear-gradient(135deg, #1e2428 0%, #141920 100%);
+      border-right: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 6px;
+      position: relative;
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .scrubber-new .sprite::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.6) 100%);
+      pointer-events: none;
+    }
+
+    .scrubber-new .sprite:hover {
+      background: linear-gradient(135deg, #242a30 0%, #1a2026 100%);
+    }
+
+    .scrubber-new .sprite:hover::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 1px solid rgba(33, 150, 243, 0.3);
+      pointer-events: none;
+    }
+
+    /* Fake video thumbnail content */
+    .scrubber-new .sprite .thumb {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--stash-text-dim);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .scrubber-new .sprite-time {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--stash-text);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      z-index: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .scrubber-new .sprite-range {
+      font-size: 9px;
+      color: var(--stash-text-muted);
+      margin-top: 2px;
+      z-index: 1;
+    }
+
+    /* Current time tooltip */
+    .scrubber-new .time-tooltip {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(12, 12, 14, 0.95);
+      backdrop-filter: blur(12px);
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 30;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s var(--ease-out);
+    }
+
+    .scrubber-new .content:hover .time-tooltip {
+      opacity: 1;
+    }
+
+    .scrubber-new .time-tooltip-value {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--stash-text);
+      letter-spacing: -0.02em;
+    }
+
+    .scrubber-new .time-tooltip-label {
+      font-size: 10px;
+      color: var(--stash-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 4px;
+    }
+
+    /* Interactive heatmap overlay */
+    .scrubber-new .heatmap {
+      position: absolute;
+      top: 28px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg,
+        rgba(33, 150, 243, 0.6) 0%,
+        rgba(33, 150, 243, 0.8) 15%,
+        rgba(33, 150, 243, 0.4) 30%,
+        rgba(255, 171, 64, 0.7) 45%,
+        rgba(255, 171, 64, 0.9) 50%,
+        rgba(255, 171, 64, 0.5) 60%,
+        rgba(33, 150, 243, 0.6) 75%,
+        rgba(33, 150, 243, 0.3) 100%
+      );
+      opacity: 0.8;
+      z-index: 2;
+    }
+
+    /* Feature callouts */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 50px;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .feature {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s var(--ease-out);
+    }
+
+    .feature:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(33, 150, 243, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--stash-primary) 0%, var(--stash-primary-intense) 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 12px var(--stash-primary-glow);
+    }
+
+    .feature-icon svg {
+      width: 18px;
+      height: 18px;
+      stroke: white;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .feature-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--stash-text);
+      margin-bottom: 6px;
+    }
+
+    .feature-desc {
+      font-size: 12px;
+      color: var(--stash-text-muted);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <h1>ScenePlayerScrubber Redesign</h1>
+  <p class="subtitle">YouTube 2026 Dark Cinema Glass Aesthetic</p>
+
+  <div class="comparison">
+    <!-- Current/Old Version -->
+    <div class="version">
+      <div class="version-label">
+        <span class="badge badge-old">CURRENT</span>
+        Original Scrubber
+      </div>
+      <div class="scrubber-old">
+        <button class="nav-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <div class="content">
+          <div class="tags-bg"></div>
+          <div class="tag" style="left: 20%;">Intro</div>
+          <div class="tag" style="left: 55%;">Main Scene</div>
+          <div class="position-indicator"></div>
+          <div class="sprites">
+            <div class="sprite">0:00 - 0:30</div>
+            <div class="sprite">0:30 - 1:00</div>
+            <div class="sprite">1:00 - 1:30</div>
+            <div class="sprite">1:30 - 2:00</div>
+            <div class="sprite">2:00 - 2:30</div>
+            <div class="sprite">2:30 - 3:00</div>
+          </div>
+        </div>
+        <button class="nav-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- New YouTube 2026 Version -->
+    <div class="version">
+      <div class="version-label">
+        <span class="badge badge-new">NEW</span>
+        YouTube 2026 Style
+      </div>
+      <div class="scrubber-new">
+        <button class="nav-btn">
+          <svg viewBox="0 0 24 24">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <div class="content">
+          <div class="tags-area"></div>
+          <div class="tag" style="left: 20%;">Intro</div>
+          <div class="tag" style="left: 55%;">Main Scene</div>
+          <div class="heatmap"></div>
+          <div class="progress-fill"></div>
+          <div class="position-indicator"></div>
+          <div class="sprites">
+            <div class="sprite">
+              <span class="thumb"></span>
+              <span class="sprite-time">0:00</span>
+              <span class="sprite-range">0:00 - 0:30</span>
+            </div>
+            <div class="sprite">
+              <span class="thumb"></span>
+              <span class="sprite-time">0:30</span>
+              <span class="sprite-range">0:30 - 1:00</span>
+            </div>
+            <div class="sprite">
+              <span class="thumb"></span>
+              <span class="sprite-time">1:00</span>
+              <span class="sprite-range">1:00 - 1:30</span>
+            </div>
+            <div class="sprite">
+              <span class="thumb"></span>
+              <span class="sprite-time">1:30</span>
+              <span class="sprite-range">1:30 - 2:00</span>
+            </div>
+            <div class="sprite">
+              <span class="thumb"></span>
+              <span class="sprite-time">2:00</span>
+              <span class="sprite-range">2:00 - 2:30</span>
+            </div>
+            <div class="sprite">
+              <span class="thumb"></span>
+              <span class="sprite-time">2:30</span>
+              <span class="sprite-range">2:30 - 3:00</span>
+            </div>
+          </div>
+          <div class="time-tooltip">
+            <div class="time-tooltip-value">1:15</div>
+            <div class="time-tooltip-label">Current Position</div>
+          </div>
+        </div>
+        <button class="nav-btn">
+          <svg viewBox="0 0 24 24">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature highlights -->
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      </div>
+      <div class="feature-title">Glass Morphism</div>
+      <div class="feature-desc">Frosted glass background with backdrop blur for depth and modern aesthetic</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="feature-title">Cyan Marker Pills</div>
+      <div class="feature-desc">Glowing marker tags with hover effects and visibility indicators</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      </div>
+      <div class="feature-title">Blue Position Indicator</div>
+      <div class="feature-desc">Animated scrubber head with glow effect and pulse animation</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+      </div>
+      <div class="feature-title">JetBrains Mono</div>
+      <div class="feature-desc">Monospace font for timestamps with enhanced readability</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </div>
+      <div class="feature-title">Activity Heatmap</div>
+      <div class="feature-desc">Visual representation of interactive scenes and engagement</div>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </div>
+      <div class="feature-title">Smooth Animations</div>
+      <div class="feature-desc">Cubic bezier easing for refined interactions and transitions</div>
+    </div>
+  </div>
+
+  <script>
+    // Add interactive hover effects
+    document.querySelectorAll('.scrubber-new .sprite').forEach(sprite => {
+      sprite.addEventListener('mouseenter', () => {
+        sprite.style.transform = 'scale(1.02)';
+      });
+      sprite.addEventListener('mouseleave', () => {
+        sprite.style.transform = '';
+      });
+    });
+  </script>
+</body>
+</html>

@@ -6,6 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import Mousetrap from "mousetrap";
 import videojs, { VideoJsPlayer, VideoJsPlayerOptions } from "video.js";
 import useScript from "src/hooks/useScript";
 import "videojs-contrib-dash";
@@ -16,6 +17,7 @@ import "./live";
 import "./PlaylistButtons";
 import "./source-selector";
 import "src/extensions/player/settings-menu";
+import "src/extensions/player/chapter-indicator";
 import "./persist-volume";
 import "./autostart-button";
 import MarkersPlugin, { type IMarker } from "./markers";
@@ -51,6 +53,7 @@ import chromecast from "@silvermine/videojs-chromecast";
 import abLoopPlugin from "videojs-abloop";
 import ScreenUtils from "src/utils/screen";
 import { PatchComponent } from "src/patch";
+import { MarkerModal } from "src/extensions/components/MarkerModal";
 
 // register videojs plugins
 airplay(videojs);
@@ -269,6 +272,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const [showScrubber, setShowScrubber] = useState(false);
     const [scrubberUserEnabled, setScrubberUserEnabled] = useState(true);
 
+    // Marker modal state
+    const [isMarkerModalOpen, setIsMarkerModalOpen] = useState(false);
+    const [editingMarker, setEditingMarker] = useState<
+      GQL.SceneMarkerDataFragment | undefined
+    >(undefined);
+
     const started = useRef(false);
     const auto = useRef(false);
     const interactiveReady = useRef(false);
@@ -398,6 +407,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           autostartButton: {
             enabled: interfaceConfig?.autostartVideo ?? false,
           },
+          chapterIndicator: {},
           abLoopPlugin: {
             start: 0,
             end: false,
@@ -623,30 +633,30 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
 
       const { duration } = file;
       const settingsMenu = player.settingsMenu();
-      
+
       // Reset video filters/transforms on new scene
       settingsMenu.resetAll();
-      
-      settingsMenu.setSources(
-        scene.sceneStreams
-          .filter((stream) => {
-            const src = new URL(stream.url);
-            const isFileTranscode = !isDirect(src);
 
-            return !(isFileTranscode && isSafari);
-          })
-          .map((stream) => {
-            const src = new URL(stream.url);
+      const sources = scene.sceneStreams
+        .filter((stream) => {
+          const src = new URL(stream.url);
+          const isFileTranscode = !isDirect(src);
 
-            return {
-              src: stream.url,
-              type: stream.mime_type ?? undefined,
-              label: stream.label ?? undefined,
-              offset: !isDirect(src),
-              duration,
-            };
-          })
-      );
+          return !(isFileTranscode && isSafari);
+        })
+        .map((stream) => {
+          const src = new URL(stream.url);
+
+          return {
+            src: stream.url,
+            type: stream.mime_type ?? undefined,
+            label: stream.label ?? undefined,
+            offset: !isDirect(src),
+            duration,
+          };
+        });
+
+      settingsMenu.setSources(sources);
 
       function getDefaultLanguageCode() {
         let languageCode = window.navigator.language;
@@ -751,10 +761,13 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       if (!player) return;
 
       const markerData = scene.scene_markers.map((marker) => ({
+        id: marker.id,
         title: getMarkerTitle(marker),
         seconds: marker.seconds,
         end_seconds: marker.end_seconds ?? null,
         primaryTag: marker.primary_tag,
+        primary_tag: marker.primary_tag,
+        tags: marker.tags,
       }));
 
       const markers = player!.markers();
@@ -789,6 +802,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         markers.addDotMarkers(timestampMarkers);
         markers.addRangeMarkers(rangeMarkers);
       });
+
+      // Update chapter indicator with all markers
+      const chapterIndicator = player.chapterIndicator();
+      if (chapterIndicator) {
+        chapterIndicator.setMarkers(markerData);
+      }
     }, [getPlayer, scene, uiConfig]);
 
     useEffect(() => {
@@ -817,8 +836,94 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         player.off("loadedmetadata", handleLoadMetadata);
         const markers = player!.markers();
         markers.clearMarkers();
+        // Clear chapter indicator when changing scenes
+        const chapterIndicator = player.chapterIndicator();
+        if (chapterIndicator) {
+          chapterIndicator.clearMarkers();
+        }
       };
     }, [getPlayer, scene, loadMarkers]);
+
+    // Reload markers when scene_markers data changes (e.g., after create/edit/delete)
+    // This is needed because Apollo cache updates may not change the scene object reference
+    const markersJson = JSON.stringify(
+      scene.scene_markers.map((m) => ({
+        id: m.id,
+        seconds: m.seconds,
+        end_seconds: m.end_seconds,
+        title: m.title,
+        primary_tag: m.primary_tag?.id,
+      }))
+    );
+
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player || player.readyState() < 1) return;
+      loadMarkers();
+    }, [getPlayer, loadMarkers, markersJson]);
+
+    // Marker modal event handling
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player) return;
+
+      const videoEl = player.el();
+
+      // Handle marker-create event
+      const handleMarkerCreate = () => {
+        setEditingMarker(undefined);
+        setIsMarkerModalOpen(true);
+      };
+
+      // Handle marker-edit event
+      const handleMarkerEdit = (e: Event) => {
+        const customEvent = e as CustomEvent;
+        const { marker } = customEvent.detail;
+        // Find the full marker data from scene_markers using ID
+        const fullMarker = scene.scene_markers.find((m) => m.id === marker.id);
+        setEditingMarker(fullMarker);
+        setIsMarkerModalOpen(true);
+      };
+
+      // Handle marker-delete event - for now, trigger edit which shows delete button
+      const handleMarkerDelete = (e: Event) => {
+        const customEvent = e as CustomEvent;
+        const { marker } = customEvent.detail;
+        const fullMarker = scene.scene_markers.find((m) => m.id === marker.id);
+        setEditingMarker(fullMarker);
+        setIsMarkerModalOpen(true);
+      };
+
+      videoEl.addEventListener("marker-create", handleMarkerCreate);
+      videoEl.addEventListener("marker-edit", handleMarkerEdit);
+      videoEl.addEventListener("marker-delete", handleMarkerDelete);
+
+      return () => {
+        videoEl.removeEventListener("marker-create", handleMarkerCreate);
+        videoEl.removeEventListener("marker-edit", handleMarkerEdit);
+        videoEl.removeEventListener("marker-delete", handleMarkerDelete);
+      };
+    }, [getPlayer, scene.scene_markers]);
+
+    // Keyboard shortcut for creating markers (N key)
+    useEffect(() => {
+      const handleKeyN = () => {
+        setEditingMarker(undefined);
+        setIsMarkerModalOpen(true);
+      };
+
+      Mousetrap.bind("n", handleKeyN);
+
+      return () => {
+        Mousetrap.unbind("n");
+      };
+    }, []);
+
+    // Close marker modal handler
+    const handleMarkerModalClose = useCallback(() => {
+      setIsMarkerModalOpen(false);
+      setEditingMarker(undefined);
+    }, []);
 
     useEffect(() => {
       const player = getPlayer();
@@ -1020,27 +1125,37 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       file && file.height && file.width && file.height > file.width;
 
     return (
-      <div
-        className={cx("VideoPlayer", {
-          portrait: isPortrait,
-          "no-file": !file,
-        })}
-        onKeyDownCapture={onKeyDown}
-      >
-        <div className="video-wrapper" ref={videoRef} />
-        {scene.interactive &&
-          (interactiveState !== ConnectionState.Ready ||
-            getPlayer()?.paused()) && <SceneInteractiveStatus />}
-        {file && showScrubber && (
-          <ScenePlayerScrubber
-            file={file}
-            scene={scene}
-            time={time}
-            onSeek={onScrubberSeek}
-            onScroll={onScrubberScroll}
-          />
-        )}
-      </div>
+      <>
+        <div
+          className={cx("VideoPlayer", {
+            portrait: isPortrait,
+            "no-file": !file,
+          })}
+          onKeyDownCapture={onKeyDown}
+        >
+          <div className="video-wrapper" ref={videoRef} />
+          {scene.interactive &&
+            (interactiveState !== ConnectionState.Ready ||
+              getPlayer()?.paused()) && <SceneInteractiveStatus />}
+          {file && showScrubber && (
+            <ScenePlayerScrubber
+              file={file}
+              scene={scene}
+              time={time}
+              onSeek={onScrubberSeek}
+              onScroll={onScrubberScroll}
+            />
+          )}
+        </div>
+
+        {/* Marker Modal for create/edit */}
+        <MarkerModal
+          sceneId={scene.id}
+          marker={editingMarker}
+          isOpen={isMarkerModalOpen}
+          onClose={handleMarkerModalClose}
+        />
+      </>
     );
   }
 );

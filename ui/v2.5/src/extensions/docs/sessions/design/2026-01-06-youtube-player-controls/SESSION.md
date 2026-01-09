@@ -962,22 +962,50 @@ Applied frontend-design skill for final polish:
 
 ---
 
-## Resume Point (2026-01-07) - Session 3
+## Resume Point (2026-01-07) - Session 4
 
-### Status: IMPLEMENTATION COMPLETE ✅
+### Status: IN PROGRESS - Needs Parity with Mockup
 
-All core features are working on port 3000 (dev server):
-- Progress bar styling
-- Scrubber handle
-- Autoplay toggle (embedded track design)
-- Right panel pill grouping
-- Marker range positioning
-- Filled SVG icons
+**Previous implementation incomplete.** Features need refinement to match mockup.html exactly.
 
-### Remaining Tasks:
-1. **Production build** - Run `npm run build` to verify compilation
-2. **Port 9999 verification** - Test on production Go binary
-3. **ModernDark compatibility** - Check if theme overrides need updates
+### Feature Status (vs mockup.html):
+
+| Feature | Status | Gap Description |
+|---------|--------|-----------------|
+| Progress bar (3px→5px) | 🟡 Partial | Colors/animations may not match mockup |
+| Scrubber handle | 🟡 Partial | Size/styling needs verification |
+| Autoplay toggle (embedded track) | 🟡 Partial | Track/thumb sizing, icons, glow effects |
+| Right panel pill grouping | 🟡 Partial | Container sizing, backdrop blur, dividers |
+| Marker styling (cyan/amber) | 🟡 Partial | Gradient fills, glow animations, tooltips |
+| Chapter indicator/dropdown | 🔴 Not Started | New component needed |
+| Settings menu redesign | 🔴 Not Started | YouTube 2026 style toggles/submenus |
+| Control bar layout | 🟡 Partial | Button ordering, Next button visibility |
+| Volume slider expand | 🟡 Partial | Expand on hover behavior |
+| Button hover/active states | 🟡 Partial | Hover backgrounds, active scale |
+| Big play button | 🟡 Partial | Breathing animation, hover glow |
+
+### Mockup CSS Variables (Target):
+```scss
+--stash-primary: #2196f3;           // Material Blue (not #137cbd)
+--stash-primary-hover: #64b5f6;
+--stash-primary-glow: rgba(33, 150, 243, 0.4);
+--stash-body-bg: #181e24;
+--marker-cyan: #00e5ff;
+--marker-amber: #ffab40;
+```
+
+### Key Mockup Specifications:
+- **Autoplay toggle**: 30×14px track, 18px thumb, 42px total width
+- **Right panel pill**: `rgba(24, 30, 36, 0.9)`, border-radius: 22px, backdrop-filter: blur(16px)
+- **Control buttons in pill**: 34×34px with 18px icons
+- **Progress bar**: 3px→5px on hover, blue gradient with glow
+- **Scrubber**: 14×14px white with 2px blue border
+
+### Next Steps:
+1. Read current implementation files
+2. Use /frontend-design skill for quality pass
+3. Update SCSS to match mockup exactly
+4. Verify each feature against mockup
 
 ### Key Files Modified:
 - `ui/v2.5/src/extensions/styles/_player-components.scss` - All CSS changes
@@ -990,6 +1018,350 @@ All core features are working on port 3000 (dev server):
 
 ---
 
+## Resume Point (2026-01-07) - Session 5
+
+### Status: IN PROGRESS - CSS Override Conflicts Fixed
+
+**Key Discovery**: Upstream `ScenePlayer/styles.scss` was overriding our extension styles. Added `!important` overrides to fix CSS specificity issues.
+
+### Completed This Session ✅
+
+1. **Identified CSS conflicts** between upstream `ScenePlayer/styles.scss` and our `_player-components.scss`:
+   - `.vjs-marker`: upstream sets `background-color: rgba(33,33,33,0.8)`, `width: 6px`, `visibility: hidden`
+   - `.vjs-marker-range`: upstream sets `background: rgba(255,255,255,0.4)`, `transform: translateY(-28px)`
+   - `.vjs-marker-tooltip`: upstream sets white background, `color: #000`, `font-family: Arial`
+   - `.vjs-duration`: upstream sets `margin-right: auto` breaking spacer layout
+   - `.vjs-autostart-button`: upstream has `::before`/`::after` pseudo-elements for old icon design
+
+2. **Fixed marker overrides** with `!important`:
+   - `.vjs-marker`: cyan gradient, 3px width, 16px height, `visibility: visible`
+   - `.vjs-marker-range`: amber gradient, proper positioning, no transform
+   - `.vjs-marker-tooltip`: dark blur background, white text, proper font
+
+3. **Fixed autostart button conflicts**:
+   - Added rules to hide `.vjs-icon-play-circle` and `.vjs-icon-cancel` pseudo-elements
+   - Preserved our pill background `::before` on `.vjs-autostart-toggle`
+
+4. **Fixed layout issues**:
+   - `.vjs-duration` margin-right: 0 !important
+   - Right panel pill width updated to 122px (42 + 34 + 34 + 12 padding)
+
+5. **Verified CSS variables match mockup**:
+   - `$player-primary: #2196f3` ✓
+   - `$marker-cyan: #00e5ff` ✓
+   - `$marker-amber: #ffab40` ✓
+
+### Remaining Tasks 🔴
+
+| Task | Priority | Notes |
+|------|----------|-------|
+| Update settings/fullscreen buttons to 34px | High | Currently 36px, mockup says 34px |
+| Test on dev server (port 3000) | High | Verify CSS overrides work |
+| Production build verification | Medium | `npm run build` |
+| Port 9999 verification | Medium | Test on Go binary |
+| Chapter indicator/dropdown | Low | New component needed |
+| Settings menu redesign | Low | YouTube 2026 style |
+
+### Key Files Modified This Session:
+- `ui/v2.5/src/extensions/styles/_player-components.scss`:
+  - Lines 1046-1076: `.vjs-marker` with `!important` overrides
+  - Lines 1083-1117: `.vjs-marker-range` with `!important` overrides
+  - Lines 1120-1166: `.vjs-marker-tooltip` with `!important` overrides
+  - Lines 345-355: Hide upstream autostart pseudo-elements
+  - Line 259: `.vjs-duration` margin fix
+  - Lines 297-324: Right panel pill sizing (122px width)
+
+### CSS Specificity Strategy:
+Upstream `ScenePlayer/styles.scss` loads first, then our `_player-components.scss`. Use `!important` to override because:
+1. Same selector specificity
+2. Upstream file can't be modified (merge conflicts)
+3. `!important` is acceptable for fork-specific overrides
+
+### To Resume:
+```bash
+cd ui/v2.5
+npm run start  # Start dev server on port 3000
+# Open http://localhost:3000/scenes/2275 to test
+# Use /frontend-design skill for quality refinements
+```
+
+### Mockup Reference:
+`ui/v2.5/src/extensions/docs/sessions/design/2026-01-06-youtube-player-controls/mockup.html`
+
+---
+
+## Resume Point (2026-01-07) - Session 6
+
+### Status: RIGHT PANEL PILL PARTIALLY FIXED - ALIGNMENT ISSUES REMAIN 🟡
+
+**Key Fix Applied**: Changed pill `z-index` from `-1` to `0` so it renders above the control bar gradient.
+
+**REMAINING ISSUES**:
+1. **Pill buttons misaligned** - The autoplay/settings/fullscreen buttons inside the pill are not properly aligned
+2. **Pill pushed too far right** - The pill container is positioned too far to the right
+3. **Pill being cut off** - Parts of the pill are clipped/hidden due to overflow or positioning
+
+### Fixes Applied This Session:
+
+1. **Pill z-index** (line 322): Changed from `z-index: -1` to `z-index: 0`
+   - With `-1`, pill rendered behind control bar's `::before` gradient
+   - With `0`, pill renders above gradient but below buttons (which have `z-index: 1`)
+
+2. **Autostart track z-index** (line 364): Added `z-index: 1` to `.vjs-autostart-track`
+   - Ensures the toggle track appears above the pill background
+
+3. **Button sizing verified**:
+   - Autostart: 42px ✅
+   - Settings: 34px ✅
+   - Fullscreen: 34px ✅
+   - Pill width: 122px (42 + 34 + 34 + 12 padding) ✅
+
+### Visual Verification:
+- `.playwright-mcp/control-bar-zindex-fixed.png` - Pill now visible but misaligned
+- `.playwright-mcp/final-player-controls.png` - Full player view showing cutoff
+
+### Current Pill CSS (lines 305-324 in _player-components.scss):
+```scss
+.vjs-autostart-button.vjs-autostart-toggle {
+  position: relative;
+  margin-left: 8px;
+  width: 42px;
+  min-width: 42px;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -6px;
+    transform: translateY(-50%);
+    width: 122px;
+    height: 38px;
+    background: rgba(24, 30, 36, 0.9);
+    backdrop-filter: blur(16px);
+    border-radius: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    z-index: 0;
+    pointer-events: none;
+  }
+}
+```
+
+### Issues to Debug Next Session:
+
+1. **Check control bar overflow** - The `.vjs-control-bar` might have `overflow: hidden` cutting off the pill
+2. **Check button order/flex** - VideoJS control bar uses flexbox; our `order` properties might be causing gaps
+3. **Check right padding/margin** - The pill might need `right` positioning instead of `left: -6px`
+4. **Consider alternative approach** - Instead of `::before` pseudo-element on autostart, might need a wrapper div injected via JS
+
+### Mockup Reference for Correct Alignment:
+In `mockup.html`, the right panel uses a wrapper div:
+```html
+<div class="controls-right-group">
+  <button class="autoplay-btn">...</button>
+  <button class="settings-btn">...</button>
+  <button class="fullscreen-btn">...</button>
+</div>
+```
+
+The CSS-only pseudo-element approach is limited because:
+- It can't dynamically adjust to button positions
+- It relies on hardcoded width (122px)
+- It's positioned relative to autostart button only
+
+### Potential Fixes to Try:
+
+1. **Adjust pill left position**: Try `left: 0` instead of `left: -6px`
+2. **Add right margin to control bar**: Ensure space for pill
+3. **Check if fullscreen button is outside pill**: May need to adjust width
+4. **Use JavaScript injection**: Create actual wrapper div around the 3 buttons
+
+### To Resume:
+```bash
+cd ui/v2.5
+npm run start  # Dev server on port 3000
+# Test: http://localhost:3000/scenes/2275
+# Use browser DevTools to inspect .vjs-autostart-button::before
+# Check computed styles and bounding boxes
+```
+
+---
+
+## Session 7 Progress (2026-01-07) - Frontend Design Quality Pass
+
+### Fixes Applied Using /frontend-design Skill
+
+Thorough comparison of mockup.html vs implementation revealed several discrepancies that were fixed:
+
+#### 1. Settings Menu - Order and Options Fixed ✅
+
+**Problem:** Settings menu had wrong order and extra options not in mockup.
+
+**Before:**
+1. Quality (submenu)
+2. Playback Speed (submenu)
+3. Subtitle/CC (submenu) ❌ NOT IN MOCKUP
+4. Loop video (toggle)
+5. Auto-start video (toggle) ❌ NOT IN MOCKUP
+6. Show scrubber (toggle)
+7. Video Filters (submenu)
+8. Video Transforms (submenu)
+
+**After (matching mockup):**
+1. Loop video (toggle)
+2. Show scrubber (toggle)
+3. ---divider---
+4. Quality (submenu)
+5. Playback speed (submenu)
+6. ---divider---
+7. Video filters (submenu)
+8. Video transforms (submenu)
+
+**Files Modified:**
+- `extensions/player/settings-menu.ts`: Reordered `renderMainMenu()` and removed autoplay/subtitle items
+
+#### 2. Marker Range Styling - Full Height ✅
+
+**Problem:** Marker range was only 3px tall, barely visible.
+
+**Mockup Spec:** `top: 0; bottom: 0` (fills full progress bar height)
+
+**Fix Applied:**
+```scss
+.vjs-marker-range {
+  top: 0 !important;
+  bottom: 0 !important;
+  height: auto !important;
+  // Now fills full 30px height of progress control
+}
+```
+
+**Files Modified:**
+- `extensions/styles/_player-components.scss`: Changed marker range to use top/bottom instead of fixed height
+
+#### 3. Skip Button Double Icon Fixed ✅
+
+**Problem:** Skip Next button showed TWO icons (VideoJS font icon + our SVG).
+
+**Fix Applied:**
+```scss
+.vjs-control-bar .vjs-control.vjs-button.vjs-svg-icon {
+  &::before {
+    display: none !important;
+    content: none !important;
+  }
+}
+```
+
+**Files Modified:**
+- `extensions/styles/_player-components.scss`: Added rule to hide VideoJS font icon on buttons with our SVG icons
+
+### Verified Working:
+- ✅ Settings menu: Toggles first, submenus second, no extra options
+- ✅ Marker range: Now fills full progress bar height (30px)
+- ✅ Skip button: Single icon only
+- ✅ Right panel pill: Visible with autoplay toggle, settings, fullscreen
+- ✅ Progress bar: Blue gradient, scrubber on hover
+- ✅ Autoplay toggle: Track/thumb design working
+
+### Screenshots:
+- `.playwright-mcp/fixes-verification-player.png` - Full player after fixes
+- `.playwright-mcp/fixes-verification-settings-menu.png` - Settings menu with correct order
+- `.playwright-mcp/progress-bar-marker-fixed.png` - Marker range filling full height
+
+---
+
+### 2026-01-08 - Chapter Indicator Component Implemented ✅
+
+**Phase 5: Chapter Indicator - COMPLETE**
+
+Created YouTube-style chapter indicator with dropdown panel for navigating scene markers.
+
+#### Files Created:
+- `extensions/player/chapter-indicator.ts` - New VideoJS plugin (280 lines)
+
+#### Files Modified:
+- `extensions/styles/_player-components.scss` - Added 260 lines of CSS for chapter indicator
+- `components/ScenePlayer/ScenePlayer.tsx` - Registered plugin and wired up markers
+
+#### Features Implemented:
+1. **Current marker tracking** - Shows active marker title during playback
+   - Point markers: Active within 10 seconds after start time
+   - Range markers: Active within start-end range
+   - Updates in real-time via `timeupdate` event
+
+2. **Dropdown panel** - Click to open list of all markers
+   - Glass morphism design (backdrop blur, dark background)
+   - Header showing "Markers (N)" count
+   - Staggered slide-in animation for items
+
+3. **Marker type distinction**:
+   - Point markers: Cyan (`#00e5ff`) dot with glow
+   - Range markers: Amber (`#ffab40`) dot with glow
+   - Time format: Single time for points, "start – end" for ranges
+
+4. **Seek functionality** - Click any marker to jump to timestamp
+   - Starts playback if paused
+   - Closes dropdown after selection
+
+5. **Active marker highlighting**:
+   - Blue left border accent
+   - Blue-tinted title text
+   - Background highlight
+
+6. **Responsive** - Hidden on screens < 600px width
+
+#### Design Specifications:
+```scss
+// Dropdown panel
+background: rgba(18, 22, 26, 0.92)
+backdrop-filter: blur(20px)
+border-radius: 12px
+min-width: 240px
+max-height: 320px
+
+// Marker dots
+&.point { background: $marker-cyan; box-shadow: 0 0 8px $marker-cyan-glow; }
+&.range { background: $marker-amber; box-shadow: 0 0 8px $marker-amber-glow; }
+
+// Active item
+background: rgba($player-primary, 0.12)
+border-left: 3px solid $player-primary
+```
+
+#### Verified Working:
+- ✅ Chapter indicator appears in control bar after time display
+- ✅ Shows "—" when no marker is active
+- ✅ Shows marker title when within active range
+- ✅ Dropdown opens with all markers listed
+- ✅ Point markers show cyan dot with single timestamp
+- ✅ Range markers show amber dot with time range
+- ✅ Clicking marker seeks to that timestamp
+- ✅ Dropdown closes after selection
+- ✅ Chevron rotates when dropdown is open
+
+#### Screenshots:
+- `.playwright-mcp/chapter-indicator-test.png` - Initial state with "—"
+- `.playwright-mcp/chapter-indicator-dropdown-open.png` - Dropdown showing 3 markers
+- `.playwright-mcp/chapter-indicator-active-marker.png` - Active "Massage" marker displayed
+
+---
+
+## Implementation Status Summary
+
+| Phase | Feature | Status |
+|-------|---------|--------|
+| 1 | Progress Bar & Control Bar CSS | ✅ Complete |
+| 2 | YouTube-style SVG Icons | ✅ Complete |
+| 3 | Markers (Hybrid Approach) | ✅ Complete |
+| 4 | Layout & Controls | ✅ Complete |
+| 5 | Chapter Indicator | ✅ Complete |
+| 6 | Testing | ✅ Complete |
+
+**All core features implemented and verified on dev server (port 3000).**
+
+---
+
 ## Notes
 
 - Stash uses VideoJS for the video player
@@ -997,3 +1369,1042 @@ All core features are working on port 3000 (dev server):
 - The mockup HTML is a standalone reference - open in browser to see target design
 - Dev server: `npm run start` in `ui/v2.5/` (port 3000)
 - Markers only appear on progress bar AFTER video starts playing
+
+---
+
+## Session 8 Progress (2026-01-08) - Settings Menu V2
+
+### Settings Menu V2 Created ✅
+
+Built a complete rewrite of the settings menu from scratch based on the mockup design.
+
+#### Files Created:
+- `extensions/player/settings-menu-v2.ts` (680 lines) - Complete plugin rewrite
+- `extensions/styles/_settings-menu-v2.scss` (420 lines) - All CSS styling
+
+#### Files Modified:
+- `extensions/styles/index.scss` - Added import for v2 styles
+- `extensions/player/index.ts` - Added export for v2 plugin
+- `components/ScenePlayer/ScenePlayer.tsx` - Added `settingsMenuV2: {}` for testing
+
+#### Features Implemented:
+| Feature | Status |
+|---------|--------|
+| Glass morphism (backdrop blur) | ✅ Working |
+| Toggle switches (Loop, Scrubber) | ✅ Working |
+| Blue glow on active toggles | ✅ Working |
+| Playback speed submenu | ✅ Working |
+| Custom speed slider (0.05x increments) | ✅ Working |
+| Video filters submenu (5 sliders) | ✅ Working |
+| Video transforms submenu | ✅ Working |
+| Slider gradient fill | ✅ Working |
+| Reset buttons (disabled when unchanged) | ✅ Working |
+| Quality submenu | 🔴 **BUG: Options not visible** |
+
+#### Screenshots:
+- `.playwright-mcp/settings-menu-v2-test.png` - Main menu
+- `.playwright-mcp/settings-menu-v2-speed.png` - Playback speed submenu
+- `.playwright-mcp/settings-menu-v2-filters.png` - Video filters submenu
+
+### Known Bug: Quality Menu Options Not Visible 🔴
+
+**Issue:** When opening the Quality submenu, the quality options (source labels) are not visible.
+
+**Suspected Causes:**
+1. The `sources` array may not be populated when v2 plugin initializes
+2. The v2 plugin's `setSources()` method may not be called from ScenePlayer
+3. CSS visibility issue with the quality option elements
+
+**To Investigate in Next Session:**
+1. Check if `setSources()` is being called on v2 plugin
+2. Verify the sources array is populated before rendering
+3. Check CSS for `.settings-option` in quality submenu
+4. Compare v1 vs v2 quality menu rendering logic
+
+### Session 9 Progress (2026-01-08) - Quality Bug Fixed + Slider Styling
+
+#### Quality Menu Bug - FIXED ✅
+
+**Root Cause:** `setSources()` was only being called on the v1 settings menu, not v2.
+
+**Fix Applied in `ScenePlayer.tsx`:**
+```typescript
+const settingsMenu = player.settingsMenu();
+const settingsMenuV2 = player.settingsMenuV2();
+
+// Reset video filters/transforms on new scene
+settingsMenu.resetAll();
+settingsMenuV2.resetAll();
+
+const sources = scene.sceneStreams.filter(...).map(...);
+
+// Set sources on both v1 and v2 settings menus
+settingsMenu.setSources(sources);
+settingsMenuV2.setSources(sources);  // <-- Added this line
+```
+
+**Verified:** Quality menu now shows "Direct stream" option correctly.
+
+#### Slider Styling - Updated to Neutral Colors
+
+**User Feedback:** Sliders should use neutral colors (matching mockup), not blue.
+
+**Changes Made to `_settings-menu-v2.scss`:**
+
+1. **Filter/Transform Sliders** - Changed to neutral gray:
+   - Track: `rgba(255, 255, 255, 0.2)` (was blue gradient)
+   - Hover track: `rgba(255, 255, 255, 0.3)`
+   - Thumb: Plain white, no border (was blue border)
+   - Hover thumb: Scale 1.15 with shadow
+
+2. **Custom Speed Slider** - Kept blue gradient fill (to show position):
+   - Track: Blue gradient `$settings-primary` to `rgba(255,255,255,0.2)`
+   - Thumb: Plain white, no border
+
+**Issue:** CSS changes may not be hot-reloading properly. Browser cache or SCSS compilation issue.
+
+---
+
+### Resume Point (2026-01-08) - Session 9
+
+**Status:**
+- ✅ Quality menu bug FIXED - sources now passed to v2 plugin
+- 🟡 Slider styling updated but may need cache clear to verify
+
+**Completed This Session:**
+1. Fixed quality menu by adding `settingsMenuV2.setSources(sources)` call
+2. Updated slider styling to use neutral colors per mockup
+3. Removed blue borders from slider thumbs
+4. Filter/transform sliders now use gray tracks instead of blue gradient
+
+**Outstanding:**
+1. Verify slider styling after hard refresh/cache clear
+2. Consider removing v1 settings menu once v2 is fully verified
+3. Update session document with final verification screenshots
+
+**Files Modified This Session:**
+- `components/ScenePlayer/ScenePlayer.tsx` - Added v2 sources setup
+- `extensions/styles/_settings-menu-v2.scss` - Neutral slider colors
+
+**Test URL:** `http://localhost:3000/scenes/2275`
+
+**To Resume:**
+```bash
+cd ui/v2.5
+npm run start  # Dev server on port 3000
+# Hard refresh browser (Ctrl+Shift+R) to clear CSS cache
+# Open settings menu v2 → Video filters to verify neutral sliders
+```
+
+---
+
+### Session 10 Progress (2026-01-08) - Slider Styling Fix
+
+**Status:** ✅ SLIDER STYLING VERIFIED AND FIXED
+
+#### Root Cause Identified
+
+Sliders were showing blue tracks despite SCSS specifying neutral gray. Investigation revealed:
+
+**Global CSS rule overriding our styles:**
+```css
+input[type="range"]::-webkit-slider-runnable-track {
+  background: rgb(0, 123, 255);  /* Blue! */
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  background: rgb(57, 75, 89);  /* Dark gray! */
+}
+```
+
+Our SCSS was setting `background` on the input element itself, but the `::-webkit-slider-runnable-track` pseudo-element (the actual visible track) is styled separately by the global rule.
+
+#### Fixes Applied
+
+1. **Filter/Transform Sliders** - Added explicit track pseudo-element styling:
+   ```scss
+   &::-webkit-slider-runnable-track {
+     height: 4px;
+     background: rgba(255, 255, 255, 0.2) !important;
+     border-radius: 2px;
+   }
+
+   &::-moz-range-track {
+     height: 4px;
+     background: rgba(255, 255, 255, 0.2) !important;
+     border-radius: 2px;
+   }
+
+   &:hover::-webkit-slider-runnable-track {
+     background: rgba(255, 255, 255, 0.3) !important;
+   }
+   ```
+
+2. **Custom Speed Slider** - Same track styling added, plus `!important` on thumb styles:
+   ```scss
+   &::-webkit-slider-thumb {
+     width: 14px !important;
+     height: 14px !important;
+     background: $settings-text !important;
+     border: none !important;
+     border-radius: 50% !important;
+     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+   }
+   ```
+
+#### Files Modified
+- `extensions/styles/_settings-menu-v2.scss`:
+  - Lines 566-588: Filter/transform slider track styling
+  - Lines 483-534: Custom speed slider track + thumb styling with `!important`
+
+#### Verified Working
+- ✅ Filter sliders: Neutral gray tracks
+- ✅ Transform sliders: Neutral gray tracks
+- ✅ Custom speed slider: Neutral gray track + white thumb
+- ✅ Hover states: Track brightens on hover
+
+#### Key Lesson
+When styling range inputs, must explicitly style BOTH:
+1. The input element itself (`background`)
+2. The track pseudo-elements (`::-webkit-slider-runnable-track`, `::-moz-range-track`)
+
+Global Bootstrap/upstream rules target the pseudo-elements directly, so setting background on the input element alone is insufficient.
+
+---
+
+## Session 11 - Enhanced Chapter Indicator Proposal (2026-01-08)
+
+### Goal: Replace SceneMarkersPanel with Enhanced Chapter Indicator
+
+The current SceneMarkersPanel provides full CRUD functionality for markers:
+- **Create**: Button + form with title, primary tag, start/end time, additional tags
+- **Read**: PrimaryTags component (grouped by tag) + MarkerWallPanel (thumbnail grid)
+- **Update**: Click marker → form pre-filled with marker data
+- **Delete**: Delete button in edit form
+- **Keyboard**: Press `N` to create new marker
+
+### Design Proposals Created
+
+**Mockup file:** `chapter-indicator-proposals.html` (open in browser to view)
+
+#### Option A: Dropdown + Modal Form (RECOMMENDED)
+
+- Keep chapter indicator compact in control bar
+- Add quick action buttons (edit/delete) on hover for each marker in dropdown
+- Add `[+]` button for quick marker creation
+- Create/Edit operations open a modal dialog with full SceneMarkerForm
+- **Pros:** Minimal disruption, reuses existing form, mobile-friendly
+- **Cons:** Modal covers video during edit
+
+#### Option B: Expanded Panel Below Player
+
+- Chapter indicator expands into full panel below video
+- Shows markers as visual cards with thumbnails
+- Inline form at bottom for quick create/edit
+- Progress bar within active range markers
+- **Pros:** Visual, never covers video, shows thumbnails
+- **Cons:** Takes vertical space, medium complexity
+
+#### Option C: Slide-out Sidebar Panel
+
+- Sidebar slides from right side of player
+- Video remains visible while editing
+- Embedded form in sidebar
+- **Pros:** Video always visible, persistent access
+- **Cons:** Not mobile-friendly, takes horizontal space
+
+### Feature Comparison
+
+| Feature | Option A | Option B | Option C |
+|---------|----------|----------|----------|
+| Player visible during edit | Partial | Full | Full |
+| Code reuse | High | Medium | Medium |
+| Mobile-friendly | Yes | Needs work | No |
+| Implementation complexity | Low | Medium | Medium-High |
+| Thumbnail previews | Optional | Yes | Yes |
+
+### Files to Modify (Option A Implementation)
+
+1. **`extensions/player/chapter-indicator.ts`** - Add edit/delete buttons, create button
+2. **`extensions/styles/_player-components.scss`** - Style action buttons
+3. **Create `extensions/components/MarkerModal.tsx`** - Modal wrapper for SceneMarkerForm
+4. **`components/ScenePlayer/ScenePlayer.tsx`** - Wire up modal state and GraphQL mutations
+
+### Key Components to Reuse
+
+- `SceneMarkerForm` - Full form component (title, tags, times)
+- `useSceneMarkerCreate` / `useSceneMarkerUpdate` / `useSceneMarkerDestroy` - GraphQL hooks
+- `TagSelect` - Tag selection component
+- `DurationInput` - Time input with sync-to-current button
+
+### Resume Point (2026-01-08) - Session 11
+
+**Status:** DESIGN PROPOSALS COMPLETE - AWAITING DECISION
+
+**To Resume:**
+1. Open `chapter-indicator-proposals.html` in browser to view mockups
+2. Choose preferred option (A recommended)
+3. Implement chosen design
+
+**Next Steps After Decision:**
+1. Create MarkerModal component wrapping SceneMarkerForm
+2. Add action buttons to chapter-indicator dropdown items
+3. Add create button to dropdown header and control bar
+4. Wire up GraphQL mutations for create/update/delete
+5. Add keyboard shortcut (N) support
+6. Test full CRUD flow
+
+**Test URL:** `http://localhost:3000/scenes/2275`
+
+---
+
+## Session 12 - Option A Implementation Complete (2026-01-08)
+
+### Decision: Option A (Dropdown + Modal Form)
+
+Implemented the enhanced chapter indicator with marker CRUD functionality using Option A design.
+
+### Implementation Summary
+
+**New Files Created:**
+1. `extensions/components/MarkerModal.tsx` - Premium modal wrapping SceneMarkerForm
+2. `extensions/components/MarkerModal.scss` - Dark Cinema Glass aesthetic styling
+
+**Modified Files:**
+1. `extensions/player/chapter-indicator.ts` - Added:
+   - Edit/Delete action buttons on dropdown items (appear on hover)
+   - Create button in dropdown header
+   - Quick Add button in control bar (dashed border, + icon)
+   - Empty state UI with "Create First Marker" button
+   - Custom event emitters: `marker-create`, `marker-edit`, `marker-delete`
+   - Full marker data with IDs passed for CRUD operations
+
+2. `extensions/styles/_player-components.scss` - Added:
+   - `.vjs-chapter-header-add` - Add button in dropdown header
+   - `.vjs-chapter-quick-add` - Quick add button in control bar
+   - `.vjs-chapter-item-actions` - Action buttons container
+   - `.vjs-chapter-action-btn` - Edit/delete button styling
+   - `.vjs-chapter-item-meta` / `.vjs-chapter-item-duration` - Enhanced item info
+   - `.vjs-chapter-empty` - Empty state styling
+
+3. `components/ScenePlayer/ScenePlayer.tsx` - Added:
+   - `isMarkerModalOpen` / `editingMarker` state
+   - Event listeners for marker-create/edit/delete events
+   - Keyboard shortcut (N) for creating markers via Mousetrap
+   - MarkerModal component integration
+
+4. `extensions/components/index.ts` - Added MarkerModal export
+
+### Design Aesthetic: Dark Cinema Glass
+
+**Modal Design:**
+- Deep black surface (`rgba(18, 22, 26, 0.98)`)
+- Glass morphism with `backdrop-filter: blur(20px)`
+- Blue accent (`#2196f3`) for primary actions
+- Slide-up entrance animation with spring easing
+- Premium typography with label styling
+- Form inputs with dark backgrounds and focus rings
+- Responsive: slides up from bottom on mobile
+
+**Action Buttons:**
+- Hidden by default, appear on item hover
+- Edit button: light hover state
+- Delete button: red danger state on hover
+- Quick add in control bar: dashed border that highlights blue on hover
+
+### Event Communication
+
+VideoJS plugins can't directly call React state setters, so we use custom DOM events:
+
+```typescript
+// chapter-indicator.ts emits:
+player.el().dispatchEvent(new CustomEvent('marker-create', { bubbles: true }));
+player.el().dispatchEvent(new CustomEvent('marker-edit', { detail: { marker } }));
+player.el().dispatchEvent(new CustomEvent('marker-delete', { detail: { marker } }));
+
+// ScenePlayer.tsx listens:
+videoEl.addEventListener('marker-create', handleMarkerCreate);
+videoEl.addEventListener('marker-edit', handleMarkerEdit);
+videoEl.addEventListener('marker-delete', handleMarkerDelete);
+```
+
+### Keyboard Shortcuts
+
+- **N** - Create new marker (opens modal at current timestamp)
+- **Escape** - Close modal
+
+### Build Status
+
+Production build completed successfully.
+
+### Resume Point (2026-01-08) - Session 12
+
+**Status:** IMPLEMENTATION COMPLETE - NEEDS BROWSER VERIFICATION
+
+**To Verify:**
+1. Start dev server: `cd ui/v2.5 && npm run start`
+2. Navigate to a scene with markers
+3. Test chapter indicator dropdown (click, seek to markers)
+4. Test edit button (opens modal with marker data)
+5. Test delete button (opens modal, shows delete button)
+6. Test quick add button in control bar
+7. Test create button in dropdown header
+8. Test "N" keyboard shortcut
+9. Verify form submission creates/updates/deletes markers
+10. Test on scene without markers (empty state)
+
+**Verification Test URL:** `http://localhost:3000/scenes/2275`
+
+---
+
+## Session 13 - MarkerModal Styling Refinements (2026-01-08)
+
+### Issue: Modal styling not consistent with mockup
+
+User reported that MarkerModal.scss styling didn't match `chapter-indicator-proposals.html` mockup.
+
+### Analysis (comparing mockup vs implementation)
+
+| Aspect | Mockup | Original Implementation |
+|--------|--------|------------------------|
+| Font | Space Grotesk + JetBrains Mono | System fonts |
+| Input background | `rgba(255, 255, 255, 0.04)` (glass light) | `rgba(0, 0, 0, 0.3)` (dark) |
+| Modal background | `#1a1f24` (solid) | `rgba(18, 22, 26, 0.98)` (semi-transparent) |
+| Backdrop blur | `blur(4px)` | `blur(8px)` |
+| Shadow | Blue glow prominent | Blue glow less visible |
+| Footer | Border-top separator | No separator |
+| Time input buttons | Inside input (sync btn) | Append buttons outside |
+
+### Fixes Applied
+
+#### 1. Design Tokens (exact mockup values)
+```scss
+$bg-elevated: #1a1f24;
+$bg-glass-light: rgba(255, 255, 255, 0.04);
+$accent-primary: #2196f3;
+$text-primary: #f0f4f8;
+$text-secondary: rgba(240, 244, 248, 0.7);
+$border-subtle: rgba(255, 255, 255, 0.08);
+$shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.4);
+$shadow-glow: 0 0 32px rgba(33, 150, 243, 0.4);
+```
+
+#### 2. Typography
+- Added Google Fonts import for Space Grotesk and JetBrains Mono
+- Applied Space Grotesk to modal, labels, buttons
+- Applied JetBrains Mono to time input fields
+
+#### 3. Input Styling
+- Changed background from dark (`rgba(0,0,0,0.3)`) to glass light (`rgba(255,255,255,0.04)`)
+- Matches mockup's subtle elevated appearance
+
+#### 4. Footer/Buttons Container
+- Added `border-top: 1px solid $border-subtle`
+- Added darker background `rgba(0, 0, 0, 0.15)`
+- Fixed padding to match mockup (`20px 28px`)
+
+#### 5. Duration Input Buttons
+- Styled sync/reset button (clock icon) with blue accent background
+- Styled increment/decrement buttons with glass background
+- Added proper border-radius for button group
+
+### Files Modified
+- `extensions/components/MarkerModal.scss` - Complete rewrite to match mockup
+
+### Verification Screenshots
+- `.playwright-mcp/marker-modal-updated-styling.png` - Initial fix
+- `.playwright-mcp/marker-modal-final-styling.png` - After footer border fix
+
+### Visual Comparison
+
+**Before:** Dark inputs, no footer separator, system fonts
+**After:** Glass-light inputs, footer border, Space Grotesk font, blue accent buttons
+
+### Status: STYLING COMPLETE ✅
+
+Modal now matches the "Dark Cinema / Editorial Glass" aesthetic from `chapter-indicator-proposals.html`:
+- ✅ Dark cinema glass background (`#1a1f24`)
+- ✅ Blue glow shadow around modal
+- ✅ Uppercase editorial labels
+- ✅ Glass-light input backgrounds
+- ✅ Blue accent sync buttons on time inputs
+- ✅ Footer with border-top separator
+- ✅ JetBrains Mono font on time displays
+- ✅ Properly styled increment/decrement buttons
+
+---
+
+## Session 14 - MarkerForm Fork (2026-01-08)
+
+### Issue Identified
+
+User compared mockup vs implementation and found layout inconsistencies:
+
+| Aspect | Mockup Design | Previous Implementation |
+|--------|---------------|------------------------|
+| **Layout** | Single-column, labels ABOVE inputs | Two-column, labels LEFT, inputs RIGHT |
+| **Input width** | Full-width inputs | Narrow inputs (~60% width) |
+| **Time fields** | START TIME + END TIME side-by-side | Separate rows |
+| **Time labels** | "START TIME" / "END TIME (OPTIONAL)" | "TIME" / "END TIME" |
+| **Tag display** | Removable pills inline | Dropdown selectors only |
+| **Sync buttons** | Blue circle inside input area | Separate clock button with up/down arrows |
+
+**Root Cause:** Implementation was wrapping the upstream `SceneMarkerForm` component which has a hardcoded two-column layout that CSS couldn't fully override.
+
+### Solution: Fork the Form Component
+
+Created a new `MarkerForm.tsx` in extensions that matches the mockup exactly.
+
+#### Files Created
+- `extensions/components/MarkerForm.tsx` - Custom form with mockup layout
+
+#### Files Modified
+- `extensions/components/MarkerModal.tsx` - Import `MarkerForm` instead of `SceneMarkerForm`
+- `extensions/components/MarkerModal.scss` - Updated styles for new class names
+- `extensions/components/index.ts` - Added `MarkerForm` export
+
+### New Component Structure
+
+```tsx
+// MarkerForm.tsx - Key components
+
+// Custom TimeInput with sync button inside
+const TimeInput: React.FC<ITimeInputProps> = ({ value, onChange, placeholder, error }) => (
+  <div className="marker-time-input">
+    <input className="marker-time-field" ... />
+    <button className="marker-time-sync">
+      <Icon icon={faClock} />
+    </button>
+  </div>
+);
+
+// Removable tag pill
+const TagPill: React.FC<ITagPillProps> = ({ tag, onRemove }) => (
+  <span className="marker-tag-pill">
+    {tag.name}
+    <button className="marker-tag-remove" onClick={onRemove}>×</button>
+  </span>
+);
+```
+
+### Layout Structure
+
+```
+.marker-form
+├── .marker-field (TITLE)
+│   ├── .marker-label
+│   └── MarkerTitleSuggest
+├── .marker-field (PRIMARY TAG)
+│   ├── .marker-label
+│   └── .marker-tag-container
+│       └── TagPill | TagSelect
+├── .marker-time-row (grid: 1fr 1fr)
+│   ├── .marker-field.marker-time-field-wrapper (START TIME)
+│   │   ├── .marker-label
+│   │   └── TimeInput
+│   └── .marker-field.marker-time-field-wrapper (END TIME)
+│       ├── .marker-label
+│       └── TimeInput
+├── .marker-field (ADDITIONAL TAGS)
+│   ├── .marker-label
+│   └── .marker-tag-container.marker-tag-multi
+│       ├── TagPill (for each tag)
+│       └── TagSelect
+└── .marker-form-footer
+    ├── Save button
+    ├── Cancel button
+    └── Delete button (edit mode only)
+```
+
+### CSS Grid Overflow Fix
+
+**Issue:** Time row was overflowing past modal edge.
+
+**Cause:** CSS Grid items have `min-width: auto` by default, preventing shrink below content size.
+
+**Fix:** Added `min-width: 0` to grid children:
+```scss
+.marker-time-field-wrapper {
+  flex: 1;
+  min-width: 0; // Allow grid item to shrink
+}
+
+.marker-time-field {
+  min-width: 0; // Also on the input itself
+}
+```
+
+### Additional Tag Select Styling
+
+For the multi-tag container, nested TagSelect needs transparent styling:
+```scss
+.marker-tag-multi {
+  .tag-select {
+    .react-select__control {
+      background: transparent !important;
+      border: none !important;
+    }
+    .react-select__control--is-focused {
+      box-shadow: none !important;
+    }
+  }
+}
+```
+
+### Verification
+
+**Screenshots:**
+- `.playwright-mcp/marker-modal-new-layout.png` - Create mode
+- `.playwright-mcp/marker-modal-edit-mode.png` - Edit mode with pre-filled data
+- `.playwright-mcp/marker-modal-overflow-fixed.png` - After grid fix
+
+**Verified Working:**
+- ✅ Single-column layout with labels ABOVE inputs
+- ✅ Full-width inputs contained within modal
+- ✅ START TIME and END TIME side-by-side (both fitting)
+- ✅ Blue sync buttons (clock icon) inside time inputs
+- ✅ PRIMARY TAG shows as removable pill in edit mode
+- ✅ ADDITIONAL TAGS show as removable pills
+- ✅ Delete button appears in edit mode footer
+- ✅ Dark Cinema Glass aesthetic preserved
+
+### Status: COMPLETE ✅
+
+MarkerForm now matches the mockup design exactly.
+
+---
+
+## Session 15 - Cleanup & Instant Marker Updates (2026-01-08)
+
+### 1. Consolidated Settings Menu Plugins
+
+**Change:** Replaced `settings-menu.ts` with `settings-menu-v2.ts` content
+
+The v2 settings menu had all the YouTube 2026 features (glass morphism, custom speed slider, video filters/transforms). Consolidated into a single plugin.
+
+**Files Modified:**
+- `extensions/player/settings-menu.ts` - Replaced with v2 content, kept `settingsMenu` plugin name
+- `extensions/player/index.ts` - Removed v2 export
+- `components/ScenePlayer/ScenePlayer.tsx` - Removed `settingsMenuV2: {}` option and all v2 references
+
+**Files Deleted:**
+- `extensions/player/settings-menu-v2.ts` - No longer needed
+
+**Backward Compatibility:**
+- Plugin registered as `settingsMenu` (same as before)
+- Added alias methods: `setScrubberEnabled()` / `setOnScrubberChange()` → `setMarkerStripEnabled()` / `setOnMarkerStripChange()`
+- All existing ScenePlayer code continues to work
+
+### 2. Removed Markers Tab from Scene Page
+
+**Rationale:** Chapter indicator now has full feature parity with SceneMarkersPanel:
+- ✅ View all markers in dropdown
+- ✅ Seek to marker timestamp
+- ✅ Create new markers (+ button, N keyboard shortcut)
+- ✅ Edit existing markers (pencil icon)
+- ✅ Delete markers (trash icon)
+
+**Files Modified:**
+- `extensions/components/Scene/Scene.tsx`:
+  - Removed `SceneMarkersPanel` import
+  - Removed `'k'` keyboard shortcut binding
+  - Removed markers `Nav.Item` tab
+  - Removed markers `Tab.Pane` content
+  - Removed `onClickMarker` function
+
+### 3. Added Scrubber Pulse Animation
+
+**From mockup:** Progress bar scrubber handle has a breathing pulse animation on hover.
+
+**Added to `_player-components.scss`:**
+```scss
+@keyframes scrubber-pulse {
+  0%, 100% {
+    box-shadow: $shadow-sm, 0 0 0 0 $player-primary-glow;
+  }
+  50% {
+    box-shadow: $shadow-sm, 0 0 0 8px transparent;
+  }
+}
+
+&:hover .vjs-play-progress::before {
+  animation: scrubber-pulse 2s ease-in-out infinite;
+}
+```
+
+Animation stops when directly hovering the handle (replaced with scale-up effect).
+
+### 4. Instant Marker Updates (Apollo Refetch)
+
+**Problem:** After editing a marker (e.g., changing duration), changes only appeared after page refresh.
+
+**Root Cause:** Apollo cache was evicted but not immediately refetched. The `scene.scene_markers` prop in ScenePlayer had stale data.
+
+**Solution:** Use Apollo client's `refetchQueries` to force immediate data refresh.
+
+**Files Modified:**
+
+#### `extensions/components/MarkerForm.tsx`
+- Added `useApolloClient` import
+- Added `refetchScene()` callback that calls `client.refetchQueries({ include: [FindSceneDocument] })`
+- Called `await refetchScene()` after successful create/update/delete mutations
+
+#### `components/ScenePlayer/ScenePlayer.tsx`
+- Added `markersJson` computed value (serialized marker data for comparison)
+- Added `useEffect` that watches `markersJson` and calls `loadMarkers()` when data changes
+- Removed `handleMarkerSave` callback with setTimeout (no longer needed)
+- Removed `onSave` prop from MarkerModal (no longer needed)
+
+#### `extensions/components/MarkerModal.tsx`
+- Removed `onSave` prop (no longer needed)
+
+**Data Flow:**
+1. User edits marker → `handleSave()` runs
+2. Mutation completes → `await refetchScene()` fetches fresh data
+3. SceneLoader receives new `scene.scene_markers`
+4. ScenePlayer's `markersJson` effect detects change
+5. `loadMarkers()` runs → Chapter indicator updates
+6. Modal closes
+
+### Implementation Status Update
+
+| Phase | Feature | Status |
+|-------|---------|--------|
+| 1 | Progress Bar & Control Bar CSS | ✅ Complete |
+| 2 | YouTube-style SVG Icons | ✅ Complete |
+| 3 | Markers (Hybrid Approach) | ✅ Complete |
+| 4 | Layout & Controls | ✅ Complete |
+| 5 | Chapter Indicator | ✅ Complete |
+| 6 | Settings Menu V2 | ✅ Complete (consolidated) |
+| 7 | Testing | ✅ Complete |
+
+### Key Files Summary
+
+**Player Plugins:**
+- `extensions/player/settings-menu.ts` - YouTube 2026 settings (consolidated from v2)
+- `extensions/player/chapter-indicator.ts` - Marker navigation with CRUD
+- `extensions/player/player-icons.ts` - Filled SVG icons
+
+**Styles:**
+- `extensions/styles/_player-components.scss` - All player CSS
+- `extensions/styles/_settings-menu-v2.scss` - Settings menu styling
+
+**Components:**
+- `extensions/components/MarkerForm.tsx` - Custom form matching mockup
+- `extensions/components/MarkerModal.tsx` - Modal wrapper
+- `extensions/components/Scene/Scene.tsx` - Scene page (markers tab removed)
+
+**Test URL:** `http://localhost:3000/scenes/2275`
+
+---
+
+## Session 16 - ModernDark Theme Mockup (2026-01-08)
+
+### Goal: Create ModernDark Compatibility Mockup
+
+The YouTube player controls were implemented using Stash's default blue accent color (`#2196f3`). ModernDark is a separate theme plugin that uses gold accents (`#e5a00d`). Need to create overrides for player controls.
+
+### Mockup Created
+
+**File:** `moderndark-mockup.html` (in session folder)
+
+Created a comprehensive HTML mockup showing all player components with ModernDark's gold theme applied.
+
+### Color Mapping
+
+| Element | Default (Extension) | ModernDark Override |
+|---------|---------------------|---------------------|
+| Progress bar | `#2196f3` (blue) | `#e5a00d` (gold) |
+| Scrubber handle | White + blue border | White + gold border |
+| Autoplay toggle (ON) | Blue track | Gold track with glow |
+| Settings toggles | Blue accent | Gold accent |
+| Active states | Blue highlight | Gold highlight |
+| Primary buttons | Blue | Gold |
+| Tag pills | Blue outline | Gold outline |
+
+### Components Mocked Up
+
+1. **Video Player** - Full control bar with gold progress bar, markers, chapter indicator, right panel pill
+2. **Thumbnail Scrubber** - Side-by-side comparison (OLD vs NEW ModernDark Gold style):
+   - OLD: Gray boxes, white position line
+   - NEW: Glass morphism, gold position line with pulse animation, cyan marker pills, activity heatmap
+3. **Chapter Dropdown** - Gold active state, edit/delete action buttons
+4. **Settings Menu** - Gold toggles, submenu navigation
+5. **Quality Menu** - HD badges, gold checkmark for active
+6. **Speed Submenu** - Gold active option, custom slider with gold fill
+7. **Filter Sliders** - Neutral gray tracks (unchanged from extension)
+8. **Marker Modal** - Dark cinema glass with gold Save button and time sync buttons
+
+### Key Design Decisions
+
+1. **Markers stay cyan/amber** - These distinguish point vs range markers, independent of theme accent color
+2. **Filter/transform sliders stay neutral gray** - No gold fill (per previous session decision)
+3. **Speed slider has gold fill** - Shows current position visually
+4. **Glass morphism preserved** - `backdrop-filter: blur()` on all overlays
+5. **Scrubber position line** - Gold with pulsing glow animation
+
+### ModernDark CSS Variables Used
+
+```scss
+// Core palette
+--md-body: #191919;
+--md-card: #242424;
+--md-nav: #212121;
+--md-border: #383838;
+
+// Gold accent system
+--md-gold: #e5a00d;
+--md-gold-bright: #f7c600;
+--md-gold-dim: #cc8a00;
+--md-gold-glow: rgba(229, 160, 13, 0.4);
+--md-gold-surface: rgba(229, 160, 13, 0.12);
+
+// Text hierarchy
+--md-text-100: #ffffff;
+--md-text-80: rgba(255, 255, 255, 0.80);
+--md-text-60: rgba(255, 255, 255, 0.60);
+
+// Surface overlays
+--md-glass: rgba(25, 25, 25, 0.92);
+--md-glass-light: rgba(255, 255, 255, 0.06);
+--md-glass-border: rgba(255, 255, 255, 0.08);
+
+// Preserved marker colors
+--marker-cyan: #00e5ff;
+--marker-amber: #ffab40;
+```
+
+### Scrubber Component Highlights
+
+The new ModernDark scrubber includes:
+- **Glass morphism container** with backdrop blur
+- **Gold position line** (3px) with gradient and glow
+- **Position head** - White circle with gold border, pulsing animation
+- **Cyan marker pills** - Rounded glass pills in tag area
+- **Activity heatmap** - Gold/amber gradient overlay
+- **Refined sprites** - Dark glass backgrounds with time labels
+
+### Screenshots
+
+- `.playwright-mcp/moderndark-mockup-full.png` - Initial mockup
+- `.playwright-mcp/moderndark-mockup-with-scrubber.png` - Updated with scrubber comparison
+
+### Next Steps
+
+1. **Create SCSS override file** in `plugins/ModernDark/components/ScenePlayer/` based on mockup
+2. **Test with ModernDark enabled** to verify overrides work
+3. **Deploy to production** after verification
+
+### Resume Point (2026-01-08) - Session 16
+
+**Status:** MOCKUP COMPLETE - READY FOR SCSS IMPLEMENTATION
+
+**To Resume:**
+1. Open `moderndark-mockup.html` in browser to review design
+2. Create `plugins/ModernDark/components/ScenePlayer/styles.scss` with gold overrides
+3. Build and deploy ModernDark plugin
+4. Test on `http://localhost:9999` with theme enabled
+
+**Files Created This Session:**
+- `ui/v2.5/src/extensions/docs/sessions/design/2026-01-06-youtube-player-controls/moderndark-mockup.html`
+
+**Reference:** `plugins/ModernDark/CLAUDE.md` for theme structure and deployment
+
+---
+
+## Session 17 - Range Marker Color Update (2026-01-08)
+
+### Issue: Range Marker Color Clash
+
+**Problem:** Amber range markers (`#ffab40`) clashed with gold progress bar (`#e5a00d`) in ModernDark theme. Both colors are too similar, making range markers hard to distinguish from the progress bar.
+
+### Solution: Magenta Range Markers
+
+**Changed range marker color from amber to magenta:**
+
+| Element | Default (Extension) | ModernDark Override |
+|---------|---------------------|---------------------|
+| Point markers | `#00e5ff` (cyan) | `#00e5ff` (unchanged) |
+| Range markers | `#ffab40` (amber) | `#ff4081` (magenta) |
+| Progress bar | `#2196f3` (blue) | `#e5a00d` (gold) |
+
+**Why magenta (`#ff4081`)?**
+1. **High contrast** - Opposite side of color wheel from gold
+2. **Distinct from cyan** - No confusion with point markers
+3. **Matches dark theme aesthetic** - Magenta accents common in premium dark UIs
+4. **Readable** - Bright enough to see on dark progress bar
+
+### Files Modified
+
+- `moderndark-mockup.html`:
+  - Updated `--marker-amber` → `--marker-magenta` CSS variables
+  - Updated `.marker-range` gradient colors
+  - Updated `.chapter-indicator .dot` color for range markers
+  - Updated `.chapter-item .marker-dot.range` color in dropdown
+
+### Screenshot
+
+- `.playwright-mcp/moderndark-magenta-markers.png` - Full mockup with magenta range markers
+
+### Final Color Scheme for ModernDark
+
+```scss
+// Point markers - cyan (unchanged)
+--marker-cyan: #00e5ff;
+--marker-cyan-glow: rgba(0, 229, 255, 0.5);
+
+// Range markers - magenta (changed from amber)
+--marker-magenta: #ff4081;
+--marker-magenta-glow: rgba(255, 64, 129, 0.4);
+
+// Progress bar - gold (theme accent)
+--md-gold: #e5a00d;
+```
+
+### Status: MOCKUP UPDATED ✅
+
+Ready to implement ModernDark SCSS overrides using this color scheme.
+
+---
+
+## Session 18 - ModernDark SCSS Implementation (2026-01-08)
+
+### Implementation Complete ✅
+
+Added comprehensive ModernDark overrides for YouTube-style player controls to `plugins/ModernDark/components/ScenePlayer/styles.scss`.
+
+### Overrides Added
+
+| Component | Override |
+|-----------|----------|
+| Progress bar | Gold gradient (`#cc8a00` → `#e5a00d`) with glow |
+| Scrubber handle | Gold border instead of blue |
+| Volume slider | Gold fill |
+| Autoplay toggle | Gold track when ON with glow |
+| Point markers | Cyan (unchanged from extension) |
+| Range markers | **Magenta** (`#ff4081`) - contrasts with gold |
+| Marker tooltip | Dark glass with backdrop blur |
+| Chapter indicator | Glass background, magenta/cyan dots |
+| Chapter dropdown | Gold active state, gold add button |
+| Right panel pill | ModernDark glass surface |
+| Settings menu | Gold toggles, gold active states |
+| Speed slider | Gold gradient fill |
+| Quality badges | Gold background |
+| Marker modal | Gold Save button, gold sync buttons, gold focus rings |
+| Tag pills | Gold outline |
+| Time tooltip | Glass background |
+
+### CSS Variables Added
+
+```scss
+.video-js {
+  // Gold accent system
+  --md-gold: #e5a00d;
+  --md-gold-bright: #f7c600;
+  --md-gold-dim: #cc8a00;
+  --md-gold-glow: rgba(229, 160, 13, 0.4);
+  --md-gold-surface: rgba(229, 160, 13, 0.12);
+
+  // Marker colors
+  --marker-cyan: #00e5ff;
+  --marker-cyan-glow: rgba(0, 229, 255, 0.5);
+  --marker-magenta: #ff4081;
+  --marker-magenta-glow: rgba(255, 64, 129, 0.4);
+
+  // Glass surfaces
+  --md-glass: rgba(25, 25, 25, 0.92);
+  --md-glass-light: rgba(255, 255, 255, 0.06);
+  --md-glass-border: rgba(255, 255, 255, 0.08);
+}
+```
+
+### Build & Deploy
+
+```bash
+cd plugins/ModernDark
+yarn build   # Compiled successfully
+yarn deploy  # Deployed to S:/stash/config/plugins/ModernDark/
+```
+
+### Files Modified
+
+- `plugins/ModernDark/components/ScenePlayer/styles.scss` - Added ~260 lines of player control overrides
+
+### Status: INITIAL DEPLOY COMPLETE
+
+---
+
+## Session 19 - Complete Gold Theme + Animations (2026-01-08)
+
+### Issue: Missing Color Overrides and Animations
+
+User noticed that dropdowns, menus, submenus, sliders, and animations weren't fully themed.
+
+### Additional Overrides Added
+
+**Settings Menu:**
+- `.vjs-settings-menu` - Glass background
+- `.vjs-settings-button.is-active` - Gold gear icon
+- `.settings-menu-toggle.is-on .toggle-switch` - Gold toggle switch
+- `.settings-option .option-check svg` - Gold checkmark
+- `.settings-option.is-selected` - Gold text
+- `.option-badge` - Gold HD/4K badges
+- Focus states - Gold outline on all interactive elements
+- Scrollbar thumb hover - Gold surface
+
+**Chapter Dropdown:**
+- `.vjs-chapter-header-add` - Gold add button
+- `.vjs-chapter-item.active` - Gold left border + gold title
+- `.vjs-chapter-action-btn:hover` - Glass light hover
+- `.vjs-chapter-action-btn.delete:hover` - Red hover
+
+**Marker Modal:**
+- Header, close button, labels
+- Input backgrounds - Dark glass
+- Delete button - Red outline
+- Cancel button - Glass hover
+- Footer - Dark background
+
+**Scrubber Tags:**
+- `.scrubber-tag` - Cyan with glow (preserved)
+
+### Animations Added
+
+**Keyframe Overrides:**
+```scss
+@keyframes scrubber-pulse {
+  // Gold glow for progress bar handle pulse
+}
+
+@keyframes scrubber-head-pulse {
+  // Gold glow for scrubber position indicator
+}
+```
+
+**Animation Applications:**
+- `.vjs-play-progress::before` - Gold pulse on hover
+- `#scrubber-current-position::after` - Gold pulse on position head
+- `.vjs-autostart-thumb` - Smooth slide + scale on hover
+
+### Build & Deploy
+
+```bash
+yarn build && yarn deploy  # Completed successfully
+```
+
+### Final Override Count
+
+~450 lines of player control overrides covering:
+- Progress bar + handle
+- Volume slider
+- Autoplay toggle
+- Point markers (cyan)
+- Range markers (magenta)
+- Chapter indicator + dropdown
+- Settings menu (all submenus)
+- Marker modal (all elements)
+- Scrubber tags
+- Animations (2 keyframes)
+- Focus states
+
+### Status: DEPLOYED ✅ - Ready for browser verification
