@@ -162,7 +162,8 @@ export const MarkerForm: React.FC<IMarkerFormProps> = ({
         "is-greater-than-seconds",
         "End time must be after start time",
         function (value) {
-          return value === null || value >= this.parent.seconds;
+          // Use > not >= since end time should be strictly after start time
+          return value === null || value > this.parent.seconds;
         }
       ),
     primary_tag_id: yup.string().required("Primary tag is required"),

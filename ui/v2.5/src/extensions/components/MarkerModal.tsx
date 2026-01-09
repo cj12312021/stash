@@ -121,7 +121,8 @@ export const MarkerModal: React.FC<IMarkerModalProps> = ({
     </div>
   );
 
-  // Portal to body for proper stacking
+  // Portal to body for proper stacking (with SSR check)
+  if (typeof document === "undefined") return null;
   return createPortal(modalContent, document.body);
 };
 

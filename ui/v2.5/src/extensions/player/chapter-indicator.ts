@@ -131,6 +131,9 @@ class ChapterIndicatorPlugin extends videojs.getPlugin("plugin") {
   private activeMarker: IMarkerWithId | null = null;
   private isOpen = false;
 
+  // Store bound handler for proper cleanup
+  private boundDocumentClickHandler: ((e: MouseEvent) => void) | null = null;
+
   constructor(player: VideoJsPlayer, options?: IChapterIndicatorOptions) {
     super(player, options);
 
@@ -225,11 +228,13 @@ class ChapterIndicatorPlugin extends videojs.getPlugin("plugin") {
     });
 
     // Close dropdown when clicking outside
-    document.addEventListener("click", (e) => {
+    // Store bound handler for cleanup in dispose()
+    this.boundDocumentClickHandler = (e: MouseEvent) => {
       if (this.isOpen && !this.containerEl?.contains(e.target as Node)) {
         this.closeDropdown();
       }
-    });
+    };
+    document.addEventListener("click", this.boundDocumentClickHandler);
 
     // Close dropdown on play
     this.player.on("play", () => this.closeDropdown());
@@ -562,10 +567,47 @@ class ChapterIndicatorPlugin extends videojs.getPlugin("plugin") {
   triggerCreate() {
     this.emitCreate();
   }
+
+  /**
+   * Cleanup when plugin is disposed
+   */
+  dispose() {
+    // Remove document click handler to prevent memory leaks
+    if (this.boundDocumentClickHandler) {
+      document.removeEventListener("click", this.boundDocumentClickHandler);
+      this.boundDocumentClickHandler = null;
+    }
+
+    // Remove DOM elements
+    this.containerEl?.remove();
+    this.quickAddEl?.remove();
+
+    // Clear references
+    this.containerEl = null;
+    this.titleEl = null;
+    this.dropdownEl = null;
+    this.quickAddEl = null;
+    this.markers = [];
+    this.activeMarker = null;
+
+    // Call parent dispose
+    super.dispose();
+  }
 }
 
 // Register the plugin
 videojs.registerPlugin("chapterIndicator", ChapterIndicatorPlugin);
+
+// Type-safe custom events for marker CRUD
+declare global {
+  // Augmenting built-in DOM interface
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  interface HTMLElementEventMap {
+    "marker-create": CustomEvent<IMarkerCreateEvent>;
+    "marker-edit": CustomEvent<IMarkerEditEvent>;
+    "marker-delete": CustomEvent<IMarkerDeleteEvent>;
+  }
+}
 
 /* eslint-disable @typescript-eslint/naming-convention */
 declare module "video.js" {
