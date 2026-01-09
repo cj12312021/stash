@@ -32,8 +32,10 @@ extensions/
 ├── filters/            # 29 custom filter components
 ├── hooks/              # 8 custom React hooks
 ├── ui/                 # 6 reusable UI components
+├── player/             # 3 VideoJS plugins (settings, icons, chapters)
+├── components/         # Full page components & detail panels (10 files)
 ├── facets/             # Facets extension registration
-├── styles/             # 14 custom SCSS files (~10,300 lines)
+├── styles/             # 15 custom SCSS files (~10,800 lines)
 ├── __tests__/          # Extension tests (4 files)
 │
 └── docs/               # Documentation
@@ -60,6 +62,15 @@ Full list page implementations with facet counts, custom sidebars, and extended 
 | Component | Key Features |
 |-----------|--------------|
 | `Scene.tsx` | Merge action, studio background, discover queue |
+
+### Player Plugins (3)
+VideoJS plugins for enhanced video player functionality:
+
+| Plugin | Key Features |
+|--------|--------------|
+| `SettingsMenuPlugin` | YouTube-style settings with speed, quality, autoplay |
+| `PlayerIconsPlugin` | SVG icons matching YouTube's 2024 design |
+| `ChapterIndicatorPlugin` | Marker display in control bar with CRUD menu |
 
 ### Filters (29)
 13 NEW + 16 enhanced filter components with facet counts, quick presets, and better UX.

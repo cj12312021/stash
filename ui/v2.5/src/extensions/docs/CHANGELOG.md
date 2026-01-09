@@ -4,6 +4,65 @@ This document tracks what has been added/modified from the upstream Stash codeba
 
 ---
 
+## 2026-01-08: YouTube-Style Video Player Controls
+
+Complete redesign of the VideoJS player controls to match YouTube's 2024 design language.
+
+### New Directory: `extensions/player/`
+
+A new VideoJS plugins directory with 3 plugins:
+
+| Plugin | Purpose |
+|--------|---------|
+| `settings-menu.ts` | YouTube-style settings menu with quality, speed, and autoplay controls |
+| `player-icons.ts` | SVG icons matching YouTube's current icon style |
+| `chapter-indicator.ts` | Chapter/marker indicator with CRUD operations and settings menu integration |
+
+### Features
+
+**Settings Menu:**
+- YouTube-style popup menu with nested submenus
+- Playback speed control (0.25x to 2x)
+- Source quality selection
+- Autoplay toggle with localStorage persistence
+- Keyboard navigation and accessibility
+
+**Chapter Indicator:**
+- Shows current marker name in control bar (e.g., "• Chapter Name")
+- Clicking opens settings menu with full marker management
+- Create/Edit/Delete markers directly from player controls
+- Premium modal UI with glass morphism design
+
+**Player Icons:**
+- All player buttons use SVG icons matching YouTube's style
+- Play, pause, volume, fullscreen, settings, and more
+- Consistent sizing and hover effects
+
+### New Components
+
+| Component | Purpose |
+|-----------|---------|
+| `MarkerModal.tsx` | Glass morphism modal for marker CRUD |
+| `MarkerForm.tsx` | Enhanced form for creating/editing markers |
+| `MarkerModal.scss` | Premium dark cinema glass styling |
+
+### Styles
+
+New SCSS file `_settings-menu.scss` (~520 lines) for the settings menu styling.
+
+Updated `_player-components.scss` with YouTube-style progress bar and control layout:
+- Thin progress bar that expands on hover
+- Volume slider that expands inline on hover
+- Circular scrubber handle
+- Button hover effects and tooltips
+
+### Design Documentation
+
+Full design session with mockups at:
+`docs/sessions/design/2026-01-06-youtube-player-controls/`
+
+---
+
 ## 2026-01-06: Session Logging Infrastructure
 
 Added a structured session logging system for tracking multi-conversation work.
