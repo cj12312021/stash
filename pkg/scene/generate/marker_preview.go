@@ -59,30 +59,68 @@ type sceneMarkerOptions struct {
 
 func (g Generator) markerPreviewVideo(input string, options sceneMarkerOptions) generateFn {
 	return func(lockCtx *fsutil.LockContext, tmpFn string) error {
+		// Select codec based on hardware acceleration setting
+		codec := ffmpeg.VideoCodecLibX264
+		hwAccelEnabled := g.FFMpegConfig.GetTranscodeHardwareAcceleration()
+		logger.Debugf("[marker] Hardware acceleration enabled: %v", hwAccelEnabled)
+		if hwAccelEnabled {
+			if hwCodec := g.Encoder.HWCodecMP4Compatible(); hwCodec != nil {
+				codec = *hwCodec
+				logger.Debugf("[marker] Using hardware codec: %s (%s)", codec.Name, codec.CodeName)
+			} else {
+				logger.Debug("[marker] No compatible hardware codec found, using libx264")
+			}
+		}
+
 		var videoFilter ffmpeg.VideoFilter
 		videoFilter = videoFilter.ScaleWidth(markerPreviewWidth)
+
+		// For hardware encoding, add format conversion and GPU upload after scaling
+		if codec != ffmpeg.VideoCodecLibX264 {
+			videoFilter = g.Encoder.HWFilterInit(codec, videoFilter)
+		}
 
 		var videoArgs ffmpeg.Args
 		videoArgs = videoArgs.VideoFilter(videoFilter)
 
-		videoArgs = append(videoArgs,
-			"-pix_fmt", "yuv420p",
-			"-profile:v", "high",
-			"-level", "4.2",
-			"-preset", "veryslow",
-			"-crf", "24",
-			"-movflags", "+faststart",
-			"-threads", "4",
-			"-sws_flags", "lanczos",
-			"-strict", "-2",
-		)
+		// Add codec-specific parameters
+		if codec == ffmpeg.VideoCodecLibX264 {
+			videoArgs = append(videoArgs,
+				"-pix_fmt", "yuv420p",
+				"-profile:v", "high",
+				"-level", "4.2",
+				"-preset", "veryslow",
+				"-crf", "24",
+				"-movflags", "+faststart",
+				"-threads", "4",
+				"-sws_flags", "lanczos",
+				"-strict", "-2",
+			)
+		} else {
+			// Add HW codec params without the -c:v (transcoder adds that)
+			videoArgs = append(videoArgs, ffmpeg.HWCodecParams(codec)...)
+			videoArgs = append(videoArgs,
+				"-movflags", "+faststart",
+				"-sws_flags", "lanczos",
+			)
+		}
+
+		// Build input args: hardware device init (if applicable) + user-configured args
+		var inputArgs ffmpeg.Args
+		if codec != ffmpeg.VideoCodecLibX264 {
+			inputArgs = g.Encoder.HWDeviceInit(codec, false)
+			logger.Debugf("[marker] Hardware device init args: %v", inputArgs)
+		}
+		inputArgs = append(inputArgs, g.FFMpegConfig.GetTranscodeInputArgs()...)
 
 		trimOptions := transcoder.TranscodeOptions{
-			Duration:   options.Duration,
-			StartTime:  options.Seconds,
-			OutputPath: tmpFn,
-			VideoCodec: ffmpeg.VideoCodecLibX264,
-			VideoArgs:  videoArgs,
+			Duration:        options.Duration,
+			StartTime:       options.Seconds,
+			OutputPath:      tmpFn,
+			VideoCodec:      codec,
+			VideoArgs:       videoArgs,
+			ExtraInputArgs:  inputArgs,
+			ExtraOutputArgs: g.FFMpegConfig.GetTranscodeOutputArgs(),
 		}
 
 		if options.Audio {

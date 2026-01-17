@@ -486,3 +486,95 @@ func (f *FFMpeg) hwCodecWEBMCompatible() *VideoCodec {
 	}
 	return nil
 }
+
+// HWCodecMP4Compatible returns the first available hardware codec compatible
+// with MP4 output, or nil if none is available. This is the public wrapper
+// for use by the generate package.
+func (f *FFMpeg) HWCodecMP4Compatible() *VideoCodec {
+	return f.hwCodecMP4Compatible()
+}
+
+// HWDeviceInit returns the hardware device initialization args for a given codec.
+// This is used by the generate package to set up hardware encoding.
+// The fullhw parameter enables full hardware transcoding (decode + encode on GPU).
+func (f *FFMpeg) HWDeviceInit(codec VideoCodec, fullhw bool) Args {
+	var args Args
+	return f.hwDeviceInit(args, codec, fullhw)
+}
+
+// HWFilterInit appends format conversion and GPU upload filters to an existing video filter
+// for hardware encoding. This is needed when doing software scaling before hardware encoding.
+func (f *FFMpeg) HWFilterInit(codec VideoCodec, existingFilter VideoFilter) VideoFilter {
+	switch codec {
+	case VideoCodecN264, VideoCodecN264H:
+		existingFilter = existingFilter.Append("format=nv12")
+		existingFilter = existingFilter.Append("hwupload_cuda")
+	case VideoCodecV264, VideoCodecVVP9:
+		existingFilter = existingFilter.Append("format=nv12")
+		existingFilter = existingFilter.Append("hwupload")
+	case VideoCodecI264, VideoCodecI264C, VideoCodecIVP9:
+		existingFilter = existingFilter.Append("hwupload=extra_hw_frames=64")
+		existingFilter = existingFilter.Append("format=qsv")
+	case VideoCodecM264:
+		existingFilter = existingFilter.Append("format=nv12")
+		existingFilter = existingFilter.Append("hwupload")
+	case VideoCodecRK264:
+		existingFilter = existingFilter.Append("format=nv12")
+		existingFilter = existingFilter.Append("hwupload")
+	}
+	return existingFilter
+}
+
+// HWCodecParams returns the codec-specific encoding parameters WITHOUT the -c:v flag.
+// Use this when the caller separately sets the video codec (e.g., via transcoder.VideoCodec).
+func HWCodecParams(codec VideoCodec) (args Args) {
+	switch codec {
+	case VideoCodecN264:
+		args = append(args,
+			"-rc", "vbr",
+			"-cq", "15",
+		)
+	case VideoCodecN264H:
+		args = append(args,
+			"-preset", "p7",
+			"-tune", "hq",
+			"-profile:v", "high",
+			"-rc", "vbr",
+			"-rc-lookahead", "60",
+			"-surfaces", "64",
+			"-spatial-aq", "1",
+			"-aq-strength", "15",
+			"-cq", "15",
+			"-coder", "cabac",
+			"-b_ref_mode", "middle",
+		)
+	case VideoCodecI264, VideoCodecIVP9:
+		args = append(args,
+			"-global_quality", "20",
+			"-preset", "faster",
+		)
+	case VideoCodecI264C:
+		args = append(args,
+			"-q", "20",
+			"-preset", "faster",
+		)
+	case VideoCodecV264, VideoCodecVVP9:
+		args = append(args,
+			"-qp", "20",
+		)
+	case VideoCodecA264:
+		args = append(args,
+			"-quality", "speed",
+		)
+	case VideoCodecM264:
+		args = append(args,
+			"-realtime", "1",
+		)
+	case VideoCodecO264:
+		args = append(args,
+			"-preset", "superfast",
+			"-crf", "25",
+		)
+	}
+	return args
+}

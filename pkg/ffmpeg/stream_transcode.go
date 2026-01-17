@@ -48,9 +48,9 @@ func CodecInit(codec VideoCodec) (args Args) {
 		)
 	case VideoCodecN264H:
 		args = append(args,
-			"-profile", "p7",
+			"-preset", "p7",
 			"-tune", "hq",
-			"-profile", "high",
+			"-profile:v", "high",
 			"-rc", "vbr",
 			"-rc-lookahead", "60",
 			"-surfaces", "64",
